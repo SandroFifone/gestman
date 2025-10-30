@@ -1,0 +1,204 @@
+Frese:
+
+Id Aziendale
+Proprietà
+Costruttore
+Modello
+Matricola
+Alimentazione
+Potenza
+Anno di produzione
+Peso
+Controllo
+Ip assegnato
+Frequenza tastatore
+
+Percorso per accedere a documentazione tecnica
+
+Lista verticale di prodotti 'consumabili':
+
+Forni:
+
+Id Aziendale
+Proprietà
+Costruttore
+Modello
+Matricola
+Alimentazione
+Potenza
+Anno di produzione
+Peso
+Ip assegnato
+
+Percorso per accedere a documentazione tecnica
+
+Torni:
+
+Id Aziendale
+Proprietà
+Costruttore
+Modello
+Matricola
+Alimentazione
+Potenza
+Anno di produzione
+Peso
+Controllo
+Ip assegnato
+
+Percorso per accedere a documentazione tecnica
+
+Lista verticale di prodotti 'consumabili':
+
+Gru:
+
+Id Aziendale
+Proprietà
+Costruttore
+Modello
+Matricola paranco
+Matricola supporto
+Alimentazione
+Potenza
+Anno di produzione
+Portata di sollevamento
+
+Percorso per accedere a documentazione tecnica
+
+Scaffalature:
+
+Id Aziendale
+Proprietà
+Costruttore
+Numero stalli
+Numero ripiani
+Portata per ripiano
+
+Percorso per accedere a documentazione tecnica
+
+Compressori:
+
+Id Aziendale
+Proprietà
+Costruttore
+Modello
+Matricola
+Alimentazione
+Potenza
+Portata
+Anno di produzione
+Peso
+
+
+Percorso per accedere a documentazione tecnica
+
+Lista verticale di prodotti 'consumabili':
+
+Condizionatori:
+
+Id Aziendale
+Proprietà
+Costruttore
+Modello
+Matricola
+Alimentazione
+Potenza
+Anno di produzione
+
+
+Percorso per accedere a documentazione tecnica
+
+Caldaie:
+
+Id Aziendale
+Proprietà
+Costruttore
+Modello
+Matricola
+Alimentazione
+Potenza
+Anno di produzione
+Peso
+
+Percorso per accedere a documentazione tecnica
+
+Gruppi aspirazione:
+
+Id Aziendale
+Proprietà
+Costruttore
+Modello
+Matricola
+Alimentazione
+Potenza
+Portata
+Anno di produzione
+Peso
+
+Percorso per accedere a documentazione tecnica
+
+Lista verticale di prodotti 'consumabili':
+
+Stampanti:
+
+Id Aziendale
+Proprietà
+Costruttore
+Modello
+Matricola
+Alimentazione
+Potenza
+Anno di produzione
+Peso
+Ip assegnato
+
+Percorso per accedere a documentazione tecnica
+
+Lista verticale di prodotti 'consumabili':
+
+Robur:
+
+Id Aziendale
+Proprietà
+Costruttore
+Modello
+Matricola
+Alimentazione
+Potenza
+Anno di produzione
+Peso
+
+Percorso per accedere a documentazione tecnica
+
+Lista verticale di prodotti 'consumabili':
+
+Fotovoltaico:
+
+Id Aziendale
+Proprietà
+Potenza
+Anno di produzione
+
+Percorso per accedere a documentazione tecnica
+
+Carrelli Elevatori:
+
+Id Aziendale
+Proprietà
+Costruttore
+Modello
+Matricola
+Alimentazione
+Potenza
+Anno di produzione
+Peso
+Portata
+
+Percorso per accedere a documentazione tecnica
+
+
+
+
+
+
+

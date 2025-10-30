@@ -1,0 +1,272 @@
+/* WelcomeScreen.css */
+
+.welcome-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #1976d2, #0d47a1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: welcomeIn 0.5s ease-out;
+}
+
+.welcome-screen.fade-out {
+  animation: welcomeOut 1s ease-in forwards;
+}
+
+@keyframes welcomeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes welcomeOut {
+  to {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+}
+
+.welcome-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  width: 100%;
+  height: 100vh;
+}
+
+/* Container Video con Maschera */
+.video-container {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  animation: videoFloat 3s ease-in-out infinite;
+}
+
+@keyframes videoFloat {
+  0%, 100% { 
+    transform: translate(-50%, -50%) translateY(0px) rotate(0deg); 
+  }
+  50% { 
+    transform: translate(-50%, -50%) translateY(-20px) rotate(2deg); 
+  }
+}
+
+.welcome-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Maschera per ritagliare la forma del soggetto */
+.video-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    rgba(25, 118, 210, 0.8) 70%,
+    rgba(25, 118, 210, 1) 85%
+  );
+  pointer-events: none;
+}
+
+/* Effetto anello luminoso intorno al video */
+.video-container::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #ffd700, #ff6b35, #1976d2, #ffd700);
+  background-size: 400% 400%;
+  animation: glowRotate 3s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes glowRotate {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Testo di Benvenuto */
+.welcome-text {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, calc(-50% + 250px));
+  animation: textSlideIn 1s ease-out;
+  width: 100%;
+}
+
+@keyframes textSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 280px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, calc(-50% + 250px));
+  }
+}
+
+.greeting {
+  font-size: 3rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  animation: textGlow 2s ease-in-out infinite alternate;
+  line-height: 1.1;
+}
+
+.username-inline {
+  color: white;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+/* Loading Dots */
+.loading-dots {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  justify-content: center;
+}
+
+.loading-dots span {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  animation: dotPulse 1.5s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes dotPulse {
+  0%, 60%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  30% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+}
+
+/* Overlay di Sfondo */
+.welcome-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(255,107,53,0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255,215,0,0.3) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(25,118,210,0.4) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .video-container {
+    width: 250px;
+    height: 250px;
+    top: 38%;
+  }
+
+  .welcome-text {
+    top: 38%;
+    transform: translate(-50%, calc(-50% + 200px));
+  }
+
+  @keyframes textSlideIn {
+    from {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% + 230px));
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, calc(-50% + 200px));
+    }
+  }
+
+  .greeting {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .video-container {
+    width: 200px;
+    height: 200px;
+    top: 35%;
+  }
+
+  .welcome-text {
+    top: 35%;
+    transform: translate(-50%, calc(-50% + 160px));
+  }
+
+  @keyframes textSlideIn {
+    from {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% + 190px));
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, calc(-50% + 160px));
+    }
+  }
+
+  .greeting {
+    font-size: 2rem;
+  }
+
+  /* A capo su mobile */
+  .username-inline::before {
+    content: '\A';
+    white-space: pre;
+  }
+}

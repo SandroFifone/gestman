@@ -1,0 +1,254 @@
+/* SIDEBAR RESPONSIVE */
+.sidebar {
+  position: fixed;
+  left: -100%;
+  top: var(--topbar-height-mobile);
+  width: var(--sidebar-width-mobile);
+  height: calc(100vh - var(--topbar-height-mobile));
+  background: white;
+  border-right: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  transition: left var(--transition-normal);
+  overflow-y: auto;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar-open {
+  left: 0;
+}
+
+/* Backdrop per mobile e tablet portrait */
+.sidebar-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: calc(var(--z-modal) - 1);
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .sidebar-backdrop {
+    display: block;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .sidebar-backdrop {
+    display: block;
+  }
+}
+
+@media (min-width: 768px) and (orientation: landscape) {
+  .sidebar-backdrop {
+    display: block;
+  }
+}
+
+@media (min-width: 1025px) {
+  .sidebar-backdrop {
+    display: block;
+  }
+}
+
+/* Header della sidebar */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--gray-50);
+}
+
+.sidebar-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-color);
+  margin: 0;
+}
+
+.sidebar-close {
+  background: none;
+  border: none;
+  font-size: var(--font-size-lg);
+  color: var(--gray-500);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: var(--border-radius-md);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.sidebar-close:hover {
+  background: var(--gray-200);
+  color: var(--gray-700);
+}
+
+/* Navigation */
+.sidebar-nav {
+  flex: 1;
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Stili per i bottoni della sidebar */
+.sidebar-nav button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-lg);
+  background: transparent;
+  color: var(--gray-700);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  position: relative;
+  outline: none;
+}
+
+.sidebar-icon {
+  font-size: var(--font-size-lg);
+  min-width: 24px;
+  text-align: center;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.sidebar-nav button:hover {
+  background: var(--gray-50);
+  color: var(--primary-color);
+  transform: translateX(4px);
+}
+
+.sidebar-nav button.active {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+  color: white;
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
+  transform: translateX(4px);
+}
+
+.sidebar-nav button.active::before {
+  content: '';
+  position: absolute;
+  left: -var(--spacing-lg);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 24px;
+  background: var(--primary-color);
+  border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+}
+
+/* Sezione admin con separatore */
+.sidebar-admin-section {
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-xl);
+  border-top: 1px solid var(--gray-200);
+}
+
+.sidebar-admin-section::before {
+  content: '⚙️ Admin Tools';
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-md);
+}
+
+/* === TABLET LANDSCAPE AND DESKTOP === */
+@media (min-width: 768px) and (orientation: landscape) {
+  .sidebar {
+    left: -100%;
+    top: var(--topbar-height);
+    width: var(--sidebar-width);
+    height: calc(100vh - var(--topbar-height));
+    box-shadow: var(--shadow-sm);
+    transition: left var(--transition-normal);
+  }
+  
+  .sidebar.sidebar-open {
+    left: 0;
+  }
+  
+  .sidebar-header {
+    display: none;
+  }
+  
+  .sidebar-nav {
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+}
+
+@media (min-width: 1025px) {
+  .sidebar {
+    left: -100%;
+    top: var(--topbar-height);
+    width: var(--sidebar-width);
+    height: calc(100vh - var(--topbar-height));
+    box-shadow: var(--shadow-sm);
+    transition: left var(--transition-normal);
+  }
+  
+  .sidebar.sidebar-open {
+    left: 0;
+  }
+  
+  .sidebar-header {
+    display: none;
+  }
+  
+  .sidebar-nav {
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+}
+
+/* === TABLET PORTRAIT === */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .sidebar {
+    position: fixed;
+    left: -100%;
+    top: var(--topbar-height-mobile);
+    width: var(--sidebar-width-mobile);
+    height: calc(100vh - var(--topbar-height-mobile));
+    background: white;
+    border-right: 1px solid var(--gray-200);
+    box-shadow: var(--shadow-lg);
+    z-index: var(--z-modal);
+    transition: left var(--transition-normal);
+    transform: none;
+  }
+  
+  .sidebar.sidebar-open {
+    left: 0;
+  }
+  
+  .sidebar-nav {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+  
+  .sidebar-nav-item {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 14px;
+  }
+}

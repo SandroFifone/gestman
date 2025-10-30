@@ -1,0 +1,305 @@
+
+.users-manager {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px #0a2a6611;
+  display: block;
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  min-height: 0;
+}
+
+.users-manager-wide {
+  width: 90vw;
+  max-width: 1200px;
+}
+.users-manager-grid {
+  width: 100vw;
+  max-width: 100vw;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  top: 0;
+}
+.um-table-wide {
+  width: 100%;
+  margin-top: 0;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+.um-add-user {
+  margin-bottom: 16px;
+  text-align: left;
+}
+.um-edit-fields {
+  display: flex;
+  gap: 8px;
+}
+.um-actions {
+  display: flex;
+  gap: 8px;
+}
+.users-manager {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px #0a2a6611;
+  padding: 32px 24px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.um-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 18px;
+}
+.um-table th, .um-table td {
+  border: 1px solid #e3eaf6;
+  padding: 10px 8px;
+  text-align: left;
+}
+.um-table th {
+  background: #f8faff;
+  color: #0a2a66;
+}
+.um-table td {
+  background: #fff;
+}
+.um-table button {
+  margin-right: 8px;
+  background: #0a2a66;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 0.98rem;
+  transition: background 0.2s;
+}
+.um-table button:hover {
+  background: #174ea6;
+}
+.um-delete {
+  background: #c00;
+}
+.um-delete:hover {
+  background: #a00;
+}
+.um-error {
+  color: #c00;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+/* === TABLET PORTRAIT === */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .users-manager {
+    padding: 20px;
+    max-width: 95%;
+  }
+  
+  .users-manager-wide {
+    width: 95vw;
+  }
+  
+  .um-edit-fields {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .um-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .um-table th, 
+  .um-table td {
+    padding: 8px 6px;
+    font-size: 14px;
+  }
+  
+  .um-table button {
+    padding: 4px 8px;
+    font-size: 13px;
+    margin-right: 4px;
+  }
+}
+
+/* === MOBILE === */
+@media (max-width: 768px) {
+  .users-manager {
+    padding: 15px;
+    max-width: 100%;
+    border-radius: 0;
+  }
+  
+  .users-manager-wide {
+    width: 100vw;
+  }
+  
+  .um-edit-fields {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .um-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .um-table {
+    font-size: 12px;
+  }
+  
+  .um-table th, 
+  .um-table td {
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+  
+  .um-table button {
+    padding: 3px 6px;
+    font-size: 11px;
+    margin-right: 2px;
+  }
+}
+
+/* Stili per Modal Permessi */
+.permissions-manager {
+  padding: 20px;
+  max-width: 600px;
+}
+
+.permissions-intro {
+  margin-bottom: 20px;
+  color: #666;
+  font-size: 14px;
+}
+
+.sections-grid {
+  display: grid;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.section-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  border: 2px solid #e1e8ed;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.section-checkbox:hover {
+  border-color: #3498db;
+  background: #f8f9fa;
+}
+
+.section-checkbox input[type="checkbox"] {
+  margin: 0;
+  transform: scale(1.2);
+}
+
+.section-checkbox input[type="checkbox"]:checked + .section-info {
+  color: #2c3e50;
+}
+
+.section-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.section-icon {
+  font-size: 20px;
+  width: 30px;
+  text-align: center;
+}
+
+.section-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.section-details strong {
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.section-details small {
+  color: #7f8c8d;
+  font-size: 12px;
+}
+
+.admin-sections-note {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #e74c3c;
+  margin-bottom: 20px;
+}
+
+.admin-sections-note h4 {
+  margin: 0 0 10px 0;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.admin-sections-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-section-badge {
+  background: #ecf0f1;
+  color: #7f8c8d;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e1e8ed;
+}
+
+.btn-info {
+  background: #3498db;
+  color: white;
+  border: none;
+}
+
+.btn-info:hover {
+  background: #2980b9;
+}
+
+/* Responsive per modal permessi */
+@media (max-width: 768px) {
+  .permissions-manager {
+    padding: 15px;
+  }
+  
+  .section-checkbox {
+    padding: 12px;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+  }
+  
+  .modal-actions button {
+    width: 100%;
+  }
+}

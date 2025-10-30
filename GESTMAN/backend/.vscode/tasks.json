@@ -1,0 +1,13 @@
+{
+  // See https://code.visualstudio.com/docs/editor/tasks for more information
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Esegui backend Python",
+      "type": "shell",
+      "command": "python main.py",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

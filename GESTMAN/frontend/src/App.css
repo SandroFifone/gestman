@@ -1,0 +1,127 @@
+/* ====================
+   APP LAYOUT RESPONSIVE
+   ==================== */
+
+.app-container {
+  min-height: 100vh;
+  background: var(--gray-50);
+}
+
+.app-layout {
+  display: flex;
+}
+
+.main-content {
+  flex: 1;
+  margin-top: var(--topbar-height-mobile);
+  padding: var(--spacing-md);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--gray-50);
+  box-sizing: border-box;
+  min-height: calc(100vh - var(--topbar-height-mobile));
+  max-height: calc(100vh - var(--topbar-height-mobile));
+}
+
+/* Sidebar overlay per mobile */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: var(--z-modal-backdrop);
+}
+
+/* === TABLET LANDSCAPE AND DESKTOP === */
+@media (min-width: 768px) and (orientation: landscape) {
+  .main-content {
+    margin-left: 0;
+    margin-top: var(--topbar-height);
+    padding: var(--spacing-xl);
+    width: 100vw;
+    min-height: calc(100vh - var(--topbar-height));
+    max-height: calc(100vh - var(--topbar-height));
+    transition: margin-left var(--transition-normal), width var(--transition-normal);
+  }
+  
+  .main-content.sidebar-open {
+    margin-left: var(--sidebar-width);
+    width: calc(100vw - var(--sidebar-width));
+  }
+}
+
+@media (min-width: 1025px) {
+  .main-content {
+    margin-left: 0;
+    margin-top: var(--topbar-height);
+    padding: var(--spacing-xl);
+    width: 100vw;
+    min-height: calc(100vh - var(--topbar-height));
+    max-height: calc(100vh - var(--topbar-height));
+    transition: margin-left var(--transition-normal), width var(--transition-normal);
+  }
+  
+  .main-content.sidebar-open {
+    margin-left: var(--sidebar-width);
+    width: calc(100vw - var(--sidebar-width));
+  }
+}
+
+/* === TABLET PORTRAIT === */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .main-content {
+    margin-left: 0;
+    margin-top: var(--topbar-height-mobile);
+    padding: var(--spacing-lg);
+    width: 100vw;
+    min-height: calc(100vh - var(--topbar-height-mobile));
+    max-height: calc(100vh - var(--topbar-height-mobile));
+    overflow-y: auto;
+  }
+}
+
+/* === LEGACY STYLES === */
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: initial;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
