@@ -641,7 +641,7 @@ def get_magazzino_docs():
 
 @bp.route('/allegati', methods=['GET'])
 def get_allegati_docs():
-    """Ottieni tutti gli allegati caricati dalle compilazioni"""
+    """Ottieni tutti gli allegati caricati dalle compilazioni - Test webhook"""
     try:
         results = []
         
