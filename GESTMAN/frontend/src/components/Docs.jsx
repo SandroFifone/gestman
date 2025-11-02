@@ -22,12 +22,6 @@ const Docs = ({ username, isAdmin }) => {
       description: 'Tutte le compilazioni dei form dinamici'
     },
     { 
-      key: 'allegati', 
-      label: 'Allegati', 
-      icon: '📎',
-      description: 'Tutti gli allegati e file caricati dalle compilazioni'
-    },
-    { 
       key: 'scadenze', 
       label: 'Scadenze Programmate', 
       icon: '⏰',
@@ -195,8 +189,6 @@ const Docs = ({ username, isAdmin }) => {
           return item.id_aziendale;
         } else if (activeSection === 'files') {
           return item.id; // Usa il percorso relativo come ID
-        } else if (activeSection === 'allegati') {
-          return item.id; // Usa il percorso del file come ID
         } else {
           return item.id;
         }

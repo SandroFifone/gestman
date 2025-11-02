@@ -639,71 +639,6 @@ def get_magazzino_docs():
         print(f"[ERROR] get_magazzino_docs: {e}")
         return jsonify({'error': str(e)}), 500
 
-@bp.route('/allegati', methods=['GET'])
-def get_allegati_docs():
-    """Ottieni tutti gli allegati caricati dalle compilazioni"""
-    try:
-        results = []
-        
-        # Controlla tutti i file nella cartella uploads (escludendo sottocartelle form)
-        if os.path.exists(UPLOADS_FOLDER):
-            for file in os.listdir(UPLOADS_FOLDER):
-                file_path = os.path.join(UPLOADS_FOLDER, file)
-                if os.path.isfile(file_path):
-                    # Ottieni informazioni sul file
-                    stat_info = os.stat(file_path)
-                    size_mb = round(stat_info.st_size / (1024 * 1024), 2)
-                    created_date = datetime.fromtimestamp(stat_info.st_ctime).strftime('%Y-%m-%d %H:%M:%S')
-                    modified_date = datetime.fromtimestamp(stat_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
-                    
-                    results.append({
-                        'id': file,  # Nome del file come ID
-                        'nome_file': file,
-                        'dimensione_mb': size_mb,
-                        'data_creazione': created_date,
-                        'data_modifica': modified_date,
-                        'percorso': file,
-                        'tipo': os.path.splitext(file)[1][1:].upper() if '.' in file else 'N/A'
-                    })
-        
-        # Controlla anche nelle sottocartelle delle compilazioni dinamiche
-        dynamic_forms_path = os.path.join(UPLOADS_FOLDER, 'form')
-        if os.path.exists(dynamic_forms_path):
-            for root, dirs, files in os.walk(dynamic_forms_path):
-                for file in files:
-                    file_full_path = os.path.join(root, file)
-                    relative_path = os.path.relpath(file_full_path, UPLOADS_FOLDER)
-                    
-                    stat_info = os.stat(file_full_path)
-                    size_mb = round(stat_info.st_size / (1024 * 1024), 2)
-                    created_date = datetime.fromtimestamp(stat_info.st_ctime).strftime('%Y-%m-%d %H:%M:%S')
-                    modified_date = datetime.fromtimestamp(stat_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
-                    
-                    results.append({
-                        'id': relative_path,  # Percorso relativo come ID
-                        'nome_file': file,
-                        'dimensione_mb': size_mb,
-                        'data_creazione': created_date,
-                        'data_modifica': modified_date,
-                        'percorso': relative_path,
-                        'tipo': os.path.splitext(file)[1][1:].upper() if '.' in file else 'N/A'
-                    })
-        
-        # Ordina per data di modifica (più recenti prima)
-        results.sort(key=lambda x: x['data_modifica'], reverse=True)
-        
-        return jsonify({
-            'data': results,
-            'total': len(results),
-            'filters': {
-                'tipo': list(set([r['tipo'] for r in results if r['tipo'] != 'N/A']))
-            }
-        }), 200
-        
-    except Exception as e:
-        print(f"[ERROR] get_allegati_docs: {e}")
-        return jsonify({'error': str(e)}), 500
-
 @bp.route('/<section>/export', methods=['GET'])
 def export_data(section):
     """Export dati in Excel o PDF"""
@@ -2884,6 +2819,3 @@ def not_found(error):
 @bp.errorhandler(500)
 def internal_error(error):
     return jsonify({'error': 'Errore interno del server'}), 500
-#   T e s t   m o d i f i c a   w o r k f l o w 
- 
- 
