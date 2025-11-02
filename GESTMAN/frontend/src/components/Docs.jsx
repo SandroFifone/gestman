@@ -22,6 +22,12 @@ const Docs = ({ username, isAdmin }) => {
       description: 'Tutte le compilazioni dei form dinamici'
     },
     { 
+      key: 'allegati', 
+      label: 'Allegati', 
+      icon: '📎',
+      description: 'Tutti gli allegati e file caricati dalle compilazioni'
+    },
+    { 
       key: 'scadenze', 
       label: 'Scadenze Programmate', 
       icon: '⏰',
@@ -189,6 +195,8 @@ const Docs = ({ username, isAdmin }) => {
           return item.id_aziendale;
         } else if (activeSection === 'files') {
           return item.id; // Usa il percorso relativo come ID
+        } else if (activeSection === 'allegati') {
+          return item.id; // Usa il percorso del file come ID
         } else {
           return item.id;
         }
@@ -365,7 +373,7 @@ const Docs = ({ username, isAdmin }) => {
   };
 
   const canCleanup = () => {
-    return ['compilazioni', 'scadenze', 'alert', 'files'].includes(activeSection);
+    return ['compilazioni', 'scadenze', 'alert', 'files', 'allegati'].includes(activeSection);
   };
 
   const renderFilters = () => {
@@ -473,7 +481,7 @@ const Docs = ({ username, isAdmin }) => {
                 {headers.map(header => (
                   <th key={header}>{formatHeader(header)}</th>
                 ))}
-                {((isAdmin && activeSection !== 'magazzino') || activeSection === 'files') && <th>Azioni</th>}
+                {((isAdmin && activeSection !== 'magazzino') || activeSection === 'files' || activeSection === 'allegati') && <th>Azioni</th>}
               </tr>
             </thead>
             <tbody>
@@ -506,6 +514,8 @@ const Docs = ({ username, isAdmin }) => {
                   recordData = row.id_aziendale;
                 } else if (activeSection === 'files') {
                   recordData = row.id; // Usa il percorso relativo come ID
+                } else if (activeSection === 'allegati') {
+                  recordData = row.id; // Usa il percorso del file come ID
                 } else {
                   recordData = row.id;
                 }
@@ -532,10 +542,10 @@ const Docs = ({ username, isAdmin }) => {
                         {formatValue(header, row[header])}
                       </td>
                     ))}
-                    {(isAdmin && activeSection !== 'magazzino') || activeSection === 'files' ? (
+                    {(isAdmin && activeSection !== 'magazzino') || activeSection === 'files' || activeSection === 'allegati' ? (
                       <td className="actions-cell">
                         {/* Pulsante download per i file */}
-                        {activeSection === 'files' && (
+                        {(activeSection === 'files' || activeSection === 'allegati') && (
                           <button
                             onClick={() => handleDownloadFile(row.download_url)}
                             className="btn-download"
@@ -727,7 +737,7 @@ const Docs = ({ username, isAdmin }) => {
       return `${value.id_aziendale} (${value.tipo})`;
     }
     
-    if (header === 'nome_file' && activeSection === 'files') {
+    if (header === 'nome_file' && (activeSection === 'files' || activeSection === 'allegati')) {
       // Mostra solo il nome del file (senza path) con icona di download
       return (
         <span className="file-name-cell">
@@ -789,7 +799,7 @@ const Docs = ({ username, isAdmin }) => {
           </div>
           
           <div className="modal-body">
-            {activeSection === 'files' ? (
+            {(activeSection === 'files' || activeSection === 'allegati') ? (
               <>
                 <p>🧹 <strong>Pulizia File Orfani</strong></p>
                 <p>Rimuovi i file che non sono più associati a nessun record nel database.</p>
