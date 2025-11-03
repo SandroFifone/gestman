@@ -105,11 +105,13 @@ const UserEditModal = ({ isOpen, onClose, user, onUserUpdate }) => {
         throw new Error(data.error || 'Errore durante l\'aggiornamento');
       }
 
-      // Aggiorna i dati utente nell'app
-      onUserUpdate({
-        ...user,
-        nome: formData.nome.trim()
-      });
+      // Aggiorna i dati utente nell'app (se la funzione è disponibile)
+      if (onUserUpdate && typeof onUserUpdate === 'function') {
+        onUserUpdate({
+          ...user,
+          nome: formData.nome.trim()
+        });
+      }
 
       // Chiudi il modal
       onClose();
