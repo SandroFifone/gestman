@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Auth from './components/Auth';
 import Topbar from './components/Topbar';
@@ -23,45 +24,83 @@ import { API_URLS } from './config/api';
 
 import AlertScreen from './components/AlertScreen';
 
+// Componente principale che gestisce autenticazione
 function App() {
   const [user, setUser] = useState(null); // { username, isAdmin, nome }
-  const [userSections, setUserSections] = useState([]); // sezioni accessibili all'utente
-  const [page, setPage] = useState('home');
-  const [selectedCivico, setSelectedCivico] = useState(null); // per breadcrumb e navigazione
-  const [sidebarOpen, setSidebarOpen] = useState(false); // per mobile sidebar
   const [showWelcome, setShowWelcome] = useState(false); // per welcome screen
 
-    // Carica le sezioni utente quando l'utente fa login
-  const loadUserSections = async (userData) => {
-    if (userData.isAdmin) {
-      // Admin ha accesso a tutto
-      setUserSections(['dashboard', 'assets', 'compilazioni', 'calendario', 'rubrica', 'alert', 'docs', 'tickets', 'magazzino']);
-      return;
-    }
-
-    try {
-      // Trova l'ID utente dal nome
-      const usersRes = await fetch(API_URLS.USERS);
-      const usersData = await usersRes.json();
-      const currentUser = usersData.users.find(u => u.username === userData.username);
-      
-      if (currentUser) {
-        const sectionsRes = await fetch(`${API_URLS.USERS}/${currentUser.id}/sections`);
-        const sectionsData = await sectionsRes.json();
-        const sections = sectionsData.sections || [];
-        setUserSections(sections);
-        
-        // Rimosso auto-redirect: l'utente rimane sempre sulla home dopo il login
-      }
-    } catch (error) {
-      console.error('Errore caricamento sezioni utente:', error);
-      setUserSections([]);
-    }
+  // Aggiorna la funzione di autenticazione
+  const handleAuth = (userData) => {
+    setUser(userData);
+    setShowWelcome(true); // Attiva welcome screen dopo login
   };
+
+  // Callback per completare il welcome screen
+  const handleWelcomeComplete = () => {
+    setShowWelcome(false);
+  };
+
+  if (!user) {
+    return <Auth onAuth={handleAuth} />;
+  }
+
+  // Mostra welcome screen dopo il login
+  if (showWelcome) {
+    return (
+      <WelcomeScreen 
+        user={user} 
+        onComplete={handleWelcomeComplete} 
+      />
+    );
+  }
+
+  return (
+    <Router>
+      <AppContent user={user} />
+    </Router>
+  );
+}
+
+// Componente che gestisce il contenuto dell'app con routing
+function AppContent({ user }) {
+  const [userSections, setUserSections] = useState([]); // sezioni accessibili all'utente
+  const [selectedCivico, setSelectedCivico] = useState(null); // per breadcrumb e navigazione
+  const [sidebarOpen, setSidebarOpen] = useState(false); // per mobile sidebar
+  const navigate = useNavigate();
+  const location = useLocation();
+
+      // Carica le sezioni utente quando il componente si monta
+  useEffect(() => {
+    const loadUserSections = async () => {
+      if (user.isAdmin) {
+        // Admin ha accesso a tutto
+        setUserSections(['dashboard', 'assets', 'compilazioni', 'calendario', 'rubrica', 'alert', 'docs', 'tickets', 'magazzino']);
+        return;
+      }
+
+      try {
+        const usersRes = await fetch(API_URLS.USERS);
+        const users = await usersRes.json();
+        const currentUser = users.find(u => u.username === user.username);
+        
+        if (currentUser && currentUser.id) {
+          const sectionsRes = await fetch(`${API_URLS.USERS}/${currentUser.id}/sections`);
+          const sectionsData = await sectionsRes.json();
+          const sections = sectionsData.sections || [];
+          setUserSections(sections);
+        }
+      } catch (error) {
+        console.error('Errore caricamento sezioni utente:', error);
+        setUserSections([]);
+      }
+    };
+
+    loadUserSections();
+  }, [user]);
 
   // Navigazione globale al magazzino con ricambio specifico
   const navigateToMagazzino = (ricambioId = null) => {
-    setPage('magazzino');
+    navigate('/magazzino');
     setSelectedCivico(null);
     setSidebarOpen(false);
     
@@ -86,32 +125,7 @@ function App() {
     };
   }, []);
 
-  // Aggiorna la funzione di autenticazione
-  const handleAuth = (userData) => {
-    setUser(userData);
-    setPage('home'); // Forza sempre la home dopo il login
-    setShowWelcome(true); // Attiva welcome screen dopo login
-    loadUserSections(userData);
-  };
 
-  // Callback per completare il welcome screen
-  const handleWelcomeComplete = () => {
-    setShowWelcome(false);
-  };
-
-  if (!user) {
-    return <Auth onAuth={handleAuth} />;
-  }
-
-  // Mostra welcome screen dopo il login
-  if (showWelcome) {
-    return (
-      <WelcomeScreen 
-        user={user} 
-        onComplete={handleWelcomeComplete} 
-      />
-    );
-  }
 
   // Navigazione da breadcrumb (rimossa)
   const handleBreadcrumbNavigate = () => {
@@ -120,7 +134,7 @@ function App() {
 
   // Navigazione da sidebar
   const handleNavigate = (newPage) => {
-    setPage(newPage);
+    navigate(newPage === 'home' ? '/' : `/${newPage}`);
     setSelectedCivico(null);
     // Chiudi sidebar su mobile dopo un piccolo delay
     setTimeout(() => {
@@ -164,42 +178,57 @@ function App() {
         <Sidebar 
           isAdmin={user.isAdmin} 
           onNavigate={handleNavigate} 
-          active={page}
+          active={location.pathname === '/' ? 'home' : location.pathname.slice(1)}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           userSections={userSections}
         />
         
         <main className={`main-content ${sidebarOpen ? 'sidebar-open' : ''}`}>
-          {page === 'users' && user.isAdmin ? (
-            <UsersManager currentUser={user} />
-          ) : page === 'assets-manager' && user.isAdmin ? (
-            <AssetsManagerAdmin />
-          ) : page === 'magazzino' && userSections.includes('magazzino') ? (
-            <MagazzinoManager />
-          ) : page === 'ricambi-demo' && user.isAdmin ? (
-            <RicambiLinksDemo />
-          ) : page === 'form-templates' && user.isAdmin ? (
-            <FormTemplateManager />
-          ) : page === 'telegram' && user.isAdmin ? (
-            <TelegramManager sidebarOpen={sidebarOpen} />
-          ) : page === 'assets' ? (
-            <Assets />
-          ) : page === 'dynamic-compiler' ? (
-            <DynamicCompiler username={user.username} />
-          ) : page === 'alert' ? (
-            <AlertScreen />
-          ) : page === 'rubrica' ? (
-            <Rubrica />
-          ) : page === 'calendario' ? (
-            <CalendarioCompleto username={user.username} sidebarOpen={sidebarOpen} />
-          ) : page === 'docs' ? (
-            <Docs username={user.username} isAdmin={user.isAdmin} />
-          ) : page === 'tickets' ? (
-            <Tickets username={user.username} />
-          ) : (
-            <PersonalDashboard user={user} isAdmin={user.isAdmin} />
-          )}
+          <Routes>
+            {/* Home route - sempre disponibile */}
+            <Route path="/" element={<PersonalDashboard user={user} isAdmin={user.isAdmin} />} />
+            
+            {/* Admin routes */}
+            {user.isAdmin && (
+              <>
+                <Route path="/users" element={<UsersManager currentUser={user} />} />
+                <Route path="/assets-manager" element={<AssetsManagerAdmin />} />
+                <Route path="/ricambi-demo" element={<RicambiLinksDemo />} />
+                <Route path="/form-templates" element={<FormTemplateManager />} />
+                <Route path="/telegram" element={<TelegramManager sidebarOpen={sidebarOpen} />} />
+              </>
+            )}
+            
+            {/* Routes per sezioni utente */}
+            {userSections.includes('magazzino') && (
+              <Route path="/magazzino" element={<MagazzinoManager />} />
+            )}
+            {userSections.includes('assets') && (
+              <Route path="/assets" element={<Assets />} />
+            )}
+            {userSections.includes('compilazioni') && (
+              <Route path="/dynamic-compiler" element={<DynamicCompiler username={user.username} />} />
+            )}
+            {userSections.includes('alert') && (
+              <Route path="/alert" element={<AlertScreen />} />
+            )}
+            {userSections.includes('rubrica') && (
+              <Route path="/rubrica" element={<Rubrica />} />
+            )}
+            {userSections.includes('calendario') && (
+              <Route path="/calendario" element={<CalendarioCompleto username={user.username} sidebarOpen={sidebarOpen} />} />
+            )}
+            {userSections.includes('docs') && (
+              <Route path="/docs" element={<Docs username={user.username} isAdmin={user.isAdmin} />} />
+            )}
+            {userSections.includes('tickets') && (
+              <Route path="/tickets" element={<Tickets username={user.username} />} />
+            )}
+            
+            {/* Redirect di fallback alla home per route non trovate */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </main>
       </div>
     </div>

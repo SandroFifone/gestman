@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import "./Sidebar.css";
 
 // Props: isAdmin (boolean), onNavigate (function), active (string), isOpen (boolean), onClose (function), userSections (array)
