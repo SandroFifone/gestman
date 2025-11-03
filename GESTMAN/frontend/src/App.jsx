@@ -51,10 +51,7 @@ function App() {
         const sections = sectionsData.sections || [];
         setUserSections(sections);
         
-        // Imposta la prima sezione disponibile come pagina di default
-        if (sections.length > 0 && page === 'home') {
-          setPage(sections[0]);
-        }
+        // Rimosso auto-redirect: l'utente rimane sempre sulla home dopo il login
       }
     } catch (error) {
       console.error('Errore caricamento sezioni utente:', error);
@@ -92,6 +89,7 @@ function App() {
   // Aggiorna la funzione di autenticazione
   const handleAuth = (userData) => {
     setUser(userData);
+    setPage('home'); // Forza sempre la home dopo il login
     setShowWelcome(true); // Attiva welcome screen dopo login
     loadUserSections(userData);
   };
