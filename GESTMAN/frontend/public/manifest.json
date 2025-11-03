@@ -1,0 +1,19 @@
+{
+  "name": "GESTMAN - AA Manutenzione",
+  "short_name": "GESTMAN",
+  "description": "Sistema di gestione aziendale AA Manutenzione",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2196f3",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/AAM.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

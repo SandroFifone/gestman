@@ -29,6 +29,19 @@ function App() {
   const [user, setUser] = useState(null); // { username, isAdmin, nome }
   const [showWelcome, setShowWelcome] = useState(false); // per welcome screen
 
+  // Registra Service Worker per PWA
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('SW registrato con successo:', registration);
+        })
+        .catch((error) => {
+          console.log('SW registrazione fallita:', error);
+        });
+    }
+  }, []);
+
   // Aggiorna la funzione di autenticazione
   const handleAuth = (userData) => {
     setUser(userData);
