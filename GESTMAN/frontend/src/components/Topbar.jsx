@@ -3,12 +3,28 @@ import "./Topbar.css";
 
 const Topbar = ({ username, isAdmin, onLogout, onToggleSidebar, sidebarOpen, children }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('checking');
   const [lastCheck, setLastCheck] = useState(null);
   const [connectionError, setConnectionError] = useState(null);
 
   const toggleDropdown = () => {
     setDropdownOpen(!dropdownOpen);
+  };
+
+  const toggleUserMenu = () => {
+    setUserMenuOpen(!userMenuOpen);
+  };
+
+  const handleEditProfile = () => {
+    setShowEditModal(true);
+    setUserMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    setUserMenuOpen(false);
+    onLogout();
   };
 
   // Gestione stato connessione (integrato dalla ConnectionStatus)
@@ -95,14 +111,7 @@ const Topbar = ({ username, isAdmin, onLogout, onToggleSidebar, sidebarOpen, chi
         </div>
       </div>
       
-      <div className="topbar-content">
-        {/* Desktop: mostra tutto inline */}
-        <div className="topbar-user desktop-only">
-          <span>👤</span>
-          <span className="topbar-username">{username}</span>
-          {isAdmin && <span className="admin">Admin</span>}
-        </div>
-        
+      <div className="topbar-content">        
         {children && (
           <div className="topbar-breadcrumb tablet-up">
             📍 {children}
@@ -110,7 +119,7 @@ const Topbar = ({ username, isAdmin, onLogout, onToggleSidebar, sidebarOpen, chi
         )}
       </div>
       
-      {/* Desktop: elementi separati */}
+      {/* Desktop: status connessione e dropdown utente */}
       <div className="topbar-actions desktop-only">
         <div className="connection-status-desktop">
           <div 
@@ -129,9 +138,33 @@ const Topbar = ({ username, isAdmin, onLogout, onToggleSidebar, sidebarOpen, chi
             </span>
           </div>
         </div>
-        <button className="topbar-logout" onClick={onLogout}>
-          Logout
-        </button>
+        
+        {/* Dropdown utente desktop */}
+        <div className="user-dropdown-container">
+          <button className="user-dropdown-trigger" onClick={toggleUserMenu}>
+            <span>👤</span>
+            <span className="user-name">{username}</span>
+            {isAdmin && <span className="admin-badge">Admin</span>}
+            <span className="dropdown-arrow">{userMenuOpen ? '▲' : '▼'}</span>
+          </button>
+          
+          {userMenuOpen && (
+            <>
+              <div className="user-dropdown-overlay" onClick={() => setUserMenuOpen(false)} />
+              <div className="user-dropdown-menu">
+                <button className="dropdown-item" onClick={handleEditProfile}>
+                  <span>⚙️</span>
+                  <span>Modifica dati</span>
+                </button>
+                <div className="dropdown-divider"></div>
+                <button className="dropdown-item logout-item" onClick={handleLogout}>
+                  <span>🚪</span>
+                  <span>Logout</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Mobile: dropdown unica con tutto */}
@@ -197,9 +230,15 @@ const Topbar = ({ username, isAdmin, onLogout, onToggleSidebar, sidebarOpen, chi
                 </div>
               </div>
               
-              {/* Logout */}
+              {/* Azioni utente */}
               <div className="dropdown-item">
-                <button className="dropdown-logout" onClick={onLogout}>
+                <button className="dropdown-action" onClick={handleEditProfile}>
+                  ⚙️ Modifica dati
+                </button>
+              </div>
+              
+              <div className="dropdown-item">
+                <button className="dropdown-logout" onClick={handleLogout}>
                   🚪 Logout
                 </button>
               </div>
