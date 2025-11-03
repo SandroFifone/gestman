@@ -116,32 +116,55 @@ function AppContent({ user }) {
     }
   };
 
-  // Intercetta il tasto indietro mobile per navigazione interna
+  // Gestisce il tasto indietro mobile in modo più aggressivo
   useEffect(() => {
-    const handlePopState = (event) => {
-      // Su mobile, gestisci la navigazione interna invece di uscire dall'app
+    let isNavigating = false;
+
+    const handlePopState = () => {
+      if (isNavigating) return;
+      
+      isNavigating = true;
+      
+      // Se non siamo nella home, naviga indietro nell'app
       if (location.pathname !== '/') {
-        event.preventDefault();
         navigate(-1);
+      } else {
+        // Se siamo nella home, aggiungi di nuovo un entry per evitare l'uscita
+        window.history.pushState(null, '', '/');
+      }
+      
+      setTimeout(() => {
+        isNavigating = false;
+      }, 100);
+    };
+
+    // Aggiungi sempre un entry nella cronologia per intercettare il back
+    window.history.pushState(null, '', location.pathname);
+    
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [location.pathname, navigate]);
+
+  // Previeni l'uscita accidentale dall'app
+  useEffect(() => {
+    const preventExit = (event) => {
+      // Solo su mobile, mostra conferma prima di uscire dall'app
+      if (window.innerWidth <= 768 && location.pathname !== '/') {
+        event.preventDefault();
+        event.returnValue = '';
+        return '';
       }
     };
 
-    // Aggiungi uno stato alla cronologia per intercettare il back
-    const handleBeforeUnload = () => {
-      window.history.pushState(null, null, location.pathname);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('beforeunload', preventExit);
     
-    // Push iniziale per avere qualcosa nella cronologia
-    window.history.pushState(null, null, location.pathname);
-
     return () => {
-      window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('beforeunload', preventExit);
     };
-  }, [location.pathname, navigate]);
+  }, [location.pathname]);
 
   // Espone la funzione globalmente per i componenti
   useEffect(() => {
