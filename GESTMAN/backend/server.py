@@ -474,6 +474,49 @@ def delete_user(user_id):
     conn.close()
     return jsonify({"success": True})
 
+# Endpoint per aggiornare l'utente corrente tramite username
+@app.route("/api/users/<username>/update", methods=["PUT"])
+def update_user_by_username(username):
+    data = request.json
+    conn = get_db()
+    
+    # Verifica che l'utente esista
+    user = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+    if not user:
+        conn.close()
+        return jsonify({"error": "Utente non trovato."}), 404
+    
+    user_id = user["id"]
+    updates = []
+    params = []
+    
+    # Aggiorna nome se fornito
+    if "nome" in data:
+        nome = data["nome"].strip()
+        if nome:  # Permetti nome vuoto
+            updates.append("nome = ?")
+            params.append(nome)
+    
+    # Aggiorna password se fornita
+    if "password" in data and data["password"]:
+        password = data["password"].strip()
+        if password:
+            updates.append("password = ?")
+            updates.append("password_clear = ?")
+            params.append(generate_password_hash(password))
+            params.append(password)  # Salva anche in chiaro
+    
+    if not updates:
+        conn.close()
+        return jsonify({"error": "Nessun campo valido da aggiornare."}), 400
+    
+    params.append(user_id)
+    conn.execute(f"UPDATE users SET {', '.join(updates)} WHERE id = ?", params)
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True, "message": "Dati utente aggiornati con successo."})
+
 # --- INIZIALIZZAZIONE TABELLE ---
 
 def init_user_notes_table():

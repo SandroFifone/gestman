@@ -77,6 +77,7 @@ function App() {
 // Componente che gestisce il contenuto dell'app con routing
 function AppContent({ user, onLogout }) {
   const [userSections, setUserSections] = useState([]); // sezioni accessibili all'utente
+  const [currentUser, setCurrentUser] = useState(user); // Stato locale per aggiornamenti utente
   const [selectedCivico, setSelectedCivico] = useState(null); // per breadcrumb e navigazione
   const [sidebarOpen, setSidebarOpen] = useState(false); // per mobile sidebar
   const navigate = useNavigate();
@@ -210,14 +211,24 @@ function AppContent({ user, onLogout }) {
     setSidebarOpen(!sidebarOpen);
   };
 
+  // Aggiorna i dati utente quando vengono modificati
+  const handleUserUpdate = (updatedUser) => {
+    setUser(prevUser => ({
+      ...prevUser,
+      ...updatedUser
+    }));
+  };
+
   return (
     <div className="app-container">
       <Topbar 
-        username={user.username} 
-        isAdmin={user.isAdmin} 
+        username={currentUser.username} 
+        isAdmin={currentUser.isAdmin} 
         onLogout={onLogout}
         onToggleSidebar={toggleSidebar}
         sidebarOpen={sidebarOpen}
+        user={currentUser}
+        onUserUpdate={handleUserUpdate}
       />
       
       {/* Overlay per mobile quando sidebar è aperta */}

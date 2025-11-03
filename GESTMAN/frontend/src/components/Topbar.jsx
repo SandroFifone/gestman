@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./Topbar.css";
+import UserEditModal from './UserEditModal';
 
-const Topbar = ({ username, isAdmin, onLogout, onToggleSidebar, sidebarOpen, children }) => {
+const Topbar = ({ username, isAdmin, onLogout, onToggleSidebar, sidebarOpen, children, user, onUserUpdate }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -246,6 +247,14 @@ const Topbar = ({ username, isAdmin, onLogout, onToggleSidebar, sidebarOpen, chi
           </>
         )}
       </div>
+      
+      {/* Modal modifica dati utente */}
+      <UserEditModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        user={user}
+        onUserUpdate={onUserUpdate}
+      />
     </div>
   );
 };
