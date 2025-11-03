@@ -69,13 +69,13 @@ function App() {
 
   return (
     <Router>
-      <AppContent user={user} />
+      <AppContent user={user} onLogout={() => setUser(null)} />
     </Router>
   );
 }
 
 // Componente che gestisce il contenuto dell'app con routing
-function AppContent({ user }) {
+function AppContent({ user, onLogout }) {
   const [userSections, setUserSections] = useState([]); // sezioni accessibili all'utente
   const [selectedCivico, setSelectedCivico] = useState(null); // per breadcrumb e navigazione
   const [sidebarOpen, setSidebarOpen] = useState(false); // per mobile sidebar
@@ -215,7 +215,7 @@ function AppContent({ user }) {
       <Topbar 
         username={user.username} 
         isAdmin={user.isAdmin} 
-        onLogout={() => setUser(null)}
+        onLogout={onLogout}
         onToggleSidebar={toggleSidebar}
         sidebarOpen={sidebarOpen}
       />
