@@ -493,14 +493,21 @@ def update_user_by_username(username):
     # Aggiorna nome se fornito
     if "nome" in data:
         nome = data["nome"].strip()
-        if nome:  # Permetti nome vuoto
-            updates.append("nome = ?")
-            params.append(nome)
+        updates.append("nome = ?")
+        params.append(nome)
     
-    # Aggiorna password se fornita
-    if "password" in data and data["password"]:
-        password = data["password"].strip()
+    # Aggiorna password se fornita (supporta sia 'password' che 'newPassword')
+    new_password = data.get("newPassword") or data.get("password")
+    if new_password:
+        password = new_password.strip()
         if password:
+            # Se viene fornita currentPassword, verifichiamola
+            if "currentPassword" in data:
+                current_user = conn.execute("SELECT password FROM users WHERE username = ?", (username,)).fetchone()
+                if current_user and not check_password_hash(current_user["password"], data["currentPassword"]):
+                    conn.close()
+                    return jsonify({"error": "Password attuale non corretta."}), 400
+            
             updates.append("password = ?")
             updates.append("password_clear = ?")
             params.append(generate_password_hash(password))
