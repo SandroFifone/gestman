@@ -645,48 +645,32 @@ def get_allegati_docs():
     try:
         results = []
         
-        # Controlla tutti i file nella cartella uploads (escludendo sottocartelle form)
+        # Controlla RICORSIVAMENTE tutti i file nella cartella uploads e le sue sottocartelle
         if os.path.exists(UPLOADS_FOLDER):
-            for file in os.listdir(UPLOADS_FOLDER):
-                file_path = os.path.join(UPLOADS_FOLDER, file)
-                if os.path.isfile(file_path):
-                    # Ottieni informazioni sul file
-                    stat_info = os.stat(file_path)
-                    size_mb = round(stat_info.st_size / (1024 * 1024), 2)
-                    created_date = datetime.fromtimestamp(stat_info.st_ctime).strftime('%Y-%m-%d %H:%M:%S')
-                    modified_date = datetime.fromtimestamp(stat_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
-                    
-                    results.append({
-                        'id': file,  # Nome del file come ID
-                        'nome_file': file,
-                        'dimensione_mb': size_mb,
-                        'data_creazione': created_date,
-                        'data_modifica': modified_date,
-                        'percorso': file,
-                        'tipo': os.path.splitext(file)[1][1:].upper() if '.' in file else 'N/A'
-                    })
-        
-        # Controlla anche nelle sottocartelle delle compilazioni dinamiche
-        dynamic_forms_path = os.path.join(UPLOADS_FOLDER, 'form')
-        if os.path.exists(dynamic_forms_path):
-            for root, dirs, files in os.walk(dynamic_forms_path):
+            for root, dirs, files in os.walk(UPLOADS_FOLDER):
                 for file in files:
                     file_full_path = os.path.join(root, file)
                     relative_path = os.path.relpath(file_full_path, UPLOADS_FOLDER)
                     
+                    # Ottieni informazioni sul file
                     stat_info = os.stat(file_full_path)
                     size_mb = round(stat_info.st_size / (1024 * 1024), 2)
                     created_date = datetime.fromtimestamp(stat_info.st_ctime).strftime('%Y-%m-%d %H:%M:%S')
                     modified_date = datetime.fromtimestamp(stat_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
                     
+                    # Determina la cartella di appartenenza per una migliore organizzazione
+                    folder_name = os.path.dirname(relative_path) if os.path.dirname(relative_path) else "Root"
+                    
                     results.append({
-                        'id': relative_path,  # Percorso relativo come ID
+                        'id': relative_path,  # Percorso relativo come ID univoco
                         'nome_file': file,
                         'dimensione_mb': size_mb,
                         'data_creazione': created_date,
                         'data_modifica': modified_date,
-                        'percorso': relative_path,
-                        'tipo': os.path.splitext(file)[1][1:].upper() if '.' in file else 'N/A'
+                        'percorso': relative_path.replace('\\', '/'),  # Normalizza i separatori per l'URL
+                        'cartella': folder_name,
+                        'tipo': os.path.splitext(file)[1][1:].upper() if '.' in file else 'N/A',
+                        'download_url': f'/api/docs/files/{relative_path.replace(chr(92), "/")}/download'
                     })
         
         # Ordina per data di modifica (più recenti prima)
@@ -696,7 +680,8 @@ def get_allegati_docs():
             'data': results,
             'total': len(results),
             'filters': {
-                'tipo': list(set([r['tipo'] for r in results if r['tipo'] != 'N/A']))
+                'tipo': list(set([r['tipo'] for r in results if r['tipo'] != 'N/A'])),
+                'cartella': list(set([r['cartella'] for r in results]))
             }
         }), 200
         

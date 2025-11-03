@@ -205,9 +205,51 @@ const Docs = ({ username, isAdmin }) => {
     }
   };
 
-  const handleDownloadFile = (downloadUrl) => {
-    // Apri il download in una nuova finestra/tab
-    window.open(downloadUrl, '_blank');
+  const handleDownloadFile = async (downloadUrl) => {
+    try {
+      // Forza il download del file invece di aprirlo in una nuova tab
+      const response = await fetch(downloadUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Errore nel download: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      
+      // Estrai il nome del file dall'URL o dai headers
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'download';
+      
+      if (contentDisposition && contentDisposition.includes('filename=')) {
+        filename = contentDisposition
+          .split('filename=')[1]
+          .replace(/"/g, '')
+          .trim();
+      } else {
+        // Fallback: prendi il nome dall'URL
+        const urlParts = downloadUrl.split('/');
+        const lastPart = urlParts[urlParts.length - 2]; // Prima di '/download'
+        if (lastPart) {
+          filename = decodeURIComponent(lastPart);
+        }
+      }
+      
+      // Crea un link temporaneo per il download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Pulizia
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Errore durante il download:', error);
+      alert('Errore durante il download del file. Riprova.');
+    }
   };
 
   const handleDeleteRecords = async () => {
