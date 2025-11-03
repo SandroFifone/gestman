@@ -116,6 +116,33 @@ function AppContent({ user }) {
     }
   };
 
+  // Intercetta il tasto indietro mobile per navigazione interna
+  useEffect(() => {
+    const handlePopState = (event) => {
+      // Su mobile, gestisci la navigazione interna invece di uscire dall'app
+      if (location.pathname !== '/') {
+        event.preventDefault();
+        navigate(-1);
+      }
+    };
+
+    // Aggiungi uno stato alla cronologia per intercettare il back
+    const handleBeforeUnload = () => {
+      window.history.pushState(null, null, location.pathname);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Push iniziale per avere qualcosa nella cronologia
+    window.history.pushState(null, null, location.pathname);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [location.pathname, navigate]);
+
   // Espone la funzione globalmente per i componenti
   useEffect(() => {
     window.navigateToMagazzino = navigateToMagazzino;
