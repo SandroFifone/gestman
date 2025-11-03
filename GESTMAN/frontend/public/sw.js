@@ -1,40 +1,18 @@
-// Service Worker per PWA GESTMAN
-const CACHE_NAME = 'gestman-v1';
-const urlsToCache = [
-  '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/AAM.png'
-];
-
-// Installa il service worker e crea la cache
+// Service Worker minimo per PWA GESTMAN
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        return cache.addAll(urlsToCache);
-      })
-  );
+  self.skipWaiting();
 });
 
-// Intercetta le richieste di rete
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Restituisci dalla cache se disponibile, altrimenti fetch dalla rete
-        return response || fetch(event.request);
-      }
-    )
-  );
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
 });
 
-// Gestisce la navigazione per SPA
+// Gestisce SPA routing
 self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).catch(() => {
-        return caches.match('/');
+        return caches.match('/') || fetch('/');
       })
     );
   }
