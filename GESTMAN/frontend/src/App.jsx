@@ -93,12 +93,12 @@ function AppContent({ user, onLogout }) {
       }
 
       try {
-        const usersRes = await fetch(API_URLS.USERS);
+        const usersRes = await fetch(API_URLS.users);
         const users = await usersRes.json();
         const currentUser = users.find(u => u.username === user.username);
         
         if (currentUser && currentUser.id) {
-          const sectionsRes = await fetch(`${API_URLS.USERS}/${currentUser.id}/sections`);
+          const sectionsRes = await fetch(`${API_URLS.users}/${currentUser.id}/sections`);
           const sectionsData = await sectionsRes.json();
           const sections = sectionsData.sections || [];
           setUserSections(sections);
