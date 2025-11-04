@@ -14,27 +14,44 @@ const PersonalDashboard = ({ user, isAdmin }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(false);
   
-  // Stati per conversioni
-  const [conversions, setConversions] = useState({
-    row1: { value: '', fromUnit: 'bar', toUnit: 'psi', result: '', category: 'pressure' },
-    row2: { value: '', fromUnit: 'mm', toUnit: 'in', result: '', category: 'length' },
-    row3: { value: '', fromUnit: 'kg', toUnit: 'lb', result: '', category: 'mass' }
+  // Stati per conversioni - Una sola riga configurabile
+  const [conversion, setConversion] = useState({
+    value: '',
+    fromUnit: 'kW',
+    toUnit: 'CV',
+    result: '',
+    category: 'power'
   });
 
-  // Unità disponibili per categoria
+  // Unità tecniche per azienda meccanica - Solo quelle utili
   const availableUnits = {
-    pressure: ['Pa', 'hPa', 'kPa', 'MPa', 'bar', 'torr', 'psi', 'ksi'],
-    length: ['mm', 'cm', 'm', 'km', 'in', 'ft', 'yd', 'mi'],
-    mass: ['mg', 'g', 'kg', 't', 'oz', 'lb', 'mt'],
-    area: ['mm2', 'cm2', 'm2', 'ha', 'km2', 'in2', 'ft2', 'ac', 'mi2'],
-    volume: ['ml', 'l', 'kl', 'm3', 'in3', 'ft3', 'gal', 'qt', 'pnt', 'cup'],
-    temperature: ['C', 'F', 'K', 'R'],
-    time: ['ms', 's', 'min', 'h', 'd', 'week', 'month', 'year'],
-    speed: ['m/s', 'km/h', 'mph', 'knot', 'ft/s'],
-    power: ['W', 'mW', 'kW', 'MW', 'GW'],
-    energy: ['J', 'kJ', 'Wh', 'kWh', 'MWh', 'GWh'],
-    angle: ['deg', 'rad', 'grad'],
-    frequency: ['Hz', 'kHz', 'MHz', 'GHz', 'rpm']
+    pressure: ['bar', 'psi', 'MPa', 'kPa', 'atm'],
+    length: ['mm', 'in', 'cm', 'm', 'ft'],
+    mass: ['kg', 'lb', 't', 'oz'],
+    power: ['kW', 'CV', 'HP', 'W'],
+    torque: ['Nm', 'lbf-ft', 'kgf-m'],
+    speed: ['rpm', 'm/s', 'km/h', 'mph', 'ft/s'],
+    temperature: ['C', 'F', 'K'],
+    flow: ['l/min', 'gpm', 'm3/h', 'cfm'],
+    voltage: ['V', 'kV', 'mV'],
+    current: ['A', 'mA', 'kA']
+  };
+
+  // Conversioni personalizzate per unità mancanti
+  const customConversions = {
+    // CV (Cavalli Vapore) = 735.5 W
+    'kW-CV': (kw) => kw * 1.35962,
+    'CV-kW': (cv) => cv * 0.73549,
+    // HP (Horse Power) = 745.7 W  
+    'kW-HP': (kw) => kw * 1.34102,
+    'HP-kW': (hp) => hp * 0.7457,
+    'CV-HP': (cv) => cv * 0.98632,
+    'HP-CV': (hp) => hp * 1.01387,
+    // Torque conversions
+    'Nm-lbf-ft': (nm) => nm * 0.737562,
+    'lbf-ft-Nm': (lbfft) => lbfft * 1.35582,
+    'Nm-kgf-m': (nm) => nm * 0.101972,
+    'kgf-m-Nm': (kgfm) => kgfm * 9.80665
   };
 
   useEffect(() => {
@@ -338,13 +355,10 @@ const PersonalDashboard = ({ user, isAdmin }) => {
     });
   };
 
-  // Funzioni per conversioni
-  const handleConversion = (rowId, value) => {
+  // Funzione per conversioni con logica personalizzata
+  const handleConversion = (value) => {
     if (!value || value === '') {
-      setConversions(prev => ({
-        ...prev,
-        [rowId]: { ...prev[rowId], value: '', result: '' }
-      }));
+      setConversion(prev => ({ ...prev, value: '', result: '' }));
       return;
     }
 
@@ -352,71 +366,68 @@ const PersonalDashboard = ({ user, isAdmin }) => {
     if (isNaN(numValue)) return;
 
     try {
-      const currentConv = conversions[rowId];
-      const result = convert(numValue).from(currentConv.fromUnit).to(currentConv.toUnit);
+      let result;
+      const conversionKey = `${conversion.fromUnit}-${conversion.toUnit}`;
       
-      setConversions(prev => ({
+      // Controlla se esiste conversione personalizzata
+      if (customConversions[conversionKey]) {
+        result = customConversions[conversionKey](numValue);
+      } else {
+        // Usa convert-units per conversioni standard
+        result = convert(numValue).from(conversion.fromUnit).to(conversion.toUnit);
+      }
+      
+      setConversion(prev => ({
         ...prev,
-        [rowId]: { ...prev[rowId], value, result: result.toFixed(3) }
+        value,
+        result: result.toFixed(3)
       }));
     } catch (error) {
       console.error('Errore conversione:', error);
-      setConversions(prev => ({
+      setConversion(prev => ({
         ...prev,
-        [rowId]: { ...prev[rowId], value, result: 'N/A' }
+        value,
+        result: 'N/A'
       }));
     }
   };
 
-  const handleUnitChange = (rowId, unitType, newUnit) => {
-    setConversions(prev => {
-      const updated = {
-        ...prev,
-        [rowId]: { 
-          ...prev[rowId], 
-          [unitType]: newUnit,
-          value: '',
-          result: ''
-        }
-      };
-      return updated;
-    });
+  const handleUnitChange = (unitType, newUnit) => {
+    setConversion(prev => ({
+      ...prev,
+      [unitType]: newUnit,
+      value: '',
+      result: ''
+    }));
   };
 
-  const handleCategoryChange = (rowId, newCategory) => {
+  const handleCategoryChange = (newCategory) => {
     const categoryUnits = availableUnits[newCategory];
-    setConversions(prev => ({
-      ...prev,
-      [rowId]: {
-        category: newCategory,
-        fromUnit: categoryUnits[0],
-        toUnit: categoryUnits[1] || categoryUnits[0],
-        value: '',
-        result: ''
-      }
-    }));
-  };
-
-  const swapUnits = (rowId) => {
-    const currentConv = conversions[rowId];
-    setConversions(prev => ({
-      ...prev,
-      [rowId]: {
-        ...prev[rowId],
-        fromUnit: currentConv.toUnit,
-        toUnit: currentConv.fromUnit,
-        value: prev[rowId].result || '',
-        result: prev[rowId].value || ''
-      }
-    }));
-  };
-
-  const clearConversions = () => {
-    setConversions({
-      row1: { value: '', fromUnit: 'bar', toUnit: 'psi', result: '', category: 'pressure' },
-      row2: { value: '', fromUnit: 'mm', toUnit: 'in', result: '', category: 'length' },
-      row3: { value: '', fromUnit: 'kg', toUnit: 'lb', result: '', category: 'mass' }
+    setConversion({
+      category: newCategory,
+      fromUnit: categoryUnits[0],
+      toUnit: categoryUnits[1] || categoryUnits[0],
+      value: '',
+      result: ''
     });
+  };
+
+  const swapUnits = () => {
+    setConversion(prev => ({
+      ...prev,
+      fromUnit: prev.toUnit,
+      toUnit: prev.fromUnit,
+      value: prev.result || '',
+      result: prev.value || ''
+    }));
+  };
+
+  const clearConversion = () => {
+    setConversion(prev => ({
+      ...prev,
+      value: '',
+      result: ''
+    }));
   };
 
   return (
@@ -429,72 +440,88 @@ const PersonalDashboard = ({ user, isAdmin }) => {
       <div className="dashboard-grid">
         {/* Conversioni Tecniche */}
         <div className="dashboard-card conversions-card">
-          <h2>⚙️ Conversioni</h2>
+          <h2>⚙️ Convertitore Tecnico</h2>
           <div className="conversions-container">
             
-            {Object.entries(conversions).map(([rowId, conv]) => (
-              <div key={rowId} className="conv-row">
-                <div className="conv-header">
-                  <select 
-                    className="category-select"
-                    value={conv.category}
-                    onChange={(e) => handleCategoryChange(rowId, e.target.value)}
-                  >
-                    {Object.keys(availableUnits).map(cat => (
-                      <option key={cat} value={cat}>
-                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="conv-inputs">
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={conv.value}
-                    onChange={(e) => handleConversion(rowId, e.target.value)}
-                    className="conv-input"
-                  />
-                  <select 
-                    className="unit-select"
-                    value={conv.fromUnit}
-                    onChange={(e) => handleUnitChange(rowId, 'fromUnit', e.target.value)}
-                  >
-                    {availableUnits[conv.category]?.map(unit => (
-                      <option key={unit} value={unit}>{unit}</option>
-                    ))}
-                  </select>
-                  
-                  <button 
-                    className="swap-btn"
-                    onClick={() => swapUnits(rowId)}
-                    title="Inverti unità"
-                  >
-                    ⇄
-                  </button>
-                  
-                  <span className="conv-result">{conv.result}</span>
-                  
-                  <select 
-                    className="unit-select"
-                    value={conv.toUnit}
-                    onChange={(e) => handleUnitChange(rowId, 'toUnit', e.target.value)}
-                  >
-                    {availableUnits[conv.category]?.map(unit => (
-                      <option key={unit} value={unit}>{unit}</option>
-                    ))}
-                  </select>
-                </div>
+            <div className="category-selector">
+              <label>Tipo conversione:</label>
+              <select 
+                className="category-select"
+                value={conversion.category}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+              >
+                {Object.keys(availableUnits).map(cat => {
+                  const labels = {
+                    power: 'Potenza (kW/CV/HP)',
+                    pressure: 'Pressione (bar/psi)',
+                    torque: 'Coppia (Nm/lbf-ft)',
+                    speed: 'Velocità (rpm/m/s)',
+                    temperature: 'Temperatura (°C/°F)',
+                    length: 'Lunghezza (mm/in)',
+                    mass: 'Peso (kg/lb)',
+                    flow: 'Portata (l/min/gpm)',
+                    voltage: 'Tensione (V/kV)',
+                    current: 'Corrente (A/mA)'
+                  };
+                  return (
+                    <option key={cat} value={cat}>
+                      {labels[cat] || cat}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div className="conversion-main">
+              <div className="input-group">
+                <input
+                  type="number"
+                  placeholder="Inserisci valore"
+                  value={conversion.value}
+                  onChange={(e) => handleConversion(e.target.value)}
+                  className="main-input"
+                />
+                <select 
+                  className="unit-select-large"
+                  value={conversion.fromUnit}
+                  onChange={(e) => handleUnitChange('fromUnit', e.target.value)}
+                >
+                  {availableUnits[conversion.category]?.map(unit => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
               </div>
-            ))}
+
+              <button 
+                className="swap-btn-large"
+                onClick={swapUnits}
+                title="Inverti unità"
+              >
+                ⇅
+              </button>
+
+              <div className="result-group">
+                <div className="result-display">
+                  {conversion.result || '0'}
+                </div>
+                <select 
+                  className="unit-select-large"
+                  value={conversion.toUnit}
+                  onChange={(e) => handleUnitChange('toUnit', e.target.value)}
+                >
+                  {availableUnits[conversion.category]?.map(unit => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             <button 
-              className="clear-all-btn"
-              onClick={clearConversions}
-              title="Pulisci tutto"
+              className="clear-btn-small"
+              onClick={clearConversion}
+              title="Pulisci"
             >
-              Pulisci
+              ✕
             </button>
           </div>
         </div>
