@@ -98,8 +98,11 @@ function AppContent({ user, onLogout }) {
         const usersRes = await fetch(API_URLS.USERS);
         console.log('[DEBUG] Users API response status:', usersRes.status);
         
-        const users = await usersRes.json();
-        console.log('[DEBUG] Users data:', users);
+        const usersData = await usersRes.json();
+        console.log('[DEBUG] Users data:', usersData);
+        
+        const users = usersData.users || [];
+        console.log('[DEBUG] Users array:', users);
         
         const currentUser = users.find(u => u.username === user.username);
         console.log('[DEBUG] Current user found:', currentUser);

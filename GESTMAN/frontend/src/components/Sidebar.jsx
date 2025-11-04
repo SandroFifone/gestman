@@ -5,10 +5,18 @@ import "./Sidebar.css";
 // Props: isAdmin (boolean), onNavigate (function), active (string), isOpen (boolean), onClose (function), userSections (array)
 const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = [] }) => {
   
+  // Debug: logga sempre i parametri ricevuti
+  console.log('[DEBUG SIDEBAR] Props ricevute:', {
+    isAdmin,
+    userSections,
+    userSectionsLength: userSections.length
+  });
+  
   // Funzione per verificare se l'utente ha accesso a una sezione
   const hasAccess = (section) => {
-    if (isAdmin) return true; // Admin ha accesso a tutto
-    return userSections.includes(section);
+    const access = isAdmin ? true : userSections.includes(section);
+    console.log(`[DEBUG SIDEBAR] hasAccess(${section}):`, access, 'userSections:', userSections);
+    return access;
   };
   return (
     <>
