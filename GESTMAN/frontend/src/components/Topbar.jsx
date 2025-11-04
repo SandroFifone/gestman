@@ -20,7 +20,8 @@ const Topbar = ({ username, isAdmin, onLogout, onToggleSidebar, sidebarOpen, chi
 
   const handleEditProfile = () => {
     setShowEditModal(true);
-    setUserMenuOpen(false);
+    setUserMenuOpen(false); // Chiude dropdown desktop
+    setDropdownOpen(false); // Chiude dropdown mobile
   };
 
   const handleLogout = () => {
@@ -248,7 +249,12 @@ const Topbar = ({ username, isAdmin, onLogout, onToggleSidebar, sidebarOpen, chi
       {/* Modal modifica dati utente */}
       <UserEditModal
         isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
+        onClose={() => {
+          setShowEditModal(false);
+          // Assicura che i dropdown rimangano chiusi dopo la chiusura del modal
+          setDropdownOpen(false);
+          setUserMenuOpen(false);
+        }}
         user={user}
         onUserUpdate={onUserUpdate}
       />
