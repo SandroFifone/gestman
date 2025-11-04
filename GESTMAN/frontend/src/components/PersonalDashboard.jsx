@@ -12,13 +12,6 @@ const PersonalDashboard = ({ user, isAdmin }) => {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(false);
-  
-  // Stati per conversioni unità di misura
-  const [conversions, setConversions] = useState({
-    length: { meters: '', centimeters: '' },
-    weight: { kg: '', grams: '' },
-    temperature: { celsius: '', fahrenheit: '' }
-  });
 
   useEffect(() => {
     // Aggiorna la data ogni minuto
@@ -321,70 +314,6 @@ const PersonalDashboard = ({ user, isAdmin }) => {
     });
   };
 
-  // Funzioni di conversione unità di misura
-  const handleLengthConversion = (value, unit) => {
-    const numValue = parseFloat(value) || 0;
-    if (unit === 'meters') {
-      setConversions(prev => ({
-        ...prev,
-        length: { meters: value, centimeters: (numValue * 100).toString() }
-      }));
-    } else {
-      setConversions(prev => ({
-        ...prev,
-        length: { meters: (numValue / 100).toString(), centimeters: value }
-      }));
-    }
-  };
-
-  const handleWeightConversion = (value, unit) => {
-    const numValue = parseFloat(value) || 0;
-    if (unit === 'kg') {
-      setConversions(prev => ({
-        ...prev,
-        weight: { kg: value, grams: (numValue * 1000).toString() }
-      }));
-    } else {
-      setConversions(prev => ({
-        ...prev,
-        weight: { kg: (numValue / 1000).toString(), grams: value }
-      }));
-    }
-  };
-
-  const handleTemperatureConversion = (value, unit) => {
-    const numValue = parseFloat(value);
-    if (isNaN(numValue)) {
-      setConversions(prev => ({
-        ...prev,
-        temperature: { celsius: '', fahrenheit: '' }
-      }));
-      return;
-    }
-
-    if (unit === 'celsius') {
-      const fahrenheit = (numValue * 9/5) + 32;
-      setConversions(prev => ({
-        ...prev,
-        temperature: { celsius: value, fahrenheit: fahrenheit.toFixed(1) }
-      }));
-    } else {
-      const celsius = (numValue - 32) * 5/9;
-      setConversions(prev => ({
-        ...prev,
-        temperature: { celsius: celsius.toFixed(1), fahrenheit: value }
-      }));
-    }
-  };
-
-  const clearConversions = () => {
-    setConversions({
-      length: { meters: '', centimeters: '' },
-      weight: { kg: '', grams: '' },
-      temperature: { celsius: '', fahrenheit: '' }
-    });
-  };
-
   return (
     <div className="personal-dashboard">
       <div className="dashboard-header">
@@ -393,80 +322,55 @@ const PersonalDashboard = ({ user, isAdmin }) => {
       </div>
 
       <div className="dashboard-grid">
-        {/* Conversioni Unità di Misura */}
-        <div className="dashboard-card conversions-card">
-          <h2>� Conversioni</h2>
-          <div className="conversions-container">
-            <div className="conversion-group">
-              <label className="conversion-label">Lunghezza</label>
-              <div className="conversion-inputs">
-                <input
-                  type="number"
-                  placeholder="metri"
-                  value={conversions.length.meters}
-                  onChange={(e) => handleLengthConversion(e.target.value, 'meters')}
-                  className="conversion-input"
-                />
-                <span className="conversion-equals">=</span>
-                <input
-                  type="number"
-                  placeholder="centimetri"
-                  value={conversions.length.centimeters}
-                  onChange={(e) => handleLengthConversion(e.target.value, 'centimeters')}
-                  className="conversion-input"
-                />
-              </div>
+        {/* Calendario */}
+        <div className="dashboard-card calendar-card">
+          <h2>📅 Calendario</h2>
+          <div className="calendar-container">
+            <div className="calendar-header">
+              <button 
+                className="calendar-nav"
+                onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+              >
+                ‹
+              </button>
+              <h3>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</h3>
+              <button 
+                className="calendar-nav"
+                onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+              >
+                ›
+              </button>
             </div>
             
-            <div className="conversion-group">
-              <label className="conversion-label">Peso</label>
-              <div className="conversion-inputs">
-                <input
-                  type="number"
-                  placeholder="kg"
-                  value={conversions.weight.kg}
-                  onChange={(e) => handleWeightConversion(e.target.value, 'kg')}
-                  className="conversion-input"
-                />
-                <span className="conversion-equals">=</span>
-                <input
-                  type="number"
-                  placeholder="grammi"
-                  value={conversions.weight.grams}
-                  onChange={(e) => handleWeightConversion(e.target.value, 'grams')}
-                  className="conversion-input"
-                />
+            <div className="calendar-grid">
+              <div className="calendar-days-header">
+                {dayNames.map(day => (
+                  <div key={day} className="calendar-day-name">{day}</div>
+                ))}
+              </div>
+              
+              <div className="calendar-weeks-container">
+                {generateCalendar().map((week, weekIndex) => (
+                  <div key={weekIndex} className="calendar-week">
+                    {week.map((day, dayIndex) => {
+                      const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
+                      return (
+                        <div 
+                          key={dayIndex} 
+                          className={`calendar-day ${
+                            day.isCurrentMonth ? 'current-month' : 'other-month'
+                          } ${day.isToday ? 'today' : ''} ${
+                            isWeekend ? 'weekend' : ''
+                          }`}
+                        >
+                          {day.day}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
-            
-            <div className="conversion-group">
-              <label className="conversion-label">Temperatura</label>
-              <div className="conversion-inputs">
-                <input
-                  type="number"
-                  placeholder="°C"
-                  value={conversions.temperature.celsius}
-                  onChange={(e) => handleTemperatureConversion(e.target.value, 'celsius')}
-                  className="conversion-input"
-                />
-                <span className="conversion-equals">=</span>
-                <input
-                  type="number"
-                  placeholder="°F"
-                  value={conversions.temperature.fahrenheit}
-                  onChange={(e) => handleTemperatureConversion(e.target.value, 'fahrenheit')}
-                  className="conversion-input"
-                />
-              </div>
-            </div>
-            
-            <button 
-              className="clear-conversions-btn"
-              onClick={clearConversions}
-              title="Pulisci tutti i campi"
-            >
-              Pulisci tutto
-            </button>
           </div>
         </div>
 
