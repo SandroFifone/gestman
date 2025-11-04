@@ -16,10 +16,26 @@ const PersonalDashboard = ({ user, isAdmin }) => {
   
   // Stati per conversioni
   const [conversions, setConversions] = useState({
-    pressure: { value: '', fromUnit: 'bar', toUnit: 'psi', result: '' },
-    length: { value: '', fromUnit: 'mm', toUnit: 'in', result: '' },
-    mass: { value: '', fromUnit: 'kg', toUnit: 'lb', result: '' }
+    row1: { value: '', fromUnit: 'bar', toUnit: 'psi', result: '', category: 'pressure' },
+    row2: { value: '', fromUnit: 'mm', toUnit: 'in', result: '', category: 'length' },
+    row3: { value: '', fromUnit: 'kg', toUnit: 'lb', result: '', category: 'mass' }
   });
+
+  // Unità disponibili per categoria
+  const availableUnits = {
+    pressure: ['Pa', 'hPa', 'kPa', 'MPa', 'bar', 'torr', 'psi', 'ksi'],
+    length: ['mm', 'cm', 'm', 'km', 'in', 'ft', 'yd', 'mi'],
+    mass: ['mg', 'g', 'kg', 't', 'oz', 'lb', 'mt'],
+    area: ['mm2', 'cm2', 'm2', 'ha', 'km2', 'in2', 'ft2', 'ac', 'mi2'],
+    volume: ['ml', 'l', 'kl', 'm3', 'in3', 'ft3', 'gal', 'qt', 'pnt', 'cup'],
+    temperature: ['C', 'F', 'K', 'R'],
+    time: ['ms', 's', 'min', 'h', 'd', 'week', 'month', 'year'],
+    speed: ['m/s', 'km/h', 'mph', 'knot', 'ft/s'],
+    power: ['W', 'mW', 'kW', 'MW', 'GW'],
+    energy: ['J', 'kJ', 'Wh', 'kWh', 'MWh', 'GWh'],
+    angle: ['deg', 'rad', 'grad'],
+    frequency: ['Hz', 'kHz', 'MHz', 'GHz', 'rpm']
+  };
 
   useEffect(() => {
     // Aggiorna la data ogni minuto
@@ -323,11 +339,11 @@ const PersonalDashboard = ({ user, isAdmin }) => {
   };
 
   // Funzioni per conversioni
-  const handleConversion = (type, value) => {
+  const handleConversion = (rowId, value) => {
     if (!value || value === '') {
       setConversions(prev => ({
         ...prev,
-        [type]: { ...prev[type], value: '', result: '' }
+        [rowId]: { ...prev[rowId], value: '', result: '' }
       }));
       return;
     }
@@ -336,39 +352,70 @@ const PersonalDashboard = ({ user, isAdmin }) => {
     if (isNaN(numValue)) return;
 
     try {
-      const currentConv = conversions[type];
+      const currentConv = conversions[rowId];
       const result = convert(numValue).from(currentConv.fromUnit).to(currentConv.toUnit);
       
       setConversions(prev => ({
         ...prev,
-        [type]: { ...prev[type], value, result: result.toFixed(3) }
+        [rowId]: { ...prev[rowId], value, result: result.toFixed(3) }
       }));
     } catch (error) {
       console.error('Errore conversione:', error);
+      setConversions(prev => ({
+        ...prev,
+        [rowId]: { ...prev[rowId], value, result: 'N/A' }
+      }));
     }
   };
 
-  const swapUnits = (type) => {
-    const currentConv = conversions[type];
-    const newFromUnit = currentConv.toUnit;
-    const newToUnit = currentConv.fromUnit;
-    
+  const handleUnitChange = (rowId, unitType, newUnit) => {
+    setConversions(prev => {
+      const updated = {
+        ...prev,
+        [rowId]: { 
+          ...prev[rowId], 
+          [unitType]: newUnit,
+          value: '',
+          result: ''
+        }
+      };
+      return updated;
+    });
+  };
+
+  const handleCategoryChange = (rowId, newCategory) => {
+    const categoryUnits = availableUnits[newCategory];
     setConversions(prev => ({
       ...prev,
-      [type]: {
-        fromUnit: newFromUnit,
-        toUnit: newToUnit,
-        value: prev[type].result || '',
-        result: prev[type].value || ''
+      [rowId]: {
+        category: newCategory,
+        fromUnit: categoryUnits[0],
+        toUnit: categoryUnits[1] || categoryUnits[0],
+        value: '',
+        result: ''
+      }
+    }));
+  };
+
+  const swapUnits = (rowId) => {
+    const currentConv = conversions[rowId];
+    setConversions(prev => ({
+      ...prev,
+      [rowId]: {
+        ...prev[rowId],
+        fromUnit: currentConv.toUnit,
+        toUnit: currentConv.fromUnit,
+        value: prev[rowId].result || '',
+        result: prev[rowId].value || ''
       }
     }));
   };
 
   const clearConversions = () => {
     setConversions({
-      pressure: { value: '', fromUnit: 'bar', toUnit: 'psi', result: '' },
-      length: { value: '', fromUnit: 'mm', toUnit: 'in', result: '' },
-      mass: { value: '', fromUnit: 'kg', toUnit: 'lb', result: '' }
+      row1: { value: '', fromUnit: 'bar', toUnit: 'psi', result: '', category: 'pressure' },
+      row2: { value: '', fromUnit: 'mm', toUnit: 'in', result: '', category: 'length' },
+      row3: { value: '', fromUnit: 'kg', toUnit: 'lb', result: '', category: 'mass' }
     });
   };
 
@@ -385,77 +432,62 @@ const PersonalDashboard = ({ user, isAdmin }) => {
           <h2>⚙️ Conversioni</h2>
           <div className="conversions-container">
             
-            {/* Pressione */}
-            <div className="conv-row">
-              <label className="conv-label">Pressione</label>
-              <div className="conv-inputs">
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={conversions.pressure.value}
-                  onChange={(e) => handleConversion('pressure', e.target.value)}
-                  className="conv-input"
-                />
-                <span className="conv-unit">{conversions.pressure.fromUnit}</span>
-                <button 
-                  className="swap-btn"
-                  onClick={() => swapUnits('pressure')}
-                  title="Inverti unità"
-                >
-                  ⇄
-                </button>
-                <span className="conv-result">{conversions.pressure.result}</span>
-                <span className="conv-unit">{conversions.pressure.toUnit}</span>
+            {Object.entries(conversions).map(([rowId, conv]) => (
+              <div key={rowId} className="conv-row">
+                <div className="conv-header">
+                  <select 
+                    className="category-select"
+                    value={conv.category}
+                    onChange={(e) => handleCategoryChange(rowId, e.target.value)}
+                  >
+                    {Object.keys(availableUnits).map(cat => (
+                      <option key={cat} value={cat}>
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="conv-inputs">
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={conv.value}
+                    onChange={(e) => handleConversion(rowId, e.target.value)}
+                    className="conv-input"
+                  />
+                  <select 
+                    className="unit-select"
+                    value={conv.fromUnit}
+                    onChange={(e) => handleUnitChange(rowId, 'fromUnit', e.target.value)}
+                  >
+                    {availableUnits[conv.category]?.map(unit => (
+                      <option key={unit} value={unit}>{unit}</option>
+                    ))}
+                  </select>
+                  
+                  <button 
+                    className="swap-btn"
+                    onClick={() => swapUnits(rowId)}
+                    title="Inverti unità"
+                  >
+                    ⇄
+                  </button>
+                  
+                  <span className="conv-result">{conv.result}</span>
+                  
+                  <select 
+                    className="unit-select"
+                    value={conv.toUnit}
+                    onChange={(e) => handleUnitChange(rowId, 'toUnit', e.target.value)}
+                  >
+                    {availableUnits[conv.category]?.map(unit => (
+                      <option key={unit} value={unit}>{unit}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
-
-            {/* Lunghezza */}
-            <div className="conv-row">
-              <label className="conv-label">Lunghezza</label>
-              <div className="conv-inputs">
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={conversions.length.value}
-                  onChange={(e) => handleConversion('length', e.target.value)}
-                  className="conv-input"
-                />
-                <span className="conv-unit">{conversions.length.fromUnit}</span>
-                <button 
-                  className="swap-btn"
-                  onClick={() => swapUnits('length')}
-                  title="Inverti unità"
-                >
-                  ⇄
-                </button>
-                <span className="conv-result">{conversions.length.result}</span>
-                <span className="conv-unit">{conversions.length.toUnit}</span>
-              </div>
-            </div>
-
-            {/* Peso */}
-            <div className="conv-row">
-              <label className="conv-label">Peso</label>
-              <div className="conv-inputs">
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={conversions.mass.value}
-                  onChange={(e) => handleConversion('mass', e.target.value)}
-                  className="conv-input"
-                />
-                <span className="conv-unit">{conversions.mass.fromUnit}</span>
-                <button 
-                  className="swap-btn"
-                  onClick={() => swapUnits('mass')}
-                  title="Inverti unità"
-                >
-                  ⇄
-                </button>
-                <span className="conv-result">{conversions.mass.result}</span>
-                <span className="conv-unit">{conversions.mass.toUnit}</span>
-              </div>
-            </div>
+            ))}
 
             <button 
               className="clear-all-btn"
