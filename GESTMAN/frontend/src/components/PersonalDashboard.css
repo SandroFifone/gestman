@@ -629,29 +629,7 @@
   box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
 }
 
-.clear-btn-small {
-  position: absolute;
-  top: 0;
-  right: 0;
-  background: var(--gray-100);
-  color: var(--gray-600);
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
 
-.clear-btn-small:hover {
-  background: var(--error-light);
-  color: var(--error-color);
-  transform: scale(1.1);
-}
 
 /* Responsive per convertitore */
 @media (max-width: 768px) {

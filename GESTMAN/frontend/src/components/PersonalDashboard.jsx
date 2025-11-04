@@ -23,35 +23,71 @@ const PersonalDashboard = ({ user, isAdmin }) => {
     category: 'power'
   });
 
-  // Unità tecniche per azienda meccanica - Solo quelle utili
+  // Unità tecniche per azienda meccanica - Solo le più importanti
   const availableUnits = {
-    pressure: ['bar', 'psi', 'MPa', 'kPa', 'atm'],
-    length: ['mm', 'in', 'cm', 'm', 'ft'],
-    mass: ['kg', 'lb', 't', 'oz'],
-    power: ['kW', 'CV', 'HP', 'W'],
+    power: ['kW', 'CV', 'HP'],
+    pressure: ['bar', 'psi', 'MPa', 'atm'],
     torque: ['Nm', 'lbf-ft', 'kgf-m'],
-    speed: ['rpm', 'm/s', 'km/h', 'mph', 'ft/s'],
-    temperature: ['C', 'F', 'K'],
+    thread: ['M', 'UNC', 'BSP', 'NPT'],
+    steel: ['HRC', 'HB', 'N/mm2', 'psi'],
     flow: ['l/min', 'gpm', 'm3/h', 'cfm'],
-    voltage: ['V', 'kV', 'mV'],
-    current: ['A', 'mA', 'kA']
+    surface: ['Ra', 'Rz', 'RMS', 'μin'],
+    tolerance: ['H7', 'h6', 'IT', 'mil'],
+    angle: ['deg', 'rad', 'grad', 'mrad'],
+    precision: ['mm', 'in', 'mil', 'μm']
   };
 
-  // Conversioni personalizzate per unità mancanti
+  // Conversioni personalizzate per meccanica industriale
   const customConversions = {
-    // CV (Cavalli Vapore) = 735.5 W
+    // POTENZA - Motori e macchine
     'kW-CV': (kw) => kw * 1.35962,
     'CV-kW': (cv) => cv * 0.73549,
-    // HP (Horse Power) = 745.7 W  
     'kW-HP': (kw) => kw * 1.34102,
     'HP-kW': (hp) => hp * 0.7457,
     'CV-HP': (cv) => cv * 0.98632,
     'HP-CV': (hp) => hp * 1.01387,
-    // Torque conversions
+    
+    // COPPIA - Serraggio e motori
     'Nm-lbf-ft': (nm) => nm * 0.737562,
     'lbf-ft-Nm': (lbfft) => lbfft * 1.35582,
     'Nm-kgf-m': (nm) => nm * 0.101972,
-    'kgf-m-Nm': (kgfm) => kgfm * 9.80665
+    'kgf-m-Nm': (kgfm) => kgfm * 9.80665,
+    
+    // FILETTATURE - Viti e raccordi
+    'M-UNC': (m) => m / 25.4, // mm to inch approximation
+    'UNC-M': (unc) => unc * 25.4,
+    'M-BSP': (m) => m / 25.4,
+    'BSP-M': (bsp) => bsp * 25.4,
+    
+    // DUREZZA ACCIAI
+    'HRC-HB': (hrc) => hrc <= 20 ? hrc * 10 : 2.15 * hrc + 132,
+    'HB-HRC': (hb) => hb <= 200 ? hb / 10 : (hb - 132) / 2.15,
+    'HRC-N/mm2': (hrc) => hrc * 32.5, // Approssimazione resistenza
+    'N/mm2-HRC': (nmm2) => nmm2 / 32.5,
+    
+    // RUGOSITÀ SUPERFICIALE
+    'Ra-Rz': (ra) => ra * 4, // Approssimazione Ra->Rz
+    'Rz-Ra': (rz) => rz / 4,
+    'Ra-RMS': (ra) => ra * 1.11,
+    'RMS-Ra': (rms) => rms / 1.11,
+    'Ra-μin': (ra) => ra * 39.37,
+    'μin-Ra': (uin) => uin / 39.37,
+    
+    // TOLLERANZE ISO
+    'H7-h6': (h7) => h7 * 0.6, // Rapporto tolleranze
+    'h6-H7': (h6) => h6 / 0.6,
+    'IT-mil': (it) => it * 0.0394, // μm to mil
+    'mil-IT': (mil) => mil / 0.0394,
+    
+    // PRECISIONE
+    'mm-in': (mm) => mm / 25.4,
+    'in-mm': (inch) => inch * 25.4,
+    'mm-mil': (mm) => mm * 39.37,
+    'mil-mm': (mil) => mil / 39.37,
+    'mm-μm': (mm) => mm * 1000,
+    'μm-mm': (um) => um / 1000,
+    'in-mil': (inch) => inch * 1000,
+    'mil-in': (mil) => mil / 1000
   };
 
   useEffect(() => {
@@ -452,16 +488,16 @@ const PersonalDashboard = ({ user, isAdmin }) => {
               >
                 {Object.keys(availableUnits).map(cat => {
                   const labels = {
-                    power: 'Potenza (kW/CV/HP)',
-                    pressure: 'Pressione (bar/psi)',
-                    torque: 'Coppia (Nm/lbf-ft)',
-                    speed: 'Velocità (rpm/m/s)',
-                    temperature: 'Temperatura (°C/°F)',
-                    length: 'Lunghezza (mm/in)',
-                    mass: 'Peso (kg/lb)',
-                    flow: 'Portata (l/min/gpm)',
-                    voltage: 'Tensione (V/kV)',
-                    current: 'Corrente (A/mA)'
+                    power: '⚡ Potenza (kW/CV/HP)',
+                    pressure: '🔧 Pressione (bar/psi/MPa)',
+                    torque: '🔩 Coppia (Nm/lbf-ft)',
+                    thread: '🔗 Filettature (M/UNC/BSP)',
+                    steel: '⚒️ Durezza Acciai (HRC/HB)',
+                    flow: '🌊 Portata (l/min/gpm)',
+                    surface: '📏 Rugosità (Ra/Rz/RMS)',
+                    tolerance: '🎯 Tolleranze (H7/IT)',
+                    angle: '📐 Angoli (deg/rad)',
+                    precision: '🔍 Precisione (mm/in/μm)'
                   };
                   return (
                     <option key={cat} value={cat}>
@@ -516,13 +552,6 @@ const PersonalDashboard = ({ user, isAdmin }) => {
               </div>
             </div>
 
-            <button 
-              className="clear-btn-small"
-              onClick={clearConversion}
-              title="Pulisci"
-            >
-              ✕
-            </button>
           </div>
         </div>
 
