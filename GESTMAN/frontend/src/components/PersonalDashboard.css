@@ -494,3 +494,101 @@
 .dashboard-card:nth-child(3) {
   animation-delay: 0.2s;
 }
+
+/* Conversioni Unità di Misura */
+.conversions-card {
+  min-height: 420px;
+}
+
+.conversions-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  flex: 1;
+  padding: var(--spacing-sm) 0;
+}
+
+.conversion-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--gray-25);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--gray-200);
+  transition: var(--transition-fast);
+}
+
+.conversion-group:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.1);
+}
+
+.conversion-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-700);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-xs);
+}
+
+.conversion-inputs {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.conversion-input {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-md);
+  font-family: var(--font-family);
+  transition: var(--transition-fast);
+  background: white;
+}
+
+.conversion-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+}
+
+.conversion-input::placeholder {
+  color: var(--gray-500);
+  font-style: italic;
+}
+
+.conversion-equals {
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-color);
+  font-size: var(--font-size-lg);
+  min-width: 20px;
+  text-align: center;
+}
+
+.clear-conversions-btn {
+  margin-top: auto;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  align-self: flex-start;
+}
+
+.clear-conversions-btn:hover {
+  background: var(--gray-200);
+  border-color: var(--gray-400);
+  transform: translateY(-1px);
+}
+
+.clear-conversions-btn:active {
+  transform: translateY(0);
+}
