@@ -283,9 +283,12 @@
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-lg);
   min-width: 200px;
+  max-width: calc(100vw - 32px); /* Evita overflow laterale */
   z-index: calc(var(--z-popover) + 1);
   margin-top: var(--spacing-xs);
   overflow: hidden;
+  /* Assicura che sia sempre visibile anche con nomi lunghi */
+  transform: translateX(0);
 }
 
 .dropdown-item {
@@ -337,6 +340,38 @@
 /* === RESPONSIVE UTILITIES === */
 .mobile-only {
   display: block;
+}
+
+/* === MOBILE SPECIFIC FIXES === */
+@media (max-width: 767px) {
+  .topbar-dropdown {
+    /* Assicura che il dropdown container si estenda fino al bordo */
+    width: auto;
+    min-width: 140px;
+  }
+  
+  .topbar-dropdown-menu {
+    /* Su mobile, forza il dropdown ad allinearsi sempre al bordo destro dello schermo */
+    right: var(--spacing-md);
+    left: auto;
+    /* Rimuovi min-width su mobile per adattarsi meglio */
+    min-width: 180px;
+    max-width: calc(100vw - 32px);
+    /* Assicura che non vada mai fuori schermo */
+    transform: translateX(0);
+  }
+  
+  .topbar-dropdown-trigger {
+    /* Permette al trigger di avere larghezza flessibile */
+    max-width: none;
+    width: auto;
+    min-width: 120px;
+  }
+  
+  .topbar-username-mobile {
+    /* Migliore troncamento del testo */
+    max-width: 100px;
+  }
 }
 
 .desktop-only {
