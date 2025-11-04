@@ -171,10 +171,7 @@ const Topbar = ({ username, isAdmin, onLogout, onToggleSidebar, sidebarOpen, chi
       {/* Mobile: dropdown unica con tutto */}
       <div className="topbar-dropdown mobile-only">
         <button className="topbar-dropdown-trigger" onClick={toggleDropdown}>
-          <span className="connection-indicator" style={{ color: getStatusColor() }}>
-            {getStatusIcon()}
-          </span>
-          <span className="topbar-username-mobile">{username}</span>
+          <span className="user-icon-mobile">👤</span>
           <span className="dropdown-arrow">{dropdownOpen ? '▲' : '▼'}</span>
         </button>
         

@@ -342,6 +342,13 @@
   display: block;
 }
 
+/* === MOBILE USER ICON === */
+.user-icon-mobile {
+  font-size: 18px;
+  color: var(--gray-700);
+  flex-shrink: 0;
+}
+
 /* === MOBILE SPECIFIC FIXES === */
 @media (max-width: 767px) {
   .topbar-dropdown {
@@ -364,21 +371,26 @@
   }
   
   .topbar-dropdown-trigger {
-    /* LIMITE STRETTO per evitare overflow del pulsante */
-    max-width: calc(100vw - 120px) !important;
-    width: auto;
-    min-width: 100px;
-    overflow: hidden;
+    /* OTTIMIZZATO per solo-icona: dimensione fissa compatta */
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    height: 40px !important;
+    justify-content: center !important;
+    padding: var(--spacing-xs) !important;
+    overflow: visible !important;
   }
   
-  .topbar-username-mobile {
-    /* TRONCAMENTO AGGRESSIVO del nome utente */
-    max-width: calc(100vw - 200px) !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    min-width: 0 !important;
-    flex-shrink: 1 !important;
+  .user-icon-mobile {
+    /* Icona utente ottimizzata per mobile */
+    font-size: 20px !important;
+    color: var(--primary-color) !important;
+  }
+  
+  .dropdown-arrow {
+    /* Freccia più piccola per layout compatto */
+    font-size: 8px !important;
+    margin-left: 2px !important;
   }
 }
 
