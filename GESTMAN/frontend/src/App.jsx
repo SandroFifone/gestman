@@ -93,15 +93,33 @@ function AppContent({ user, onLogout }) {
       }
 
       try {
-        const usersRes = await fetch(API_URLS.users);
+        console.log('[DEBUG] Caricamento sezioni per utente non-admin:', user.username);
+        
+        const usersRes = await fetch(API_URLS.USERS);
+        console.log('[DEBUG] Users API response status:', usersRes.status);
+        
         const users = await usersRes.json();
+        console.log('[DEBUG] Users data:', users);
+        
         const currentUser = users.find(u => u.username === user.username);
+        console.log('[DEBUG] Current user found:', currentUser);
         
         if (currentUser && currentUser.id) {
-          const sectionsRes = await fetch(`${API_URLS.users}/${currentUser.id}/sections`);
+          const sectionsUrl = `${API_URLS.USERS}/${currentUser.id}/sections`;
+          console.log('[DEBUG] Sections URL:', sectionsUrl);
+          
+          const sectionsRes = await fetch(sectionsUrl);
+          console.log('[DEBUG] Sections API response status:', sectionsRes.status);
+          
           const sectionsData = await sectionsRes.json();
+          console.log('[DEBUG] Sections data:', sectionsData);
+          
           const sections = sectionsData.sections || [];
+          console.log('[DEBUG] Final sections array:', sections);
           setUserSections(sections);
+        } else {
+          console.log('[DEBUG] No user found or no ID');
+          setUserSections([]);
         }
       } catch (error) {
         console.error('Errore caricamento sezioni utente:', error);

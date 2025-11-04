@@ -542,8 +542,24 @@ def init_user_notes_table():
     conn.commit()
     conn.close()
 
-# Inizializza la tabella all'avvio
+def init_user_sections_table():
+    """Inizializza la tabella per i permessi sezioni utenti"""
+    conn = get_db()
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS user_sections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            section TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            UNIQUE(user_id, section)
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+# Inizializza le tabelle all'avvio
 init_user_notes_table()
+init_user_sections_table()
 
 # --- API GESTIONE NOTE UTENTE ---
 
