@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './PersonalDashboard.css';
 import TelegramMessageModal from './TelegramMessageModal';
+import convert from 'convert-units';
 
 const PersonalDashboard = ({ user, isAdmin }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -12,6 +13,13 @@ const PersonalDashboard = ({ user, isAdmin }) => {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(false);
+  
+  // Stati per conversioni
+  const [conversions, setConversions] = useState({
+    pressure: { value: '', fromUnit: 'bar', toUnit: 'psi', result: '' },
+    length: { value: '', fromUnit: 'mm', toUnit: 'in', result: '' },
+    mass: { value: '', fromUnit: 'kg', toUnit: 'lb', result: '' }
+  });
 
   useEffect(() => {
     // Aggiorna la data ogni minuto
@@ -314,6 +322,56 @@ const PersonalDashboard = ({ user, isAdmin }) => {
     });
   };
 
+  // Funzioni per conversioni
+  const handleConversion = (type, value) => {
+    if (!value || value === '') {
+      setConversions(prev => ({
+        ...prev,
+        [type]: { ...prev[type], value: '', result: '' }
+      }));
+      return;
+    }
+
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return;
+
+    try {
+      const currentConv = conversions[type];
+      const result = convert(numValue).from(currentConv.fromUnit).to(currentConv.toUnit);
+      
+      setConversions(prev => ({
+        ...prev,
+        [type]: { ...prev[type], value, result: result.toFixed(3) }
+      }));
+    } catch (error) {
+      console.error('Errore conversione:', error);
+    }
+  };
+
+  const swapUnits = (type) => {
+    const currentConv = conversions[type];
+    const newFromUnit = currentConv.toUnit;
+    const newToUnit = currentConv.fromUnit;
+    
+    setConversions(prev => ({
+      ...prev,
+      [type]: {
+        fromUnit: newFromUnit,
+        toUnit: newToUnit,
+        value: prev[type].result || '',
+        result: prev[type].value || ''
+      }
+    }));
+  };
+
+  const clearConversions = () => {
+    setConversions({
+      pressure: { value: '', fromUnit: 'bar', toUnit: 'psi', result: '' },
+      length: { value: '', fromUnit: 'mm', toUnit: 'in', result: '' },
+      mass: { value: '', fromUnit: 'kg', toUnit: 'lb', result: '' }
+    });
+  };
+
   return (
     <div className="personal-dashboard">
       <div className="dashboard-header">
@@ -322,55 +380,90 @@ const PersonalDashboard = ({ user, isAdmin }) => {
       </div>
 
       <div className="dashboard-grid">
-        {/* Calendario */}
-        <div className="dashboard-card calendar-card">
-          <h2>📅 Calendario</h2>
-          <div className="calendar-container">
-            <div className="calendar-header">
-              <button 
-                className="calendar-nav"
-                onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
-              >
-                ‹
-              </button>
-              <h3>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</h3>
-              <button 
-                className="calendar-nav"
-                onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
-              >
-                ›
-              </button>
-            </div>
+        {/* Conversioni Tecniche */}
+        <div className="dashboard-card conversions-card">
+          <h2>⚙️ Conversioni</h2>
+          <div className="conversions-container">
             
-            <div className="calendar-grid">
-              <div className="calendar-days-header">
-                {dayNames.map(day => (
-                  <div key={day} className="calendar-day-name">{day}</div>
-                ))}
-              </div>
-              
-              <div className="calendar-weeks-container">
-                {generateCalendar().map((week, weekIndex) => (
-                  <div key={weekIndex} className="calendar-week">
-                    {week.map((day, dayIndex) => {
-                      const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
-                      return (
-                        <div 
-                          key={dayIndex} 
-                          className={`calendar-day ${
-                            day.isCurrentMonth ? 'current-month' : 'other-month'
-                          } ${day.isToday ? 'today' : ''} ${
-                            isWeekend ? 'weekend' : ''
-                          }`}
-                        >
-                          {day.day}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+            {/* Pressione */}
+            <div className="conv-row">
+              <label className="conv-label">Pressione</label>
+              <div className="conv-inputs">
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={conversions.pressure.value}
+                  onChange={(e) => handleConversion('pressure', e.target.value)}
+                  className="conv-input"
+                />
+                <span className="conv-unit">{conversions.pressure.fromUnit}</span>
+                <button 
+                  className="swap-btn"
+                  onClick={() => swapUnits('pressure')}
+                  title="Inverti unità"
+                >
+                  ⇄
+                </button>
+                <span className="conv-result">{conversions.pressure.result}</span>
+                <span className="conv-unit">{conversions.pressure.toUnit}</span>
               </div>
             </div>
+
+            {/* Lunghezza */}
+            <div className="conv-row">
+              <label className="conv-label">Lunghezza</label>
+              <div className="conv-inputs">
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={conversions.length.value}
+                  onChange={(e) => handleConversion('length', e.target.value)}
+                  className="conv-input"
+                />
+                <span className="conv-unit">{conversions.length.fromUnit}</span>
+                <button 
+                  className="swap-btn"
+                  onClick={() => swapUnits('length')}
+                  title="Inverti unità"
+                >
+                  ⇄
+                </button>
+                <span className="conv-result">{conversions.length.result}</span>
+                <span className="conv-unit">{conversions.length.toUnit}</span>
+              </div>
+            </div>
+
+            {/* Peso */}
+            <div className="conv-row">
+              <label className="conv-label">Peso</label>
+              <div className="conv-inputs">
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={conversions.mass.value}
+                  onChange={(e) => handleConversion('mass', e.target.value)}
+                  className="conv-input"
+                />
+                <span className="conv-unit">{conversions.mass.fromUnit}</span>
+                <button 
+                  className="swap-btn"
+                  onClick={() => swapUnits('mass')}
+                  title="Inverti unità"
+                >
+                  ⇄
+                </button>
+                <span className="conv-result">{conversions.mass.result}</span>
+                <span className="conv-unit">{conversions.mass.toUnit}</span>
+              </div>
+            </div>
+
+            <button 
+              className="clear-all-btn"
+              onClick={clearConversions}
+              title="Pulisci tutto"
+            >
+              Pulisci
+            </button>
           </div>
         </div>
 
