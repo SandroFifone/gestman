@@ -21,6 +21,23 @@ const AssetsManager = ({ civicoNumero }) => {
   const [selectedFilter, setSelectedFilter] = useState(""); // Filtro per tipo di asset
   const [showFloorPlan, setShowFloorPlan] = useState(false); // Toggle per vista pianta
 
+  // Forza vista lista su mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      if (window.innerWidth <= 768 && showFloorPlan) {
+        setShowFloorPlan(false);
+      }
+    };
+
+    // Controlla all'avvio
+    checkMobile();
+
+    // Controlla quando si ridimensiona la finestra
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [showFloorPlan]);
+
   // Ottiene i campi per un tipo di asset specifico
   const getFieldsForType = (typeName) => {
     const assetType = assetTypes.find(type => type.name === typeName);
@@ -383,7 +400,7 @@ const AssetsManager = ({ civicoNumero }) => {
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button 
               onClick={() => setShowFloorPlan(!showFloorPlan)} 
-              className={`btn ${showFloorPlan ? 'btn-secondary' : 'btn-outline'}`}
+              className={`btn ${showFloorPlan ? 'btn-secondary' : 'btn-outline'} desktop-only`}
               title="Vista pianta interattiva"
             >
               {showFloorPlan ? '📊 Vista Lista' : '🏗️ Vista Pianta'}
