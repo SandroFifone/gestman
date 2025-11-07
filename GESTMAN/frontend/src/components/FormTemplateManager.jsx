@@ -1689,6 +1689,7 @@ const FormTemplateManager = ({ isAdmin }) => {
       {/* Modal Gestione Categorie */}
       {showCategoriesModal && (
         <Modal
+          open={showCategoriesModal}
           title="Gestisci Categorie Template"
           onClose={() => setShowCategoriesModal(false)}
         >
