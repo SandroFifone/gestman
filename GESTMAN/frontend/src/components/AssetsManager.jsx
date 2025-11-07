@@ -7,7 +7,7 @@ import { API_URLS } from "../config/api";
 
 const API = API_URLS.assets;
 
-const AssetsManager = ({ civicoNumero }) => {
+const AssetsManager = ({ civicoNumero, isAdmin }) => {
   const [assets, setAssets] = useState([]);
   const [assetTypes, setAssetTypes] = useState([]); // Tipi dinamici dal database
   const [showAssetModal, setShowAssetModal] = useState(false);
@@ -405,7 +405,9 @@ const AssetsManager = ({ civicoNumero }) => {
             >
               {showFloorPlan ? '📊 Vista Lista' : '🏗️ Vista Pianta'}
             </button>
-            <button onClick={handleAdd} className="btn btn-primary">Aggiungi asset</button>
+            {isAdmin && (
+              <button onClick={handleAdd} className="btn btn-primary">Aggiungi asset</button>
+            )}
           </div>
         </div>
         
@@ -458,8 +460,9 @@ const AssetsManager = ({ civicoNumero }) => {
             <InteractiveFloorPlan
               civicoNumero={civicoNumero}
               assets={getFilteredAssets()}
-              onAssetMove={handleAssetMove}
+              onAssetMove={isAdmin ? handleAssetMove : null}
               onAssetSelect={handleFloorPlanAssetSelect}
+              isAdmin={isAdmin}
             />
           ) : (
             <>
@@ -485,18 +488,22 @@ const AssetsManager = ({ civicoNumero }) => {
                       >
                         Visualizza
                       </button>
-                      <button 
-                        onClick={() => handleEdit(a)} 
-                        className="btn btn-sm btn-outline"
-                      >
-                        Modifica
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(a["id_aziendale"] || a["Id Aziendale"])} 
-                        className="btn btn-sm btn-danger"
-                      >
-                        Elimina
-                      </button>
+                      {isAdmin && (
+                        <>
+                          <button 
+                            onClick={() => handleEdit(a)} 
+                            className="btn btn-sm btn-outline"
+                          >
+                            Modifica
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(a["id_aziendale"] || a["Id Aziendale"])} 
+                            className="btn btn-sm btn-danger"
+                          >
+                            Elimina
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -537,18 +544,22 @@ const AssetsManager = ({ civicoNumero }) => {
                     >
                       👁️ Visualizza
                     </button>
-                    <button 
-                      onClick={() => handleEdit(a)} 
-                      className="btn btn-sm btn-outline"
-                    >
-                      ✏️ Modifica
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(a["id_aziendale"] || a["Id Aziendale"])} 
-                      className="btn btn-sm btn-danger"
-                    >
-                      🗑️ Elimina
-                    </button>
+                    {isAdmin && (
+                      <>
+                        <button 
+                          onClick={() => handleEdit(a)} 
+                          className="btn btn-sm btn-outline"
+                        >
+                          ✏️ Modifica
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(a["id_aziendale"] || a["Id Aziendale"])} 
+                          className="btn btn-sm btn-danger"
+                        >
+                          🗑️ Elimina
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))

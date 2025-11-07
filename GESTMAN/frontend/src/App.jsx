@@ -300,7 +300,7 @@ function AppContent({ user, onLogout }) {
               <Route path="/magazzino" element={<MagazzinoManager />} />
             )}
             {userSections.includes('assets') && (
-              <Route path="/assets" element={<Assets />} />
+              <Route path="/assets" element={<Assets isAdmin={user.isAdmin} />} />
             )}
             {userSections.includes('compilazioni') && (
               <Route path="/dynamic-compiler" element={<DynamicCompiler username={user.username} />} />

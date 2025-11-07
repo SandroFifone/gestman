@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AssetsManager from './AssetsManager';
 import './CiviciManager.css';
 
-const Assets = () => {
+const Assets = ({ isAdmin }) => {
   const [civici, setCivici] = useState([]);
   const [selectedCivico, setSelectedCivico] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -89,7 +89,7 @@ const Assets = () => {
             {selectedCivico.descrizione}
           </p>
         </div>
-        <AssetsManager civicoNumero={selectedCivico.numero} />
+        <AssetsManager civicoNumero={selectedCivico.numero} isAdmin={isAdmin} />
       </div>
     );
   }

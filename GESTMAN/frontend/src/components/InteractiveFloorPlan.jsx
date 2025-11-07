@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import FloorPlanUpload from './FloorPlanUpload';
 import './InteractiveFloorPlan.css';
 
-const InteractiveFloorPlan = ({ civicoNumero, assets, onAssetMove, onAssetSelect }) => {
+const InteractiveFloorPlan = ({ civicoNumero, assets, onAssetMove, onAssetSelect, isAdmin }) => {
   const [draggedAsset, setDraggedAsset] = useState(null);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -205,8 +205,8 @@ const InteractiveFloorPlan = ({ civicoNumero, assets, onAssetMove, onAssetSelect
             border: highlighted && searchAssetId.trim() ? '3px solid #ff4444' : '2px solid rgba(0,0,0,0.2)',
             zIndex: highlighted ? 1000 : 1
           }}
-          draggable
-          onDragStart={(e) => handleAssetDragStart(e, asset)}
+          draggable={isAdmin}
+          onDragStart={isAdmin ? (e) => handleAssetDragStart(e, asset) : null}
           onClick={(e) => handleAssetClick(asset, e)}
           onMouseEnter={() => setHoveredAsset(asset)}
           onMouseLeave={() => setHoveredAsset(null)}
@@ -247,10 +247,12 @@ const InteractiveFloorPlan = ({ civicoNumero, assets, onAssetMove, onAssetSelect
 
   return (
     <div className="floor-plan-container">
-      <FloorPlanUpload 
-        civicoNumero={civicoNumero} 
-        onUploadSuccess={handleUploadSuccess}
-      />
+      {isAdmin && (
+        <FloorPlanUpload 
+          civicoNumero={civicoNumero} 
+          onUploadSuccess={handleUploadSuccess}
+        />
+      )}
       
       <div className="floor-plan-controls">
         <div className="controls-row">
@@ -321,9 +323,9 @@ const InteractiveFloorPlan = ({ civicoNumero, assets, onAssetMove, onAssetSelect
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        style={{ cursor: isDraggingView ? 'grabbing' : 'grab' }}
+        onDragOver={isAdmin ? handleDragOver : null}
+        onDrop={isAdmin ? handleDrop : null}
+        style={{ cursor: isDraggingView ? 'grabbing' : (isAdmin ? 'grab' : 'default') }}
       >
         <div
           className="floor-plan-content"
