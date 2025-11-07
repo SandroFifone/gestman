@@ -55,7 +55,12 @@
 }
 
 .fields-panel {
-  display: none; /* Nascondi il pannello campi */
+  display: block; /* Mostra il pannello campi */
+  margin-top: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  background: #f8f9fa;
 }
 
 .panel-header {
