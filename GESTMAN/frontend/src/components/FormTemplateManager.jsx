@@ -797,8 +797,8 @@ const FormTemplateManager = ({ isAdmin }) => {
                 className="asset-types-multiselect"
               >
                 {availableAssetTypes.map(type => (
-                  <option key={type} value={type}>
-                    {type}
+                  <option key={type.name} value={type.name}>
+                    {type.name}
                   </option>
                 ))}
               </select>
@@ -1079,7 +1079,7 @@ const FormTemplateManager = ({ isAdmin }) => {
               >
                 <option key="" value="">Seleziona un tipo di asset</option>
                 {availableAssetTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
+                  <option key={type.name} value={type.name}>{type.name}</option>
                 ))}
               </select>
               {selectedAssetType && (
@@ -1355,10 +1355,10 @@ const FormTemplateManager = ({ isAdmin }) => {
                 >
                   <option value="">Seleziona tipo asset...</option>
                   {availableAssetTypes
-                    .filter(type => !templateForm.asset_types.includes(type))
+                    .filter(type => !templateForm.asset_types.includes(type.name))
                     .map(type => (
-                      <option key={type} value={type}>
-                        {type}
+                      <option key={type.name} value={type.name}>
+                        {type.name}
                       </option>
                     ))
                   }
