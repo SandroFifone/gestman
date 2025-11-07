@@ -1419,15 +1419,46 @@ const FormTemplateManager = ({ isAdmin }) => {
           </div>
 
           <div className="form-group">
-            <label>Categoria</label>
-            <select
-              value={templateForm.tipo_categoria}
-              onChange={(e) => setTemplateForm(prev => ({ ...prev, tipo_categoria: e.target.value }))}
-            >
-              <option value="ordinario">Controllo Ordinario</option>
-              <option value="straordinario">Controllo Straordinario</option>
-              <option value="manutenzione">Manutenzione</option>
-            </select>
+            <label>Categoria *</label>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+              <select
+                style={{ flex: 1 }}
+                value={templateForm.tipo_categoria}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, tipo_categoria: e.target.value }))}
+              >
+                {categorieTemplate.length > 0 ? (
+                  categorieTemplate.map(cat => (
+                    <option key={cat.name} value={cat.name}>{cat.label}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="ordinario">Ordinario</option>
+                    <option value="straordinario">Straordinario</option>
+                    <option value="esterno">Esterno</option>
+                  </>
+                )}
+              </select>
+              {/* DEBUG: isAdmin = {String(isAdmin)} */}
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setShowCategoriesModal(true)}
+                  className="btn-secondary"
+                  style={{ padding: '8px 12px', fontSize: '14px' }}
+                >
+                  Gestisci Categorie
+                </button>
+              )}
+              {/* TEMP: Mostra sempre per test */}
+              <button
+                type="button"
+                onClick={() => setShowCategoriesModal(true)}
+                className="btn-secondary"
+                style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#007bff', color: 'white' }}
+              >
+                🔧 Gestisci Categorie (Test)
+              </button>
+            </div>
           </div>
 
           <div className="form-group">
