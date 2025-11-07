@@ -12,6 +12,9 @@ const FormTemplateManager = ({ isAdmin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [categorieTemplate, setCategorieTemplate] = useState([]);
+  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
+  const [newCategory, setNewCategory] = useState({ name: '', label: '' });
 
   // Checklist states (spostati da CalendarioCompleto)
   const [selectedAssetType, setSelectedAssetType] = useState('');
@@ -64,16 +67,12 @@ const FormTemplateManager = ({ isAdmin }) => {
     { value: 'file', label: 'Carica File' }
   ];
 
-  // Categorie template
-  const categorieTemplate = [
-    { value: 'ordinario', label: 'Ordinario' },
-    { value: 'straordinario', label: 'Straordinario' },
-    { value: 'esterno', label: 'Esterno' }
-  ];
+  // Categorie template ora sono dinamiche - caricate da API
 
   useEffect(() => {
     loadTemplates();
     loadAvailableAssetTypes();
+    loadCategories();
   }, []);
 
   useEffect(() => {
@@ -121,6 +120,72 @@ const FormTemplateManager = ({ isAdmin }) => {
       }
     } catch (err) {
       console.error('Connection error loading asset types:', err);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const response = await fetch(`${API_URLS.dynamicForms}/categories`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setCategorieTemplate(data.categories || []);
+        console.log('Available categories:', data.categories);
+      } else {
+        console.error('Error loading categories:', data);
+      }
+    } catch (err) {
+      console.error('Connection error loading categories:', err);
+    }
+  };
+
+  const addCategory = async () => {
+    if (!newCategory.name.trim() || !newCategory.label.trim()) {
+      setError('Nome e label categoria sono obbligatori');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URLS.dynamicForms}/categories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCategory)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess('Categoria aggiunta con successo');
+        setNewCategory({ name: '', label: '' });
+        loadCategories();
+      } else {
+        setError(data.error || 'Errore nell\'aggiunta della categoria');
+      }
+    } catch (err) {
+      console.error('Error adding category:', err);
+      setError('Errore di connessione');
+    }
+  };
+
+  const deleteCategory = async (categoryId) => {
+    if (!confirm('Sei sicuro di voler eliminare questa categoria?')) return;
+
+    try {
+      const response = await fetch(`${API_URLS.dynamicForms}/categories/${categoryId}`, {
+        method: 'DELETE'
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess('Categoria eliminata con successo');
+        loadCategories();
+      } else {
+        setError(data.error || 'Errore nell\'eliminazione della categoria');
+      }
+    } catch (err) {
+      console.error('Error deleting category:', err);
+      setError('Errore di connessione');
     }
   };
 
@@ -773,14 +838,27 @@ const FormTemplateManager = ({ isAdmin }) => {
 
           <div className="form-group">
             <label>Categoria *</label>
-            <select
-              value={templateForm.tipo_categoria}
-              onChange={(e) => setTemplateForm(prev => ({ ...prev, tipo_categoria: e.target.value }))}
-            >
-              {categorieTemplate.map(cat => (
-                <option key={cat.value} value={cat.value}>{cat.label}</option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+              <select
+                style={{ flex: 1 }}
+                value={templateForm.tipo_categoria}
+                onChange={(e) => setTemplateForm(prev => ({ ...prev, tipo_categoria: e.target.value }))}
+              >
+                {categorieTemplate.map(cat => (
+                  <option key={cat.name} value={cat.name}>{cat.label}</option>
+                ))}
+              </select>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setShowCategoriesModal(true)}
+                  className="btn-secondary"
+                  style={{ padding: '8px 12px', fontSize: '14px' }}
+                >
+                  Gestisci Categorie
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="form-group">
@@ -1538,6 +1616,81 @@ const FormTemplateManager = ({ isAdmin }) => {
             </button>
             <button onClick={handleSaveField} className="btn btn-primary" disabled={loading}>
               {loading ? 'Salvando...' : 'Salva'}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal Gestione Categorie */}
+      {showCategoriesModal && (
+        <Modal
+          title="Gestisci Categorie Template"
+          onClose={() => setShowCategoriesModal(false)}
+        >
+          <div className="categories-management">
+            <h4>Aggiungi Nuova Categoria</h4>
+            <div className="form-group">
+              <label>Nome (identificativo)</label>
+              <input
+                type="text"
+                value={newCategory.name}
+                onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="es: sicurezza"
+              />
+              <small>Identificativo interno (solo lettere minuscole, numeri, underscore)</small>
+            </div>
+            
+            <div className="form-group">
+              <label>Etichetta (visualizzata)</label>
+              <input
+                type="text"
+                value={newCategory.label}
+                onChange={(e) => setNewCategory(prev => ({ ...prev, label: e.target.value }))}
+                placeholder="es: Controllo Sicurezza"
+              />
+              <small>Nome mostrato all'utente</small>
+            </div>
+
+            <button 
+              onClick={addCategory} 
+              className="btn btn-primary"
+              style={{ marginBottom: '20px' }}
+            >
+              Aggiungi Categoria
+            </button>
+
+            <h4>Categorie Esistenti</h4>
+            <div className="categories-list">
+              {categorieTemplate.map(category => (
+                <div key={category.id} className="category-item" style={{
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  marginBottom: '8px'
+                }}>
+                  <div>
+                    <strong>{category.label}</strong>
+                    <br />
+                    <small style={{ color: '#666' }}>ID: {category.name}</small>
+                  </div>
+                  <button
+                    onClick={() => deleteCategory(category.id)}
+                    className="btn btn-danger btn-sm"
+                    style={{ padding: '4px 8px' }}
+                  >
+                    Elimina
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="modal-actions" style={{ marginTop: '20px' }}>
+            <button onClick={() => setShowCategoriesModal(false)} className="btn btn-secondary">
+              Chiudi
             </button>
           </div>
         </Modal>

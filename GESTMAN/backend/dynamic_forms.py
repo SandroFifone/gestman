@@ -840,6 +840,106 @@ def get_available_asset_types():
         print(f"[ERROR] get_available_asset_types: {e}")
         return jsonify({'error': str(e)}), 500
 
+@bp.route('/categories', methods=['GET'])
+def get_categories():
+    """Ottieni tutte le categorie template disponibili"""
+    try:
+        gestman_db_path = os.path.join(os.path.dirname(__file__), 'gestman.db')
+        conn = sqlite3.connect(gestman_db_path)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        c.execute('SELECT * FROM template_categories ORDER BY label')
+        categories = []
+        for row in c.fetchall():
+            categories.append({
+                'id': row['id'],
+                'name': row['name'],
+                'label': row['label']
+            })
+        
+        conn.close()
+        return jsonify({'categories': categories}), 200
+        
+    except Exception as e:
+        print(f"[ERROR] get_categories: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/categories', methods=['POST'])
+def add_category():
+    """Aggiungi una nuova categoria"""
+    try:
+        from flask import request
+        data = request.get_json()
+        
+        if not data or not data.get('name') or not data.get('label'):
+            return jsonify({'error': 'Nome e label categoria sono obbligatori'}), 400
+        
+        gestman_db_path = os.path.join(os.path.dirname(__file__), 'gestman.db')
+        conn = sqlite3.connect(gestman_db_path)
+        c = conn.cursor()
+        
+        # Verifica che il nome non esista già
+        c.execute('SELECT id FROM template_categories WHERE name = ?', (data['name'].lower(),))
+        if c.fetchone():
+            conn.close()
+            return jsonify({'error': 'Categoria già esistente'}), 400
+        
+        # Inserisci la nuova categoria
+        c.execute(
+            'INSERT INTO template_categories (name, label) VALUES (?, ?)',
+            (data['name'].lower(), data['label'])
+        )
+        
+        conn.commit()
+        category_id = c.lastrowid
+        conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'category': {
+                'id': category_id,
+                'name': data['name'].lower(),
+                'label': data['label']
+            }
+        }), 201
+        
+    except Exception as e:
+        print(f"[ERROR] add_category: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/categories/<int:category_id>', methods=['DELETE'])
+def delete_category(category_id):
+    """Elimina una categoria"""
+    try:
+        gestman_db_path = os.path.join(os.path.dirname(__file__), 'gestman.db')
+        conn = sqlite3.connect(gestman_db_path)
+        c = conn.cursor()
+        
+        # Verifica che la categoria non sia usata in template esistenti
+        c.execute('SELECT COUNT(*) FROM form_templates WHERE tipo_categoria = (SELECT name FROM template_categories WHERE id = ?)', (category_id,))
+        usage_count = c.fetchone()[0]
+        
+        if usage_count > 0:
+            conn.close()
+            return jsonify({'error': f'Impossibile eliminare: categoria usata in {usage_count} template'}), 400
+        
+        # Elimina la categoria
+        c.execute('DELETE FROM template_categories WHERE id = ?', (category_id,))
+        
+        if c.rowcount == 0:
+            conn.close()
+            return jsonify({'error': 'Categoria non trovata'}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Categoria eliminata'}), 200
+        
+    except Exception as e:
+        print(f"[ERROR] delete_category: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @bp.route('/templates/by-asset-type', methods=['GET'])
 def get_templates_by_asset_type():
     """Ottieni template compatibili con un tipo di asset"""
