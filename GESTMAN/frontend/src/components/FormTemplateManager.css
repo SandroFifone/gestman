@@ -24,8 +24,8 @@
 /* Content Grid */
 .content-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr; /* Templates prende 2/3 dello spazio, Fields 1/3 */
-  gap: 30px;
+  grid-template-columns: 1fr 0fr; /* Templates prende tutto lo spazio, Fields nascosto */
+  gap: 0px;
   min-height: 600px;
 }
 
@@ -45,13 +45,17 @@
 }
 
 /* Panel Styles */
-.templates-panel,
-.fields-panel {
+.templates-panel {
   background: white;
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--border-color);
+  width: 100%;
+}
+
+.fields-panel {
+  display: none; /* Nascondi il pannello campi */
 }
 
 .panel-header {
