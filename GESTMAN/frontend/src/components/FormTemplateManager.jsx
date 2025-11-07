@@ -844,10 +844,19 @@ const FormTemplateManager = ({ isAdmin }) => {
                 value={templateForm.tipo_categoria}
                 onChange={(e) => setTemplateForm(prev => ({ ...prev, tipo_categoria: e.target.value }))}
               >
-                {categorieTemplate.map(cat => (
-                  <option key={cat.name} value={cat.name}>{cat.label}</option>
-                ))}
+                {categorieTemplate.length > 0 ? (
+                  categorieTemplate.map(cat => (
+                    <option key={cat.name} value={cat.name}>{cat.label}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="ordinario">Ordinario</option>
+                    <option value="straordinario">Straordinario</option>
+                    <option value="esterno">Esterno</option>
+                  </>
+                )}
               </select>
+              {/* DEBUG: isAdmin = {String(isAdmin)} */}
               {isAdmin && (
                 <button
                   type="button"
@@ -858,6 +867,15 @@ const FormTemplateManager = ({ isAdmin }) => {
                   Gestisci Categorie
                 </button>
               )}
+              {/* TEMP: Mostra sempre per test */}
+              <button
+                type="button"
+                onClick={() => setShowCategoriesModal(true)}
+                className="btn-secondary"
+                style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#007bff', color: 'white' }}
+              >
+                🔧 Gestisci Categorie (Test)
+              </button>
             </div>
           </div>
 
