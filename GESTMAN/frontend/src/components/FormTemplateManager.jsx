@@ -1452,7 +1452,15 @@ const FormTemplateManager = ({ isAdmin }) => {
               {/* TEMP: Mostra sempre per test */}
               <button
                 type="button"
-                onClick={() => setShowCategoriesModal(true)}
+                onClick={() => {
+                  console.log('🔧 Pulsante test cliccato!');
+                  console.log('showCategoriesModal prima:', showCategoriesModal);
+                  setShowCategoriesModal(true);
+                  console.log('setShowCategoriesModal(true) chiamato');
+                  setTimeout(() => {
+                    console.log('showCategoriesModal dopo 100ms:', showCategoriesModal);
+                  }, 100);
+                }}
                 className="btn-secondary"
                 style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#007bff', color: 'white' }}
               >
