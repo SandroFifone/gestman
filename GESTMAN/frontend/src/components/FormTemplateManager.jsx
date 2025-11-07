@@ -140,8 +140,8 @@ const FormTemplateManager = ({ isAdmin }) => {
   };
 
   const addCategory = async () => {
-    if (!newCategory.name.trim() || !newCategory.label.trim()) {
-      setError('Nome e label categoria sono obbligatori');
+    if (!newCategory.name.trim()) {
+      setError('Nome categoria è obbligatorio');
       return;
     }
 
@@ -1438,7 +1438,6 @@ const FormTemplateManager = ({ isAdmin }) => {
                   </>
                 )}
               </select>
-              {/* DEBUG: isAdmin = {String(isAdmin)} */}
               {isAdmin && (
                 <button
                   type="button"
@@ -1449,23 +1448,6 @@ const FormTemplateManager = ({ isAdmin }) => {
                   Gestisci Categorie
                 </button>
               )}
-              {/* TEMP: Mostra sempre per test */}
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('🔧 Pulsante test cliccato!');
-                  console.log('showCategoriesModal prima:', showCategoriesModal);
-                  setShowCategoriesModal(true);
-                  console.log('setShowCategoriesModal(true) chiamato');
-                  setTimeout(() => {
-                    console.log('showCategoriesModal dopo 100ms:', showCategoriesModal);
-                  }, 100);
-                }}
-                className="btn-secondary"
-                style={{ padding: '8px 12px', fontSize: '14px', backgroundColor: '#007bff', color: 'white' }}
-              >
-                🔧 Gestisci Categorie (Test)
-              </button>
             </div>
           </div>
 
@@ -1696,25 +1678,18 @@ const FormTemplateManager = ({ isAdmin }) => {
           <div className="categories-management">
             <h4>Aggiungi Nuova Categoria</h4>
             <div className="form-group">
-              <label>Nome (identificativo)</label>
+              <label>Nome Categoria</label>
               <input
                 type="text"
                 value={newCategory.name}
-                onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="es: sicurezza"
-              />
-              <small>Identificativo interno (solo lettere minuscole, numeri, underscore)</small>
-            </div>
-            
-            <div className="form-group">
-              <label>Etichetta (visualizzata)</label>
-              <input
-                type="text"
-                value={newCategory.label}
-                onChange={(e) => setNewCategory(prev => ({ ...prev, label: e.target.value }))}
+                onChange={(e) => setNewCategory(prev => ({ 
+                  ...prev, 
+                  name: e.target.value,
+                  label: e.target.value // Usa lo stesso valore per nome e label
+                }))}
                 placeholder="es: Controllo Sicurezza"
               />
-              <small>Nome mostrato all'utente</small>
+              <small>Nome della categoria (es: Controllo Sicurezza, Manutenzione Straordinaria, etc.)</small>
             </div>
 
             <button 
