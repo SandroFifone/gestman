@@ -290,7 +290,7 @@ function AppContent({ user, onLogout }) {
                 <Route path="/users" element={<UsersManager currentUser={user} />} />
                 <Route path="/assets-manager" element={<AssetsManagerAdmin />} />
                 <Route path="/ricambi-demo" element={<RicambiLinksDemo />} />
-                <Route path="/form-templates" element={<FormTemplateManager />} />
+                <Route path="/form-templates" element={<FormTemplateManager isAdmin={user.isAdmin} />} />
                 <Route path="/telegram" element={<TelegramManager sidebarOpen={sidebarOpen} />} />
               </>
             )}

@@ -3,7 +3,7 @@ import { API_URLS } from '../config/api';
 import Modal from './Modal';
 import './FormTemplateManager.css';
 
-const FormTemplateManager = () => {
+const FormTemplateManager = ({ isAdmin }) => {
   const [activeTab, setActiveTab] = useState('templates'); // 'templates' o 'checklist'
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -562,47 +562,127 @@ const FormTemplateManager = () => {
         <div className="content-grid">
           {/* Templates List */}
         <div className="templates-panel">
-          <div className="panel-header">
-            <h3>📋 Template Form</h3>
-            <button onClick={handleCreateTemplate} className="btn btn-primary">
-              + Nuovo Template
-            </button>
+          <div className="card-header">
+            <h2 className="card-title">📋 Template Form ({templates.length})</h2>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {isAdmin && (
+                <button onClick={handleCreateTemplate} className="btn btn-primary">
+                  + Nuovo Template
+                </button>
+              )}
+            </div>
           </div>
 
-          {loading && <div className="loading">Caricamento...</div>}
+          <div className="card-content">
+            {error && <div className="alert alert-error">{error}</div>}
+            {success && <div className="alert alert-success">{success}</div>}
+            {loading && <div style={{ textAlign: 'center', padding: '2rem' }}>⏳ Caricamento...</div>}
 
-          <div className="templates-list">
+          {/* Desktop Table */}
+          <div className="desktop-only" style={{ overflowX: 'auto' }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Nome Template</th>
+                  <th>Descrizione</th>
+                  <th>Tipo Categoria</th>
+                  <th>Asset Types</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody>
+                {templates.map(template => (
+                  <tr key={template.id} className={selectedTemplate?.id === template.id ? 'selected' : ''}>
+                    <td style={{ fontWeight: 'var(--font-weight-semibold)' }}>
+                      {template.nome}
+                    </td>
+                    <td>{template.descrizione}</td>
+                    <td>
+                      <span className={`badge badge-${template.tipo_categoria}`}>
+                        {template.tipo_categoria}
+                      </span>
+                    </td>
+                    <td>{template.asset_types?.join(', ') || 'N/A'}</td>
+                    <td>
+                      <button 
+                        onClick={() => setSelectedTemplate(template)}
+                        className="btn btn-sm btn-primary"
+                      >
+                        Visualizza
+                      </button>
+                      {isAdmin && (
+                        <>
+                          <button 
+                            onClick={() => handleEditTemplate(template)}
+                            className="btn btn-sm btn-outline"
+                          >
+                            Modifica
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteTemplate(template.id)}
+                            className="btn btn-sm btn-danger"
+                          >
+                            Elimina
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {templates.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="table-empty">
+                      Nessun template configurato
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="mobile-only">
             {templates.map(template => (
-              <div 
-                key={template.id} 
-                className={`template-card ${selectedTemplate?.id === template.id ? 'selected' : ''}`}
-                onClick={() => setSelectedTemplate(template)}
-              >
-                <div className="template-info">
-                  <h4>{template.nome}</h4>
-                  <p>{template.descrizione}</p>
-                  <div className="template-meta">
+              <div key={template.id} className="card-item mobile-card">
+                <div className="card-item-header">
+                  <span className="card-item-title">{template.nome}</span>
+                </div>
+                <div className="card-item-body">
+                  <p className="card-item-description">{template.descrizione}</p>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
                     <span className={`badge badge-${template.tipo_categoria}`}>
                       {template.tipo_categoria}
                     </span>
-                    <span className="asset-types">
-                      {template.asset_types?.join(', ')}
-                    </span>
+                    {template.asset_types?.length > 0 && (
+                      <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--gray-600)' }}>
+                        {template.asset_types.join(', ')}
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="template-actions">
+                <div className="card-item-actions">
                   <button 
-                    onClick={(e) => { e.stopPropagation(); handleEditTemplate(template); }}
-                    className="btn btn-sm btn-secondary"
+                    onClick={() => setSelectedTemplate(template)}
+                    className="btn btn-sm btn-primary"
                   >
-                    ✏️
+                    👁️ Visualizza
                   </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(template.id); }}
-                    className="btn btn-sm btn-danger"
-                  >
-                    🗑️
-                  </button>
+                  {isAdmin && (
+                    <>
+                      <button 
+                        onClick={() => handleEditTemplate(template)}
+                        className="btn btn-sm btn-outline"
+                      >
+                        ✏️ Modifica
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteTemplate(template.id)}
+                        className="btn btn-sm btn-danger"
+                      >
+                        🗑️ Elimina
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
@@ -657,6 +737,7 @@ const FormTemplateManager = () => {
               <p>Seleziona un template per vedere i suoi campi</p>
             </div>
           )}
+        </div>
         </div>
       </div>
       )}
