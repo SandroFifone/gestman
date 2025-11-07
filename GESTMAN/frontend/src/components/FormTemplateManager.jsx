@@ -653,7 +653,7 @@ const FormTemplateManager = ({ isAdmin }) => {
                   <th>Descrizione</th>
                   <th>Tipo Categoria</th>
                   <th>Asset Types</th>
-                  <th>Azioni</th>
+                  <th style={{ textAlign: 'left', minWidth: '200px' }}>Azioni</th>
                 </tr>
               </thead>
               <tbody>
@@ -670,28 +670,36 @@ const FormTemplateManager = ({ isAdmin }) => {
                     </td>
                     <td>{template.asset_types?.join(', ') || 'N/A'}</td>
                     <td>
-                      <button 
-                        onClick={() => setSelectedTemplate(template)}
-                        className="btn btn-sm btn-primary"
-                      >
-                        Visualizza
-                      </button>
-                      {isAdmin && (
-                        <>
-                          <button 
-                            onClick={() => handleEditTemplate(template)}
-                            className="btn btn-sm btn-outline"
-                          >
-                            Modifica
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteTemplate(template.id)}
-                            className="btn btn-sm btn-danger"
-                          >
-                            Elimina
-                          </button>
-                        </>
-                      )}
+                      <div style={{ 
+                        display: 'flex', 
+                        gap: '8px', 
+                        alignItems: 'center',
+                        justifyContent: 'flex-start',
+                        flexWrap: 'wrap'
+                      }}>
+                        <button 
+                          onClick={() => setSelectedTemplate(template)}
+                          className="btn btn-sm btn-primary"
+                        >
+                          Visualizza
+                        </button>
+                        {isAdmin && (
+                          <>
+                            <button 
+                              onClick={() => handleEditTemplate(template)}
+                              className="btn btn-sm btn-outline"
+                            >
+                              Modifica
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteTemplate(template.id)}
+                              className="btn btn-sm btn-danger"
+                            >
+                              Elimina
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
