@@ -109,7 +109,8 @@ const FormTemplateManager = ({ isAdmin }) => {
 
   const loadAvailableAssetTypes = async () => {
     try {
-      const response = await fetch(`${API_URLS.dynamicForms}/asset-types`);
+      // Usa lo stesso endpoint di Assets Manager per consistenza
+      const response = await fetch('/api/asset-types');
       const data = await response.json();
       
       if (response.ok) {
