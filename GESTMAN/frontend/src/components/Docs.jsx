@@ -941,16 +941,18 @@ const Docs = ({ username, isAdmin }) => {
   );
 
   return (
-    <div className="docs-wrapper">
-      <div className="docs-header">
-        <h2>🗂️ Docs</h2>
-        <p>Documentazione e reportistica di sistema - Benvenuto, {username} {isAdmin ? '(Admin)' : '(Visualizzazione)'}</p>
+    <div className="section-container">
+      <div className="section-header">
+        <h1>📚 Docs</h1>
+        <p>Documentazione e reportistica di sistema - {username} {isAdmin ? '(Admin)' : '(Solo lettura)'}</p>
       </div>
 
-      {!activeSection ? renderSectionsList() : renderSectionDetail()}
+      <div className="section-content">
+        {!activeSection ? renderSectionsList() : renderSectionDetail()}
 
-      {renderDeleteModal()}
-      {renderCleanupModal()}
+        {renderDeleteModal()}
+        {renderCleanupModal()}
+      </div>
     </div>
   );
 };
