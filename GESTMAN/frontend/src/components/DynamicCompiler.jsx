@@ -266,8 +266,8 @@ const DynamicCompiler = ({ username }) => {
   return (
     <div className="section-container">
       <div className="section-header">
-        <h1>📋 Compilazioni</h1>
-        <p>Compila form dinamici per asset - Seleziona civico, asset e tipo di form</p>
+        <h1>📋 Compilatore</h1>
+        <p>Seleziona civico, asset e tipo di form per compilare report di intervento</p>
       </div>
 
       {error && (
