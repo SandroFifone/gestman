@@ -558,11 +558,14 @@ def generate_pdf():
         import io
         
         data = request.get_json()
+        print(f"PDF Request Data: {data}")  # Debug
         
         # Parametri configurazione
         config = data.get('config', {})
         query_result = data.get('queryResult', {})
         template_config = data.get('templateConfig', {})
+        
+        print(f"Query result data: {query_result.get('data', [])[:2]}")  # Debug primi 2 record
         
         # Configurazione documento
         orientation = config.get('orientation', 'portrait')

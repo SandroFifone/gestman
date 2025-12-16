@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { API_URLS } from '../config/api';
 import './DocsAdvanced.css';
+import './QuickAccess.css';
 
 const Docs = ({ username, isAdmin }) => {
-  const [activeView, setActiveView] = useState('explorer');
+  const [activeView, setActiveView] = useState('quick');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -141,16 +142,18 @@ const Docs = ({ username, isAdmin }) => {
     try {
       // Prepara i dati per il PDF backend
       const pdfRequest = {
-        type: 'document_pdf',
-        template: templateConfig,
-        reportData: reportData,
-        reportConfig: reportConfig,
-        metadata: {
-          title: templateConfig.title,
-          author: username || 'GESTMAN',
-          subject: `Report ${reportConfig.type}`,
-          creator: 'GESTMAN System',
-          generated_at: new Date().toISOString()
+        config: {
+          orientation: templateConfig.orientation || 'portrait',
+          database: currentDatabase || 'gestman'
+        },
+        queryResult: {
+          database: currentDatabase || 'gestman',
+          table: selectedTable || 'N/A',
+          data: reportData?.data || queryData || []
+        },
+        templateConfig: {
+          title: templateConfig.title || 'Report Database',
+          showFooter: templateConfig.showFooter !== false
         }
       };
       
@@ -222,6 +225,97 @@ const Docs = ({ username, isAdmin }) => {
   const [selectedDatabase, setSelectedDatabase] = useState('');
   const [selectedTableDetail, setSelectedTableDetail] = useState(null);
   
+  // Vista accesso rapido
+  const renderQuickAccess = () => (
+    <div className="quick-access-panel">
+      <div className="quick-header">
+        <h3>⚡ Generazione PDF Rapida</h3>
+        <p>Seleziona database e tabella per generare immediatamente un PDF</p>
+      </div>
+      
+      <div className="quick-form">
+        <div className="form-row">
+          <label>Database:</label>
+          <select 
+            value={currentDatabase} 
+            onChange={(e) => setCurrentDatabase(e.target.value)}
+          >
+            <option value="">Seleziona database</option>
+            <option value="gestman">gestman.db</option>
+            <option value="compilazioni">compilazioni.db</option>
+          </select>
+        </div>
+        
+        {currentDatabase && (
+          <div className="form-row">
+            <label>Tabella:</label>
+            <select 
+              value={selectedTable} 
+              onChange={(e) => setSelectedTable(e.target.value)}
+            >
+              <option value="">Seleziona tabella</option>
+              {databases?.[currentDatabase]?.tables.map(table => (
+                <option key={table.table_name} value={table.table_name}>
+                  {table.table_name} ({table.row_count} righe)
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        
+        {currentDatabase && selectedTable && (
+          <div className="quick-actions">
+            <button 
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  // Carica i dati della tabella
+                  const response = await fetch(`${API_URLS.DOCS}/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      database: currentDatabase,
+                      table: selectedTable,
+                      limit: 100
+                    })
+                  });
+                  const data = await response.json();
+                  setQueryData(data.data || []);
+                  setReportData(data);
+                  
+                  // Genera PDF direttamente
+                  await generatePDF();
+                } catch (err) {
+                  setError('Errore nel caricamento dati: ' + err.message);
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="primary-export"
+              disabled={loading}
+            >
+              {loading ? (
+                <div className="pdf-loading">
+                  <div className="loading-spinner"></div>
+                  Generazione PDF...
+                </div>
+              ) : (
+                <>📄 Genera PDF Immediato</>
+              )}
+            </button>
+            
+            <button 
+              onClick={() => setCurrentView('advanced')}
+              className="export-btn secondary"
+            >
+              🔧 Opzioni Avanzate
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   const renderDatabaseExplorer = () => (
     <div className="database-explorer">
       <div className="explorer-header">
@@ -1228,6 +1322,12 @@ const Docs = ({ username, isAdmin }) => {
       <div className="section-content">
         <div className="docs-navigation">
           <button 
+            className={`nav-btn ${activeView === 'quick' ? 'active' : ''}`}
+            onClick={() => setActiveView('quick')}
+          >
+            ⚡ PDF Rapido
+          </button>
+          <button 
             className={`nav-btn ${activeView === 'explorer' ? 'active' : ''}`}
             onClick={() => setActiveView('explorer')}
           >
@@ -1241,6 +1341,7 @@ const Docs = ({ username, isAdmin }) => {
           </button>
         </div>
 
+        {activeView === 'quick' && renderQuickAccess()}
         {activeView === 'explorer' && renderDatabaseExplorer()}
         {activeView === 'reports' && renderReportBuilder()}
         
