@@ -1,24 +1,13 @@
 # coding: utf-8
 """
-Blueprint per la gestione della documentazione e report
-Permette di consultare e esportare tutti i dati del gestionale
+Blueprint per la gestione della documentazione e report - Nuovo sistema
+Generazione dinamica di documenti amministrativi
 """
 
-from flask import Blueprint, request, jsonify, make_response, send_file, send_from_directory
+from flask import Blueprint, request, jsonify
 import sqlite3
 import os
-import json
 from datetime import datetime
-import io
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4, letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
-# Temporaneamente disabilitato per problemi ambiente virtuale 
-# import pandas as pd
 
 bp = Blueprint('docs', __name__)
 
@@ -26,13 +15,16 @@ bp = Blueprint('docs', __name__)
 GESTMAN_DB = os.path.join(os.path.dirname(__file__), 'gestman.db')
 COMPILAZIONI_DB = os.path.join(os.path.dirname(__file__), 'compilazioni.db')
 
-def get_gestman_connection():
-    """Connessione al database gestman.db"""
-    conn = sqlite3.connect(GESTMAN_DB)
-    conn.row_factory = sqlite3.Row
-    return conn
+@bp.route('/test', methods=['GET'])
+def test_docs():
+    """Endpoint di test per verificare che il sistema funzioni"""
+    return jsonify({
+        'message': 'Sistema documentazione attivo',
+        'timestamp': datetime.now().isoformat(),
+        'version': '2.0'
+    }), 200
 
-def get_compilazioni_connection():
+# Spazio per futuri endpoint - aggiungeremo step by step
     """Connessione al database compilazioni.db"""
     conn = sqlite3.connect(COMPILAZIONI_DB)
     conn.row_factory = sqlite3.Row

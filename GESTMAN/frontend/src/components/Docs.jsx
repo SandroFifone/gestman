@@ -1,39 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { API_URLS } from '../config/api';
+import React, { useState } from 'react';
 import './Docs.css';
 
 const Docs = ({ username, isAdmin }) => {
-  const [activeView, setActiveView] = useState('overview'); // 'overview', 'builder', 'templates', 'generator'
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  return (
+    <div className="section-container">
+      <div className="section-header">
+        <h2>📚 Documentazione e Report</h2>
+        <p>Sistema di generazione documenti dinamici per l'amministrazione aziendale</p>
+      </div>
 
-  // Nuove sezioni per il sistema di documenti
-  const documentSections = [
-    {
-      key: 'templates',
-      label: 'Template Documenti',
-      icon: '📄',
-      description: 'Crea e gestisci template per documenti amministrativi'
-    },
-    {
-      key: 'generator',
-      label: 'Generatore Documenti',
-      icon: '🏗️',
-      description: 'Genera documenti utilizzando dati dinamici dell\'app'
-    },
-    {
-      key: 'reports',
-      label: 'Report Automatici',
-      icon: '📊',
-      description: 'Report pre-configurati per manutenzioni, asset e costi'
-    },
-    {
-      key: 'archive',
-      label: 'Archivio Documenti',
-      icon: '🗄️',
-      description: 'Documenti generati e salvati automaticamente'
-    }
-  ];
+      <div className="section-content">
+        <div className="coming-soon">
+          <h3>🚧 Sezione in Costruzione</h3>
+          <p>Stiamo preparando il nuovo sistema di generazione documenti. Presto disponibile!</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Docs;
 
   const handleSectionClick = (sectionKey) => {
     setActiveView(sectionKey);
