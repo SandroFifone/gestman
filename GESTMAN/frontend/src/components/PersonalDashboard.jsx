@@ -476,7 +476,7 @@ const PersonalDashboard = ({ user, isAdmin }) => {
       <div className="dashboard-grid">
         {/* Conversioni Tecniche */}
         <div className="dashboard-card conversions-card">
-          <h2>⚙️ Convertitore Tecnico</h2>
+          <h2>⚙️ Conversioni</h2>
           <div className="conversions-container">
             
             <div className="category-selector">
