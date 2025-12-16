@@ -96,10 +96,11 @@ const Assets = ({ isAdmin }) => {
 
   // Mostra la lista dei civici (solo lettura)
   return (
-    <div className="page-container">
-      <h2 style={{ color: 'var(--primary-color)', marginBottom: 'var(--spacing-xl)', fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-semibold)' }}>
-        ⚙️ Assets
-      </h2>
+    <div className="section-container">
+      <div className="section-header">
+        <h1>⚙️ Assets</h1>
+        <p>Gestione asset per civici - Seleziona un civico per visualizzare i suoi asset</p>
+      </div>
       
       {error && (
         <div style={{ background: 'var(--error-light)', color: 'var(--error-dark)', padding: 'var(--spacing-md)', borderRadius: 'var(--border-radius-md)', marginBottom: 'var(--spacing-lg)' }}>

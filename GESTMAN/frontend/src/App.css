@@ -125,3 +125,35 @@
 .read-the-docs {
   color: #888;
 }
+
+/* === SEZIONI STANDARDIZZATE === */
+.section-container {
+  padding: var(--spacing-lg);
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  border-radius: var(--border-radius-lg);
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+.section-header h1 {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 2rem;
+  font-weight: var(--font-weight-bold);
+  color: white;
+}
+
+.section-header p {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: white;
+  font-weight: var(--font-weight-medium);
+}
