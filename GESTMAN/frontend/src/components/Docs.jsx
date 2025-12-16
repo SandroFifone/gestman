@@ -36,10 +36,23 @@ const Docs = ({ username, isAdmin }) => {
     try {
       const response = await fetch(`${API_URLS.DOCS}/relationships`);
       const data = await response.json();
-      if (response.ok && Array.isArray(data)) {
-        setRelationships(data);
+      if (response.ok) {
+        // Il backend restituisce un oggetto con chiavi, convertiamo in array
+        if (Array.isArray(data)) {
+          setRelationships(data);
+        } else if (data && typeof data === 'object') {
+          // Combina tutti gli array di relazioni
+          const allRelations = [];
+          Object.values(data).forEach(relations => {
+            if (Array.isArray(relations)) {
+              allRelations.push(...relations);
+            }
+          });
+          setRelationships(allRelations);
+        } else {
+          setRelationships([]);
+        }
       } else {
-        console.warn('Relationships data non è un array:', data);
         setRelationships([]);
       }
     } catch (err) {
@@ -96,7 +109,7 @@ const Docs = ({ username, isAdmin }) => {
     
     setLoading(true);
     try {
-      const response = await fetch(`${API_URLS.DOCS}/advanced_query`, {
+      const response = await fetch(`${API_URLS.DOCS}/advanced-query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reportConfig)
@@ -110,8 +123,12 @@ const Docs = ({ username, isAdmin }) => {
         setError(data.error || 'Errore nella query avanzata');
       }
     } catch (err) {
-      setError('Errore di connessione');
-      console.error(err);
+      if (err.name === 'SyntaxError') {
+        setError('Errore nel formato della risposta del server');
+      } else {
+        setError('Errore di connessione al server');
+      }
+      console.error('Errore advanced query:', err);
     } finally {
       setLoading(false);
     }
