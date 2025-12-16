@@ -253,7 +253,7 @@ const Docs = ({ username, isAdmin }) => {
   );
 
   const renderQueryBuilder = () => {
-    console.log('Rendering Query Builder', { reportConfig, relationships });
+    // Rimuovi log eccessivo che causa rendering multipli
     return (
     <div className="query-builder">
       <div className="query-header">
@@ -512,11 +512,6 @@ const Docs = ({ username, isAdmin }) => {
         </div>
         {activeView === 'explorer' && renderDatabaseExplorer()}
         {activeView === 'query' && renderQueryBuilder()}
-        {activeView === 'query' && !renderQueryBuilder && (
-          <div className="error">
-            ⚠️ Funzione renderQueryBuilder non trovata
-          </div>
-        )}
       </div>
     </div>
   );

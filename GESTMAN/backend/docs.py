@@ -239,6 +239,8 @@ def advanced_query():
 
 def asset_summary_query(config):
     """Genera report riassuntivo per asset (specifico o generale)"""
+    print(f"[DEBUG] asset_summary_query chiamata con config: {config}")
+    
     asset_id = config.get('asset_id')
     civico = config.get('civico')
     date_from = config.get('date_from')
@@ -246,14 +248,20 @@ def asset_summary_query(config):
     
     # Dati asset da gestman.db - prima verifichiamo la struttura
     gestman_conn = get_db_connection('gestman')
-    cursor = gestman_conn.cursor()
-    
     # Verifica struttura tabella assets
-    cursor.execute("PRAGMA table_info(assets)")
-    columns_info = cursor.fetchall()
-    column_names = [col[1] for col in columns_info]
-    
-    # Determina i nomi delle colonne corretti
+    try:
+        cursor.execute("PRAGMA table_info(assets)")
+        columns_info = cursor.fetchall()
+        column_names = [col[1] for col in columns_info]
+        print(f"[DEBUG] Colonne tabella assets: {column_names}")
+        
+        # Determina i nomi delle colonne corretti
+        id_col = 'id_aziendale' if 'id_aziendale' in column_names else ('id' if 'id' in column_names else column_names[0])
+        civico_col = 'civico_numero' if 'civico_numero' in column_names else ('civico' if 'civico' in column_names else None)
+        print(f"[DEBUG] Usando colonne: id_col={id_col}, civico_col={civico_col}")
+    except Exception as e:
+        gestman_conn.close()
+        return jsonify({'error': f'Errore verifica struttura tabella: {str(e)}'}), 500
     id_col = 'id_aziendale' if 'id_aziendale' in column_names else ('id' if 'id' in column_names else column_names[0])
     civico_col = 'civico_numero' if 'civico_numero' in column_names else ('civico' if 'civico' in column_names else None)
     
@@ -278,10 +286,13 @@ def asset_summary_query(config):
         LIMIT 100
     """
     
-    cursor.execute(query, params)
-    for asset in assets_data:
-        # Usa la chiave corretta per l'ID
-        asset_id_val = asset.get(id_col) or asset.get('id') or asset.get('id_aziendale')
+    try:
+        cursor.execute(query, params)
+        assets_data = [dict(row) for row in cursor.fetchall()]
+        print(f"[DEBUG] Query eseguita, trovati {len(assets_data)} assets")
+    except Exception as e:
+        gestman_conn.close()
+        return jsonify({'error': f'Errore query assets: {str(e)}'}), 500
     
     if not assets_data:
         return jsonify({'error': 'Nessun asset trovato con i criteri specificati'}), 404
@@ -293,32 +304,41 @@ def asset_summary_query(config):
         asset_id_val = asset['id']
         cursor = comp_conn.cursor()
         
-        # Interventi per questo asset
-        cursor.execute("""
-            SELECT COUNT(*) as count
-            FROM form_submissions 
-            WHERE asset_id = ?
-        """, [asset_id_val])
-        result = cursor.fetchone()
-        asset['interventi_count'] = result[0] if result else 0
+        # Interventi per questo asset - verifica nome tabella corretta
+        try:
+            cursor.execute("""
+                SELECT COUNT(*) as count
+                FROM form_submissions 
+                WHERE asset_id = ?
+            """, [asset_id_val])
+            result = cursor.fetchone()
+            asset['interventi_count'] = result[0] if result else 0
+        except Exception:
+            asset['interventi_count'] = 0
         
-        # Alert per questo asset
-        cursor.execute("""
-            SELECT COUNT(*) as count
-            FROM alert 
-            WHERE asset = ?
-        """, [asset_id_val])
-        result = cursor.fetchone()
-        asset['alert_count'] = result[0] if result else 0
+        # Alert per questo asset - verifica nome colonna
+        try:
+            cursor.execute("""
+                SELECT COUNT(*) as count
+                FROM alert_manager 
+                WHERE asset_id = ?
+            """, [asset_id_val])
+            result = cursor.fetchone()
+            asset['alert_count'] = result[0] if result else 0
+        except Exception:
+            asset['alert_count'] = 0
         
         # Scadenze per questo asset
-        cursor.execute("""
-            SELECT COUNT(*) as count
-            FROM scadenze 
-            WHERE asset_id = ?
-        """, [asset_id_val])
-        result = cursor.fetchone()
-        asset['scadenze_count'] = result[0] if result else 0
+        try:
+            cursor.execute("""
+                SELECT COUNT(*) as count
+                FROM scadenze 
+                WHERE asset_id = ?
+            """, [asset_id_val])
+            result = cursor.fetchone()
+            asset['scadenze_count'] = result[0] if result else 0
+        except Exception:
+            asset['scadenze_count'] = 0
     
     comp_conn.close()
     
