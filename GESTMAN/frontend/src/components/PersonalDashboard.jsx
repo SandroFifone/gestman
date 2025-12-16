@@ -467,11 +467,13 @@ const PersonalDashboard = ({ user, isAdmin }) => {
   };
 
   return (
-    <div className="personal-dashboard">
-      <div className="dashboard-header">
-        <h1>Buon lavoro, {user.nome || user.username}!</h1>
+    <div className="section-container">
+      <div className="section-header">
+        <h2>Buon lavoro, {user.nome || user.username}!</h2>
         <p>La tua dashboard personale - {formatTime(currentDate)}</p>
       </div>
+      
+      <div className="section-content">
 
       <div className="dashboard-grid">
         {/* Conversioni Tecniche */}
@@ -623,6 +625,7 @@ const PersonalDashboard = ({ user, isAdmin }) => {
         isOpen={isModalOpen}
         onClose={closeModal}
       />
+      </div>
     </div>
   );
 };

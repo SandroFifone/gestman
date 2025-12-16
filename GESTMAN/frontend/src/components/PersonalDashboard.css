@@ -1,38 +1,9 @@
 /* PersonalDashboard.css */
 
-.personal-dashboard {
-  padding: var(--spacing-lg);
-  max-width: 1400px;
-  margin: 0 auto;
-  min-height: 100vh;
-}
+/* PersonalDashboard specific styles - header now uses standard section-header */
 
-.dashboard-header {
-  text-align: center;
-  margin-bottom: var(--spacing-xl);
-  padding: var(--spacing-lg);
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-  border-radius: var(--border-radius-lg);
-  color: white;
-  box-shadow: var(--shadow-md);
-}
-
-.dashboard-header h1 {
-  margin: 0 0 var(--spacing-sm) 0;
-  font-size: 2rem;
-  font-weight: var(--font-weight-bold);
-  color: white;
-}
-
-.dashboard-header p {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  color: white;
-  font-weight: var(--font-weight-medium);
-}
-
-/* Grid Layout */
-.dashboard-grid {
+/* Grid Layout - inside section-content */
+.section-content .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: var(--spacing-lg);
