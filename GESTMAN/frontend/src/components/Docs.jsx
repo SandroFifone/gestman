@@ -9,7 +9,7 @@ const Docs = ({ username, isAdmin }) => {
   const [error, setError] = useState(null);
   const [selectedTable, setSelectedTable] = useState(null);
   const [queryData, setQueryData] = useState(null);
-  const [relationships, setRelationships] = useState(null);
+  const [relationships, setRelationships] = useState([]);
   const [reportConfig, setReportConfig] = useState({
     type: 'asset_summary',
     asset_id: '',
@@ -36,11 +36,15 @@ const Docs = ({ username, isAdmin }) => {
     try {
       const response = await fetch(`${API_URLS.DOCS}/relationships`);
       const data = await response.json();
-      if (response.ok) {
+      if (response.ok && Array.isArray(data)) {
         setRelationships(data);
+      } else {
+        console.warn('Relationships data non è un array:', data);
+        setRelationships([]);
       }
     } catch (err) {
       console.error('Errore caricamento relazioni:', err);
+      setRelationships([]);
     }
   };
 
@@ -288,7 +292,7 @@ const Docs = ({ username, isAdmin }) => {
         </button>
       </div>
 
-      {relationships && (
+      {relationships && Array.isArray(relationships) && relationships.length > 0 && (
         <div className="relationships-info">
           <h4>🔗 Relazioni Database Rilevate:</h4>
           <div className="relationships-list">
