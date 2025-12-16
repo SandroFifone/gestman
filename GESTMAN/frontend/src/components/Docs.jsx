@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_URLS } from '../config/api';
-import './DocsSimple.css';
+import './DocsAdvanced.css';
 
 const Docs = ({ username, isAdmin }) => {
   const [activeView, setActiveView] = useState('explorer');
@@ -71,26 +71,30 @@ const Docs = ({ username, isAdmin }) => {
     }
   };
 
-  // Query dati tabella specifica
-  const queryTableData = async (dbName, tableName) => {
+  // Query dati tabella specifica con paginazione
+  const queryTableData = async (dbName, tableName, page = 1) => {
     setLoading(true);
     setError(null);
     setSelectedTable({ db: dbName, table: tableName });
     
     try {
+      const offset = (page - 1) * itemsPerPage;
       const response = await fetch(`${API_URLS.DOCS}/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           database: dbName,
           table: tableName,
-          limit: 10
+          limit: itemsPerPage,
+          offset: offset,
+          page: page
         })
       });
       
       if (response.ok) {
         const data = await response.json();
         setQueryData(data);
+        setCurrentPage(page);
       } else {
         throw new Error('Errore nella query');
       }
@@ -164,79 +168,270 @@ const Docs = ({ username, isAdmin }) => {
     URL.revokeObjectURL(url);
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [selectedDatabase, setSelectedDatabase] = useState('');
+  const [selectedTableDetail, setSelectedTableDetail] = useState(null);
+  
   const renderDatabaseExplorer = () => (
     <div className="database-explorer">
       <div className="explorer-header">
-        <h3>🗄️ Esplora Database</h3>
-        <p>Analisi delle strutture dati di gestman.db e compilazioni.db</p>
+        <div className="header-content">
+          <h3>🗄️ Esplorazione Dettagliata Database</h3>
+          <p>Naviga e analizza tutti i dati di gestman.db e compilazioni.db</p>
+        </div>
+        
+        {databases && (
+          <div className="db-selector">
+            <label>Database:</label>
+            <select 
+              value={selectedDatabase} 
+              onChange={(e) => {
+                setSelectedDatabase(e.target.value);
+                setSelectedTableDetail(null);
+                setQueryData(null);
+              }}
+            >
+              <option value="">Seleziona Database</option>
+              {Object.keys(databases.databases).map(dbName => (
+                <option key={dbName} value={dbName}>{dbName}.db</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
-      {loading && <div className="loading">⏳ Caricamento in corso...</div>}
-      {error && <div className="error">⚠️ {error}</div>}
-
-      {databases && (
-        <div className="databases-grid">
-          {Object.entries(databases.databases).map(([dbName, dbInfo]) => (
-            <div key={dbName} className="database-card">
-              <h4>📊 {dbName}.db</h4>
-              <div className="db-info">
-                <span className="table-count">{dbInfo.tables.length} tabelle</span>
-                <span className="size-info">{dbInfo.size || 'N/A'}</span>
-              </div>
-              <div className="tables-list">
-                {dbInfo.tables.map(table => (
-                  <div 
-                    key={table.table_name} 
-                    className="table-item"
-                    onClick={() => queryTableData(dbName, table.table_name)}
-                  >
-                    <div className="table-name">📋 {table.table_name}</div>
-                    <div className="table-info">
-                      <span className="row-count">{table.row_count} righe</span>
-                      <span className="col-count">{table.columns?.length} colonne</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+      {loading && (
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <p>Caricamento dati...</p>
+        </div>
+      )}
+      
+      {error && (
+        <div className="error-state">
+          <div className="error-icon">⚠️</div>
+          <div className="error-content">
+            <h4>Errore di connessione</h4>
+            <p>{error}</p>
+            <button onClick={loadDatabases} className="retry-btn">🔄 Riprova</button>
+          </div>
         </div>
       )}
 
-      {queryData && (
-        <div className="query-results">
-          <div className="results-header">
-            <h4>📄 Dati: {selectedTable.db}.{selectedTable.table}</h4>
-            <div className="results-info">
-              Mostrando {queryData.data?.length || 0} di {queryData.count} risultati
+      {databases && !selectedDatabase && (
+        <div className="databases-overview">
+          <h4>📊 Database Disponibili</h4>
+          <div className="databases-grid">
+            {Object.entries(databases.databases).map(([dbName, dbInfo]) => (
+              <div 
+                key={dbName} 
+                className="database-card clickable"
+                onClick={() => setSelectedDatabase(dbName)}
+              >
+                <div className="card-header">
+                  <h5>📊 {dbName}.db</h5>
+                  <div className="db-stats">
+                    <span className="tables">{dbInfo.tables.length} tabelle</span>
+                    <span className="size">{dbInfo.size || 'N/A'}</span>
+                  </div>
+                </div>
+                <div className="tables-preview">
+                  {dbInfo.tables.slice(0, 3).map(table => (
+                    <div key={table.table_name} className="table-preview">
+                      <span className="name">{table.table_name}</span>
+                      <span className="count">{table.row_count} righe</span>
+                    </div>
+                  ))}
+                  {dbInfo.tables.length > 3 && (
+                    <div className="more-tables">+{dbInfo.tables.length - 3} altre</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {databases && selectedDatabase && (
+        <div className="database-detail">
+          <div className="detail-header">
+            <button 
+              className="back-btn"
+              onClick={() => {
+                setSelectedDatabase('');
+                setSelectedTableDetail(null);
+                setQueryData(null);
+              }}
+            >← Indietro</button>
+            <h4>📊 {selectedDatabase}.db - Tabelle</h4>
+          </div>
+          
+          <div className="tables-grid">
+            {databases.databases[selectedDatabase].tables.map(table => (
+              <div 
+                key={table.table_name} 
+                className={`table-card ${selectedTableDetail?.table_name === table.table_name ? 'active' : ''}`}
+                onClick={() => {
+                  setSelectedTableDetail(table);
+                  queryTableData(selectedDatabase, table.table_name);
+                }}
+              >
+                <div className="table-header">
+                  <h6>📋 {table.table_name}</h6>
+                  <div className="table-stats">
+                    <span className="rows">{table.row_count} righe</span>
+                    <span className="cols">{table.columns?.length || 0} colonne</span>
+                  </div>
+                </div>
+                
+                {table.columns && (
+                  <div className="columns-preview">
+                    <strong>Colonne:</strong>
+                    <div className="columns-list">
+                      {table.columns.slice(0, 4).map((col, idx) => (
+                        <span key={idx} className="column-tag">
+                          {col.name} ({col.type})
+                        </span>
+                      ))}
+                      {table.columns.length > 4 && (
+                        <span className="more-cols">+{table.columns.length - 4}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {queryData && selectedTableDetail && (
+        <div className="table-data-viewer">
+          <div className="viewer-header">
+            <div className="table-info">
+              <h5>📄 {selectedDatabase}.{selectedTableDetail.table_name}</h5>
+              <div className="data-stats">
+                <span>Totale: {queryData.count} record</span>
+                <span>Visualizzati: {queryData.data?.length || 0}</span>
+              </div>
+            </div>
+            
+            <div className="view-controls">
+              <div className="items-per-page">
+                <label>Righe per pagina:</label>
+                <select 
+                  value={itemsPerPage} 
+                  onChange={(e) => {
+                    setItemsPerPage(parseInt(e.target.value));
+                    setCurrentPage(1);
+                    queryTableData(selectedDatabase, selectedTableDetail.table_name);
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+              
+              <button 
+                className="refresh-btn"
+                onClick={() => queryTableData(selectedDatabase, selectedTableDetail.table_name)}
+              >
+                🔄 Aggiorna
+              </button>
             </div>
           </div>
           
-          {queryData.data && queryData.data.length > 0 && (
-            <div className="data-table">
-              <table>
-                <thead>
-                  <tr>
-                    {Object.keys(queryData.data[0]).map(col => (
-                      <th key={col}>{col}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {queryData.data.map((row, idx) => (
-                    <tr key={idx}>
-                      {Object.values(row).map((val, i) => (
-                        <td key={i}>
-                          {String(val || '—').length > 50 
-                            ? String(val).substring(0, 50) + '...'
-                            : String(val || '—')
-                          }
-                        </td>
+          {queryData.data && queryData.data.length > 0 ? (
+            <div className="data-table-container">
+              <div className="table-wrapper">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th className="row-number">#</th>
+                      {Object.keys(queryData.data[0]).map(col => (
+                        <th key={col} className="column-header">
+                          <div className="column-info">
+                            <span className="column-name">{col}</span>
+                            <span className="column-type">
+                              {selectedTableDetail.columns?.find(c => c.name === col)?.type || 'TEXT'}
+                            </span>
+                          </div>
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {queryData.data.map((row, idx) => (
+                      <tr key={idx} className="data-row">
+                        <td className="row-number">{idx + 1}</td>
+                        {Object.entries(row).map(([key, val], i) => (
+                          <td key={i} className="data-cell">
+                            <div className="cell-content">
+                              {val === null || val === undefined ? (
+                                <span className="null-value">NULL</span>
+                              ) : String(val).length > 100 ? (
+                                <>
+                                  <span className="truncated">
+                                    {String(val).substring(0, 100)}...
+                                  </span>
+                                  <button 
+                                    className="expand-btn"
+                                    onClick={() => alert(val)}
+                                    title="Vedi tutto"
+                                  >
+                                    👁️
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="full-value">{String(val)}</span>
+                              )}
+                            </div>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {queryData.count > itemsPerPage && (
+                <div className="pagination">
+                  <button 
+                    className="page-btn"
+                    disabled={currentPage <= 1}
+                    onClick={() => {
+                      setCurrentPage(prev => prev - 1);
+                      // Implement pagination logic here
+                    }}
+                  >
+                    ← Precedente
+                  </button>
+                  
+                  <span className="page-info">
+                    Pagina {currentPage} di {Math.ceil(queryData.count / itemsPerPage)}
+                  </span>
+                  
+                  <button 
+                    className="page-btn"
+                    disabled={currentPage >= Math.ceil(queryData.count / itemsPerPage)}
+                    onClick={() => {
+                      setCurrentPage(prev => prev + 1);
+                      // Implement pagination logic here  
+                    }}
+                  >
+                    Successiva →
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="empty-table">
+              <div className="empty-icon">📭</div>
+              <h5>Tabella Vuota</h5>
+              <p>Questa tabella non contiene dati</p>
             </div>
           )}
         </div>
@@ -244,27 +439,187 @@ const Docs = ({ username, isAdmin }) => {
     </div>
   );
 
+  const [templateConfig, setTemplateConfig] = useState({
+    title: 'Documento GESTMAN',
+    logo: true,
+    header: '',
+    footer: 'Generato automaticamente da GESTMAN',
+    pageNumbers: true,
+    dateTime: true,
+    fontSize: '12',
+    margins: 'normal',
+    orientation: 'portrait',
+    columns: 'auto'
+  });
+  
+  const [customTemplate, setCustomTemplate] = useState('');
+  const [templateMode, setTemplateMode] = useState('wizard'); // wizard | custom
+  
   const renderReportBuilder = () => (
     <div className="report-builder">
       <div className="builder-header">
-        <h3>📊 Generatore Report Documenti</h3>
-        <p>Crea report avanzati combinando dati dai database</p>
+        <div className="header-content">
+          <h3>📄 Creatore Documenti Avanzato</h3>
+          <p>Genera documenti personalizzati dai database con template e impaginazione</p>
+        </div>
+        
+        <div className="template-mode-switch">
+          <button 
+            className={`mode-btn ${templateMode === 'wizard' ? 'active' : ''}`}
+            onClick={() => setTemplateMode('wizard')}
+          >
+            🎯 Guidato
+          </button>
+          <button 
+            className={`mode-btn ${templateMode === 'custom' ? 'active' : ''}`}
+            onClick={() => setTemplateMode('custom')}
+          >
+            🔧 Personalizzato
+          </button>
+        </div>
       </div>
 
-      <div className="report-config">
-        <div className="config-section">
-          <label>📝 Tipo di Documento:</label>
-          <select 
-            value={reportConfig.type} 
-            onChange={(e) => setReportConfig({...reportConfig, type: e.target.value})}
-          >
-            <option value="asset_summary">📋 Riepilogo Asset per Civico</option>
-            <option value="maintenance_report">🔧 Report Manutenzione</option>
-            <option value="alert_analysis">⚠️ Analisi Alert Sistema</option>
-            <option value="inventory_report">📦 Report Inventario</option>
-            <option value="compliance_report">✅ Report Conformità</option>
-          </select>
-        </div>
+      {templateMode === 'wizard' && (
+        <div className="wizard-mode">
+          <div className="config-sections">
+            {/* Configurazione Report */}
+            <div className="config-section">
+              <h4>📊 Tipo di Report</h4>
+              <div className="report-types">
+                {[
+                  { value: 'asset_summary', label: '📋 Riepilogo Asset', desc: 'Asset per civico con dettagli' },
+                  { value: 'maintenance_report', label: '🔧 Report Manutenzione', desc: 'Cronologia interventi' },
+                  { value: 'alert_analysis', label: '⚠️ Analisi Alert', desc: 'Analisi criticità sistema' },
+                  { value: 'inventory_report', label: '📦 Inventario', desc: 'Stato magazzino materiali' },
+                  { value: 'compliance_report', label: '✅ Conformità', desc: 'Certificazioni e controlli' },
+                  { value: 'custom_query', label: '🔍 Query Personalizzata', desc: 'Query SQL personalizzata' }
+                ].map(type => (
+                  <div 
+                    key={type.value}
+                    className={`report-type-card ${reportConfig.type === type.value ? 'selected' : ''}`}
+                    onClick={() => setReportConfig({...reportConfig, type: type.value})}
+                  >
+                    <div className="type-header">
+                      <span className="type-label">{type.label}</span>
+                    </div>
+                    <div className="type-description">{type.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Configurazione Impaginazione */}
+            <div className="config-section">
+              <h4>📄 Impaginazione e Stile</h4>
+              <div className="layout-config">
+                <div className="config-row">
+                  <div className="config-group">
+                    <label>📰 Titolo Documento:</label>
+                    <input 
+                      type="text"
+                      value={templateConfig.title}
+                      onChange={(e) => setTemplateConfig({...templateConfig, title: e.target.value})}
+                      placeholder="Titolo del documento"
+                    />
+                  </div>
+                  
+                  <div className="config-group">
+                    <label>📏 Orientamento:</label>
+                    <select 
+                      value={templateConfig.orientation}
+                      onChange={(e) => setTemplateConfig({...templateConfig, orientation: e.target.value})}
+                    >
+                      <option value="portrait">📄 Verticale</option>
+                      <option value="landscape">📄 Orizzontale</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="config-row">
+                  <div className="config-group">
+                    <label>📝 Intestazione:</label>
+                    <textarea 
+                      value={templateConfig.header}
+                      onChange={(e) => setTemplateConfig({...templateConfig, header: e.target.value})}
+                      placeholder="Testo intestazione personalizzata"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <div className="config-group">
+                    <label>📝 Piè di pagina:</label>
+                    <input 
+                      type="text"
+                      value={templateConfig.footer}
+                      onChange={(e) => setTemplateConfig({...templateConfig, footer: e.target.value})}
+                      placeholder="Testo piè di pagina"
+                    />
+                  </div>
+                </div>
+                
+                <div className="config-row">
+                  <div className="config-group">
+                    <label>🔤 Dimensione Font:</label>
+                    <select 
+                      value={templateConfig.fontSize}
+                      onChange={(e) => setTemplateConfig({...templateConfig, fontSize: e.target.value})}
+                    >
+                      <option value="10">Piccolo (10pt)</option>
+                      <option value="12">Normale (12pt)</option>
+                      <option value="14">Grande (14pt)</option>
+                      <option value="16">Molto Grande (16pt)</option>
+                    </select>
+                  </div>
+                  
+                  <div className="config-group">
+                    <label>📐 Margini:</label>
+                    <select 
+                      value={templateConfig.margins}
+                      onChange={(e) => setTemplateConfig({...templateConfig, margins: e.target.value})}
+                    >
+                      <option value="narrow">Stretti</option>
+                      <option value="normal">Normali</option>
+                      <option value="wide">Larghi</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="config-row">
+                  <div className="config-group checkbox-group">
+                    <label className="checkbox-label">
+                      <input 
+                        type="checkbox"
+                        checked={templateConfig.logo}
+                        onChange={(e) => setTemplateConfig({...templateConfig, logo: e.target.checked})}
+                      />
+                      🏢 Logo aziendale
+                    </label>
+                  </div>
+                  
+                  <div className="config-group checkbox-group">
+                    <label className="checkbox-label">
+                      <input 
+                        type="checkbox"
+                        checked={templateConfig.pageNumbers}
+                        onChange={(e) => setTemplateConfig({...templateConfig, pageNumbers: e.target.checked})}
+                      />
+                      📄 Numerazione pagine
+                    </label>
+                  </div>
+                  
+                  <div className="config-group checkbox-group">
+                    <label className="checkbox-label">
+                      <input 
+                        type="checkbox"
+                        checked={templateConfig.dateTime}
+                        onChange={(e) => setTemplateConfig({...templateConfig, dateTime: e.target.checked})}
+                      />
+                      📅 Data e ora generazione
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
 
         <div className="config-filters">
           {reportConfig.type === 'asset_summary' && (
