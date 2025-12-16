@@ -108,19 +108,36 @@ const Docs = ({ username, isAdmin }) => {
     if (!reportConfig.type) return;
     
     setLoading(true);
+    setError(null);
+    
+    // Prepara i dati per il backend secondo il formato atteso
+    const queryData = {
+      type: reportConfig.type, // Il backend si aspetta 'type'
+      asset_id: reportConfig.asset_id || null,
+      civico: reportConfig.civico || null,
+      date_from: reportConfig.date_from || null,
+      date_to: reportConfig.date_to || null
+    };
+    
+    console.log('Sending query data:', queryData);
+    
     try {
       const response = await fetch(`${API_URLS.DOCS}/advanced-query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reportConfig)
+        body: JSON.stringify(queryData)
       });
       
-      const data = await response.json();
+      console.log('Response status:', response.status);
+      
       if (response.ok) {
+        const data = await response.json();
         setReportData(data);
-        setError(null); // Reset errore precedente
+        console.log('Report data received:', data);
       } else {
-        setError(data.error || 'Errore nella query avanzata');
+        const errorData = await response.json().catch(() => ({ error: 'Errore sconosciuto' }));
+        setError(errorData.error || `Errore ${response.status}: ${response.statusText}`);
+        console.error('API Error:', errorData);
       }
     } catch (err) {
       if (err.name === 'SyntaxError') {
