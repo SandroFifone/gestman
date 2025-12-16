@@ -99,7 +99,7 @@ const Assets = ({ isAdmin }) => {
     <div className="section-container">
       <div className="section-header">
         <h1>⚙️ Assets</h1>
-        <p>Gestione asset per civici - Seleziona un civico per visualizzare i suoi asset</p>
+        <p>Visualizza e gestisci gli asset associati ai civici</p>
       </div>
       
       {error && (
