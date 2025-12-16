@@ -244,34 +244,44 @@ def asset_summary_query(config):
     date_from = config.get('date_from')
     date_to = config.get('date_to')
     
-    # Dati asset da gestman.db
+    # Dati asset da gestman.db - prima verifichiamo la struttura
     gestman_conn = get_db_connection('gestman')
     cursor = gestman_conn.cursor()
+    
+    # Verifica struttura tabella assets
+    cursor.execute("PRAGMA table_info(assets)")
+    columns_info = cursor.fetchall()
+    column_names = [col[1] for col in columns_info]
+    
+    # Determina i nomi delle colonne corretti
+    id_col = 'id_aziendale' if 'id_aziendale' in column_names else ('id' if 'id' in column_names else column_names[0])
+    civico_col = 'civico_numero' if 'civico_numero' in column_names else ('civico' if 'civico' in column_names else None)
     
     # Query dinamica basata sui filtri
     where_conditions = []
     params = []
     
     if asset_id:
-        where_conditions.append("a.id = ?")
+        where_conditions.append(f"{id_col} = ?")
         params.append(asset_id)
     
-    if civico:
-        where_conditions.append("a.civico = ?")
+    if civico and civico_col:
+        where_conditions.append(f"{civico_col} = ?")
         params.append(civico)
     
     where_clause = "WHERE " + " AND ".join(where_conditions) if where_conditions else ""
     
     query = f"""
-        SELECT a.* 
-        FROM assets a 
+        SELECT * 
+        FROM assets 
         {where_clause}
         LIMIT 100
     """
     
     cursor.execute(query, params)
-    assets_data = [dict(row) for row in cursor.fetchall()]
-    gestman_conn.close()
+    for asset in assets_data:
+        # Usa la chiave corretta per l'ID
+        asset_id_val = asset.get(id_col) or asset.get('id') or asset.get('id_aziendale')
     
     if not assets_data:
         return jsonify({'error': 'Nessun asset trovato con i criteri specificati'}), 404
