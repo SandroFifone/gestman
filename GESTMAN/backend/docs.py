@@ -248,6 +248,8 @@ def asset_summary_query(config):
     
     # Dati asset da gestman.db - prima verifichiamo la struttura
     gestman_conn = get_db_connection('gestman')
+    cursor = gestman_conn.cursor()  # CREO IL CURSOR SUBITO DOPO LA CONNESSIONE
+    
     # Verifica struttura tabella assets
     try:
         cursor.execute("PRAGMA table_info(assets)")
@@ -262,8 +264,6 @@ def asset_summary_query(config):
     except Exception as e:
         gestman_conn.close()
         return jsonify({'error': f'Errore verifica struttura tabella: {str(e)}'}), 500
-    id_col = 'id_aziendale' if 'id_aziendale' in column_names else ('id' if 'id' in column_names else column_names[0])
-    civico_col = 'civico_numero' if 'civico_numero' in column_names else ('civico' if 'civico' in column_names else None)
     
     # Query dinamica basata sui filtri
     where_conditions = []
@@ -300,47 +300,54 @@ def asset_summary_query(config):
     # Aggiungi statistiche per ogni asset da compilazioni.db
     comp_conn = get_db_connection('compilazioni')
     
+    comp_cursor = comp_conn.cursor()
+    
     for asset in assets_data:
-        asset_id_val = asset['id']
-        cursor = comp_conn.cursor()
+        # Usa la colonna corretta identificata precedentemente  
+        asset_id_val = asset.get(id_col) or asset.get('id') or asset.get('id_aziendale')
+        print(f"[DEBUG] Processando asset con ID: {asset_id_val}")
         
-        # Interventi per questo asset - verifica nome tabella corretta
+        # Interventi per questo asset - usando il cursor corretto
         try:
-            cursor.execute("""
+            comp_cursor.execute("""
                 SELECT COUNT(*) as count
                 FROM form_submissions 
                 WHERE asset_id = ?
             """, [asset_id_val])
-            result = cursor.fetchone()
+            result = comp_cursor.fetchone()
             asset['interventi_count'] = result[0] if result else 0
-        except Exception:
+        except Exception as e:
+            print(f"[DEBUG] Errore conteggio interventi: {e}")
             asset['interventi_count'] = 0
         
-        # Alert per questo asset - verifica nome colonna
+        # Alert per questo asset - usando nome tabella corretto 'alert' (non alert_manager)
         try:
-            cursor.execute("""
+            comp_cursor.execute("""
                 SELECT COUNT(*) as count
-                FROM alert_manager 
-                WHERE asset_id = ?
-            """, [asset_id_val])
-            result = cursor.fetchone()
+                FROM alert 
+                WHERE asset = ?
+            """, [str(asset_id_val)])  # asset field è TEXT, non INTEGER
+            result = comp_cursor.fetchone()
             asset['alert_count'] = result[0] if result else 0
-        except Exception:
+        except Exception as e:
+            print(f"[DEBUG] Errore conteggio alert: {e}")
             asset['alert_count'] = 0
         
-        # Scadenze per questo asset
+        # Scadenze per questo asset - verificando nome tabella  
         try:
-            cursor.execute("""
+            comp_cursor.execute("""
                 SELECT COUNT(*) as count
-                FROM scadenze 
-                WHERE asset_id = ?
-            """, [asset_id_val])
-            result = cursor.fetchone()
+                FROM scadenze_calendario 
+                WHERE asset = ?
+            """, [str(asset_id_val)])
+            result = comp_cursor.fetchone()
             asset['scadenze_count'] = result[0] if result else 0
-        except Exception:
+        except Exception as e:
+            print(f"[DEBUG] Errore conteggio scadenze: {e}")
             asset['scadenze_count'] = 0
     
     comp_conn.close()
+    gestman_conn.close()  # Chiudo anche la connessione gestman
     
     # Calcola statistiche generali
     total_interventi = sum(asset.get('interventi_count', 0) for asset in assets_data)
