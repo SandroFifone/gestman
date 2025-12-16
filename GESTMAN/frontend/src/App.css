@@ -212,3 +212,38 @@
   color: var(--gray-700);
   font-weight: var(--font-weight-medium);
 }
+
+/* === STATISTICHE MAGAZZINO === */
+.statistiche-bar {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--gray-50);
+  border-radius: var(--border-radius-md);
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  flex: 1;
+  min-width: 120px;
+}
+
+.stat-label {
+  font-size: var(--font-size-sm);
+  color: var(--gray-600);
+  margin-bottom: var(--spacing-xs);
+}
+
+.stat-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-color);
+}
+
+.stat-item.warning .stat-value {
+  color: var(--error-color);
+}

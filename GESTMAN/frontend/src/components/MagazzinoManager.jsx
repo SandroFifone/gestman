@@ -307,13 +307,13 @@ const MagazzinoManager = () => {
     }
 
     return (
-        <div className="magazzino-manager">
-            <div className="magazzino-header">
-                <h1>
-                    <span className="header-icon">📦</span>
-                    Gestione Magazzino
-                </h1>
-                
+        <div className="section-container">
+            <div className="section-header">
+                <h1>📦 Magazzino</h1>
+                <p>Gestione ricambi e scorte - Controlla disponibilità e aggiorna quantità</p>
+            </div>
+
+            <div className="section-content">
                 {/* Statistiche */}
                 {statistiche && (
                     <div className="statistiche-bar">
@@ -331,7 +331,6 @@ const MagazzinoManager = () => {
                         </div>
                     </div>
                 )}
-            </div>
 
             {/* Filtri e Azioni */}
             <div className="magazzino-controls">
@@ -731,6 +730,7 @@ const MagazzinoManager = () => {
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 };
