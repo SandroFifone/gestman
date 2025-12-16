@@ -3,463 +3,515 @@ import { API_URLS } from '../config/api';
 import './DocsSimple.css';
 
 const Docs = ({ username, isAdmin }) => {
-  const [activeTab, setActiveTab] = useState('templates');
+  const [activeView, setActiveView] = useState('explorer');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // Stati per template
-  const [templates, setTemplates] = useState([
-    {
-      id: 1,
-      name: "Rapporto Manutenzione Civico",
-      description: "Template per rapporti di manutenzione per civico specifico",
-      content: "# Rapporto Manutenzione - Civico {{civico}}\n\n**Data:** {{data_oggi}}\n**Operatore:** {{operatore}}\n\n## Asset Installati\n{{#assets}}\n- **{{nome}}** (ID: {{id_aziendale}})\n  - Tipo: {{tipo_asset}}\n  - Stato: {{stato}}\n  - Interventi: {{interventi_count}}\n  - Alert: {{alert_count}}\n{{/assets}}\n\n## Riepilogo Interventi\nTotale interventi nel periodo: {{total_interventi}}",
-      variables: ['civico', 'data_oggi', 'operatore', 'assets'],
-      created: '2025-12-16'
-    },
-    {
-      id: 2, 
-      name: "Certificato Asset",
-      description: "Certificato di conformità per singolo asset",
-      content: "# CERTIFICATO DI CONFORMITÀ\n\n**Asset:** {{asset.nome}}\n**ID Aziendale:** {{asset.id_aziendale}}\n**Civico:** {{asset.civico_numero}}\n**Tipo:** {{asset.tipo_asset}}\n\n## Controlli Effettuati\n**Data ultimo controllo:** {{ultimo_controllo}}\n**Operatore:** {{operatore}}\n**Esito:** {{esito}}\n\n## Note\n{{note}}\n\n---\n*Documento generato automaticamente il {{data_oggi}}*",
-      variables: ['asset', 'ultimo_controllo', 'operatore', 'esito', 'note', 'data_oggi'],
-      created: '2025-12-15'
-    }
-  ]);
+  // Stati per database explorer
+  const [databases, setDatabases] = useState(null);
+  const [queryData, setQueryData] = useState(null);
+  const [selectedTable, setSelectedTable] = useState({ db: '', table: '' });
   
-  const [currentTemplate, setCurrentTemplate] = useState({
-    name: '',
-    description: '',
-    content: '',
-    variables: []
+  // Stati per report builder
+  const [reportConfig, setReportConfig] = useState({
+    type: 'asset_summary',
+    civico: '',
+    asset_id: '',
+    date_from: '',
+    date_to: ''
   });
-  
-  const [generatedDoc, setGeneratedDoc] = useState(null);
-  const [templateData, setTemplateData] = useState({});
+  const [reportData, setReportData] = useState(null);
+  const [relationships, setRelationships] = useState([]);
 
-  // useEffect per inizializzazione se necessario
+  // Carica struttura database all'avvio
   useEffect(() => {
-    // Inizializzazione del componente
+    loadDatabases();
+    loadRelationships();
   }, []);
 
-  // Salva template
-  const saveTemplate = () => {
-    if (!currentTemplate.name || !currentTemplate.content) {
-      setError('Nome e contenuto del template sono obbligatori');
-      return;
-    }
-    
-    const newTemplate = {
-      id: Date.now(),
-      ...currentTemplate,
-      created: new Date().toISOString().split('T')[0],
-      variables: extractVariables(currentTemplate.content)
-    };
-    
-    setTemplates([...templates, newTemplate]);
-    setCurrentTemplate({ name: '', description: '', content: '', variables: [] });
-    setActiveTab('templates');
-    console.log('Template salvato:', newTemplate);
-  };
-
-  // Estrai variabili dal template
-  const extractVariables = (content) => {
-    const matches = content.match(/\{\{([^}]+)\}\}/g) || [];
-    return [...new Set(matches.map(match => match.replace(/[{}]/g, '')))];
-  };
-
-  // Genera documento da template
-  const generateDocument = async (template) => {
+  // Carica database disponibili
+  const loadDatabases = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      // Ottieni dati reali dal backend se necessario
-      let realData = {};
-      
-      if (templateData.civico) {
-        const response = await fetch(`${API_URLS.DOCS}/advanced-query`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'asset_summary',
-            civico: templateData.civico,
-            date_from: null,
-            date_to: null,
-            asset_id: null
-          })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          realData.assets = data.assets || [];
-          realData.total_interventi = data.total_interventions || 0;
-        }
+      const response = await fetch(`${API_URLS.DOCS}/databases`);
+      if (response.ok) {
+        const data = await response.json();
+        setDatabases(data);
+        console.log('Database caricati:', data);
+      } else {
+        throw new Error('Errore nel caricamento database');
       }
-      
-      // Combina dati template con dati reali
-      const allData = {
-        ...templateData,
-        ...realData,
-        data_oggi: new Date().toLocaleDateString('it-IT'),
-        operatore: username || 'Sistema'
-      };
-      
-      // Sostituisci variabili nel template
-      let processedContent = template.content;
-      
-      // Sostituzioni semplici
-      Object.entries(allData).forEach(([key, value]) => {
-        if (typeof value === 'string' || typeof value === 'number') {
-          const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
-          processedContent = processedContent.replace(regex, value);
-        }
-      });
-      
-      // Sostituzioni per array ({{#assets}})
-      if (allData.assets && Array.isArray(allData.assets)) {
-        const assetsRegex = /\{\{#assets\}\}([\s\S]*?)\{\{\/assets\}\}/g;
-        processedContent = processedContent.replace(assetsRegex, (match, itemTemplate) => {
-          return allData.assets.map(asset => {
-            let itemContent = itemTemplate;
-            Object.entries(asset).forEach(([key, value]) => {
-              const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
-              itemContent = itemContent.replace(regex, value || '—');
-            });
-            return itemContent;
-          }).join('');
-        });
-      }
-      
-      setGeneratedDoc({
-        template: template.name,
-        content: processedContent,
-        data: allData,
-        generated_at: new Date().toISOString()
-      });
-      
     } catch (err) {
-      console.error('Errore generazione documento:', err);
-      setError('Errore nella generazione del documento');
+      console.error('Errore caricamento database:', err);
+      setError('Impossibile caricare la struttura dei database');
     } finally {
       setLoading(false);
     }
   };
 
-  // Esporta documento
-  const exportDocument = (format = 'md') => {
-    if (!generatedDoc) return;
+  // Carica relazioni tra tabelle
+  const loadRelationships = async () => {
+    try {
+      const response = await fetch(`${API_URLS.DOCS}/relationships`);
+      if (response.ok) {
+        const data = await response.json();
+        setRelationships(data.relationships || []);
+      }
+    } catch (err) {
+      console.error('Errore caricamento relazioni:', err);
+    }
+  };
+
+  // Query dati tabella specifica
+  const queryTableData = async (dbName, tableName) => {
+    setLoading(true);
+    setError(null);
+    setSelectedTable({ db: dbName, table: tableName });
+    
+    try {
+      const response = await fetch(`${API_URLS.DOCS}/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          database: dbName,
+          table: tableName,
+          limit: 10
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setQueryData(data);
+      } else {
+        throw new Error('Errore nella query');
+      }
+    } catch (err) {
+      console.error('Errore query:', err);
+      setError('Errore nel recupero dei dati');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Genera report avanzato
+  const handleAdvancedQuery = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`${API_URLS.DOCS}/advanced-query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reportConfig)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setReportData(data);
+        console.log('Report generato:', data);
+      } else {
+        throw new Error('Errore nella generazione del report');
+      }
+    } catch (err) {
+      console.error('Errore report:', err);
+      setError('Errore nella generazione del report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Download report in vari formati
+  const downloadReport = (format = 'json') => {
+    if (!reportData) return;
     
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
-    const filename = `documento_${generatedDoc.template}_${timestamp}.${format}`;
+    const filename = `report_${reportConfig.type}_${timestamp}.${format}`;
     
-    let content = generatedDoc.content;
-    let type = 'text/markdown';
+    let content, type;
     
-    if (format === 'txt') {
-      content = content.replace(/[#*_`]/g, '').replace(/\n\n+/g, '\n\n');
-      type = 'text/plain';
+    if (format === 'json') {
+      content = JSON.stringify(reportData, null, 2);
+      type = 'application/json';
+    } else if (format === 'csv') {
+      // Converti in CSV
+      if (reportData.assets) {
+        const headers = Object.keys(reportData.assets[0] || {}).join(',');
+        const rows = reportData.assets.map(asset => 
+          Object.values(asset).map(val => `"${val || ''}"`).join(',')
+        ).join('\n');
+        content = headers + '\n' + rows;
+      } else {
+        content = JSON.stringify(reportData, null, 2);
+      }
+      type = 'text/csv';
     }
     
     const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
     URL.revokeObjectURL(url);
   };
+
+  const renderDatabaseExplorer = () => (
+    <div className="database-explorer">
+      <div className="explorer-header">
+        <h3>🗄️ Esplora Database</h3>
+        <p>Analisi delle strutture dati di gestman.db e compilazioni.db</p>
+      </div>
+
+      {loading && <div className="loading">⏳ Caricamento in corso...</div>}
+      {error && <div className="error">⚠️ {error}</div>}
+
+      {databases && (
+        <div className="databases-grid">
+          {Object.entries(databases.databases).map(([dbName, dbInfo]) => (
+            <div key={dbName} className="database-card">
+              <h4>📊 {dbName}.db</h4>
+              <div className="db-info">
+                <span className="table-count">{dbInfo.tables.length} tabelle</span>
+                <span className="size-info">{dbInfo.size || 'N/A'}</span>
+              </div>
+              <div className="tables-list">
+                {dbInfo.tables.map(table => (
+                  <div 
+                    key={table.table_name} 
+                    className="table-item"
+                    onClick={() => queryTableData(dbName, table.table_name)}
+                  >
+                    <div className="table-name">📋 {table.table_name}</div>
+                    <div className="table-info">
+                      <span className="row-count">{table.row_count} righe</span>
+                      <span className="col-count">{table.columns?.length} colonne</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {queryData && (
+        <div className="query-results">
+          <div className="results-header">
+            <h4>📄 Dati: {selectedTable.db}.{selectedTable.table}</h4>
+            <div className="results-info">
+              Mostrando {queryData.data?.length || 0} di {queryData.count} risultati
+            </div>
+          </div>
+          
+          {queryData.data && queryData.data.length > 0 && (
+            <div className="data-table">
+              <table>
+                <thead>
+                  <tr>
+                    {Object.keys(queryData.data[0]).map(col => (
+                      <th key={col}>{col}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {queryData.data.map((row, idx) => (
+                    <tr key={idx}>
+                      {Object.values(row).map((val, i) => (
+                        <td key={i}>
+                          {String(val || '—').length > 50 
+                            ? String(val).substring(0, 50) + '...'
+                            : String(val || '—')
+                          }
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderReportBuilder = () => (
+    <div className="report-builder">
+      <div className="builder-header">
+        <h3>📊 Generatore Report Documenti</h3>
+        <p>Crea report avanzati combinando dati dai database</p>
+      </div>
+
+      <div className="report-config">
+        <div className="config-section">
+          <label>📝 Tipo di Documento:</label>
+          <select 
+            value={reportConfig.type} 
+            onChange={(e) => setReportConfig({...reportConfig, type: e.target.value})}
+          >
+            <option value="asset_summary">📋 Riepilogo Asset per Civico</option>
+            <option value="maintenance_report">🔧 Report Manutenzione</option>
+            <option value="alert_analysis">⚠️ Analisi Alert Sistema</option>
+            <option value="inventory_report">📦 Report Inventario</option>
+            <option value="compliance_report">✅ Report Conformità</option>
+          </select>
+        </div>
+
+        <div className="config-filters">
+          {reportConfig.type === 'asset_summary' && (
+            <>
+              <div className="filter-group">
+                <label>📍 Civico (opzionale):</label>
+                <input 
+                  type="text" 
+                  value={reportConfig.civico}
+                  onChange={(e) => setReportConfig({...reportConfig, civico: e.target.value})}
+                  placeholder="es. 142"
+                />
+              </div>
+              <div className="filter-group">
+                <label>🏷️ Asset ID (opzionale):</label>
+                <input 
+                  type="text" 
+                  value={reportConfig.asset_id}
+                  onChange={(e) => setReportConfig({...reportConfig, asset_id: e.target.value})}
+                  placeholder="ID specifico asset"
+                />
+              </div>
+            </>
+          )}
+
+          <div className="filter-row">
+            <div className="filter-group">
+              <label>📅 Data inizio:</label>
+              <input 
+                type="date" 
+                value={reportConfig.date_from}
+                onChange={(e) => setReportConfig({...reportConfig, date_from: e.target.value})}
+              />
+            </div>
+            
+            <div className="filter-group">
+              <label>📅 Data fine:</label>
+              <input 
+                type="date" 
+                value={reportConfig.date_to}
+                onChange={(e) => setReportConfig({...reportConfig, date_to: e.target.value})}
+              />
+            </div>
+          </div>
+        </div>
+
+        <button 
+          className="generate-report-btn"
+          onClick={handleAdvancedQuery}
+          disabled={loading || !reportConfig.type}
+        >
+          {loading ? '⏳ Generazione...' : '📄 Genera Documento'}
+        </button>
+      </div>
+
+      {/* Relazioni Database */}
+      <div className="relationships-section">
+        <h4>🔗 Relazioni Database Rilevate:</h4>
+        {relationships && relationships.length > 0 ? (
+          <div className="relationships-grid">
+            {relationships.map((rel, idx) => (
+              <div key={idx} className="relationship-card">
+                <div className="rel-connection">
+                  <span className="rel-from">{rel.from_db}.{rel.from_table}</span>
+                  <span className="rel-arrow">→</span>
+                  <span className="rel-to">{rel.to_db}.{rel.to_table}</span>
+                </div>
+                <div className="rel-type">{rel.relationship_type}</div>
+                <div className="rel-description">{rel.description}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="no-relationships">
+            <p>🔍 Nessuna relazione rilevata automaticamente</p>
+            <button onClick={loadRelationships} className="reload-btn">
+              🔄 Ricarica
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Risultati Report */}
+      {reportData && (
+        <div className="report-results">
+          <div className="results-header">
+            <h4>📄 Documento Generato</h4>
+            <div className="export-actions">
+              <button onClick={() => downloadReport('json')} className="export-btn">
+                📄 JSON
+              </button>
+              <button onClick={() => downloadReport('csv')} className="export-btn">
+                📊 CSV
+              </button>
+            </div>
+          </div>
+          
+          <div className="report-content">
+            {reportConfig.type === 'asset_summary' && (
+              <div className="asset-summary-report">
+                <div className="summary-header">
+                  <h5>📋 Riepilogo Asset</h5>
+                  <div className="summary-stats">
+                    <div className="stat">
+                      <span className="label">Totale Asset:</span>
+                      <span className="value">{reportData.asset_count || 0}</span>
+                    </div>
+                    <div className="stat">
+                      <span className="label">Interventi:</span>
+                      <span className="value">{reportData.total_interventions || 0}</span>
+                    </div>
+                    <div className="stat">
+                      <span className="label">Alert Attivi:</span>
+                      <span className="value">{reportData.active_alerts || 0}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {reportData.assets && (
+                  <div className="assets-detail">
+                    <table className="report-table">
+                      <thead>
+                        <tr>
+                          <th>ID Aziendale</th>
+                          <th>Nome</th>
+                          <th>Civico</th>
+                          <th>Tipo</th>
+                          <th>Stato</th>
+                          <th>Interventi</th>
+                          <th>Alert</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reportData.assets.map((asset, idx) => (
+                          <tr key={idx}>
+                            <td>{asset.id_aziendale || '—'}</td>
+                            <td>{asset.nome || asset.descrizione || '—'}</td>
+                            <td>{asset.civico_numero || '—'}</td>
+                            <td>{asset.tipo_asset || '—'}</td>
+                            <td>
+                              <span className={`status ${asset.stato?.toLowerCase()}`}>
+                                {asset.stato || '—'}
+                              </span>
+                            </td>
+                            <td>{asset.interventi_count || 0}</td>
+                            <td>{asset.alert_count || 0}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {reportConfig.type === 'maintenance_report' && reportData.maintenance && (
+              <div className="maintenance-report">
+                <h5>🔧 Report Manutenzione</h5>
+                <div className="report-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        {Object.keys(reportData.maintenance[0] || {}).map(col => (
+                          <th key={col}>{col}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportData.maintenance.map((row, idx) => (
+                        <tr key={idx}>
+                          {Object.values(row).map((val, i) => (
+                            <td key={i}>{String(val || '—')}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {reportConfig.type === 'alert_analysis' && reportData.alerts && (
+              <div className="alert-analysis-report">
+                <h5>⚠️ Analisi Alert</h5>
+                <div className="alert-summary">
+                  <div className="alert-stats">
+                    <div className="stat critical">Critici: {reportData.critical_count || 0}</div>
+                    <div className="stat warning">Warning: {reportData.warning_count || 0}</div>
+                    <div className="stat info">Info: {reportData.info_count || 0}</div>
+                  </div>
+                </div>
+                
+                <div className="alerts-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Tipo</th>
+                        <th>Messaggio</th>
+                        <th>Criticità</th>
+                        <th>Data</th>
+                        <th>Asset</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportData.alerts.map((alert, idx) => (
+                        <tr key={idx} className={`alert-${alert.criticita?.toLowerCase()}`}>
+                          <td>{alert.tipo}</td>
+                          <td>{alert.messaggio}</td>
+                          <td>
+                            <span className={`priority ${alert.criticita?.toLowerCase()}`}>
+                              {alert.criticita}
+                            </span>
+                          </td>
+                          <td>{new Date(alert.timestamp).toLocaleDateString('it-IT')}</td>
+                          <td>{alert.asset_id}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="section-container">
       <div className="section-header">
-        <div className="header-content">
-          <h2>📝 Creatore Template Documenti</h2>
-          <p>Crea template personalizzati per documenti automatici con dati GESTMAN</p>
-        </div>
+        <h2>📚 Documenti da Database</h2>
+        <p>Genera documentazione automatica dai dati gestman.db e compilazioni.db</p>
       </div>
 
       <div className="section-content">
-        <div className="docs-tabs">
+        <div className="docs-navigation">
           <button 
-            className={`tab-btn ${activeTab === 'templates' ? 'active' : ''}`}
-            onClick={() => setActiveTab('templates')}
+            className={`nav-btn ${activeView === 'explorer' ? 'active' : ''}`}
+            onClick={() => setActiveView('explorer')}
           >
-            📝 I Miei Template
+            🗄️ Esplora Database
           </button>
           <button 
-            className={`tab-btn ${activeTab === 'create' ? 'active' : ''}`}
-            onClick={() => setActiveTab('create')}
+            className={`nav-btn ${activeView === 'reports' ? 'active' : ''}`}
+            onClick={() => setActiveView('reports')}
           >
-            ➕ Crea Nuovo
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'generate' ? 'active' : ''}`}
-            onClick={() => setActiveTab('generate')}
-          >
-            📄 Genera Documento
+            📊 Genera Documenti
           </button>
         </div>
 
-        {/* Lista Template Esistenti */}
-        {activeTab === 'templates' && (
-          <div className="templates-section">
-            <div className="section-header-actions">
-              <h3>📝 I Tuoi Template</h3>
-              <button 
-                className="btn-primary"
-                onClick={() => setActiveTab('create')}
-              >
-                ➕ Nuovo Template
-              </button>
-            </div>
-            
-            <div className="templates-grid">
-              {templates.map(template => (
-                <div key={template.id} className="template-card">
-                  <div className="template-header">
-                    <h4>📄 {template.name}</h4>
-                    <div className="template-actions">
-                      <button 
-                        className="btn-edit"
-                        onClick={() => {
-                          setCurrentTemplate(template);
-                          setActiveTab('create');
-                        }}
-                        title="Modifica"
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        className="btn-generate"
-                        onClick={() => {
-                          setCurrentTemplate(template);
-                          setActiveTab('generate');
-                        }}
-                        title="Genera Documento"
-                      >
-                        🚀
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <p className="template-description">{template.description}</p>
-                  
-                  <div className="template-meta">
-                    <div className="variables-list">
-                      <strong>Variabili:</strong>
-                      <div className="variable-tags">
-                        {template.variables.slice(0, 3).map(variable => (
-                          <span key={variable} className="variable-tag">
-                            {variable}
-                          </span>
-                        ))}
-                        {template.variables.length > 3 && (
-                          <span className="variable-tag more">
-                            +{template.variables.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="template-date">
-                      Creato: {template.created}
-                    </div>
-                  </div>
-                  
-                  <div className="template-preview">
-                    <strong>Anteprima:</strong>
-                    <div className="preview-content">
-                      {template.content.substring(0, 100)}...
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {templates.length === 0 && (
-                <div className="empty-state">
-                  <div className="empty-icon">📝</div>
-                  <h4>Nessun template creato</h4>
-                  <p>Crea il tuo primo template personalizzato per generare documenti automatici</p>
-                  <button 
-                    className="btn-primary"
-                    onClick={() => setActiveTab('create')}
-                  >
-                    ➕ Crea Primo Template
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Editor Template */}
-        {activeTab === 'create' && (
-          <div className="create-section">
-            <h3>✨ {currentTemplate.id ? 'Modifica Template' : 'Crea Nuovo Template'}</h3>
-            
-            <div className="template-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label>📝 Nome Template:</label>
-                  <input
-                    type="text"
-                    placeholder="es. Rapporto Manutenzione Civico"
-                    value={currentTemplate.name}
-                    onChange={(e) => setCurrentTemplate({...currentTemplate, name: e.target.value})}
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>📄 Descrizione:</label>
-                  <input
-                    type="text"
-                    placeholder="Breve descrizione del template"
-                    value={currentTemplate.description}
-                    onChange={(e) => setCurrentTemplate({...currentTemplate, description: e.target.value})}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-group">
-                <label>📃 Contenuto Template:</label>
-                <div className="template-help">
-                  <strong>Variabili disponibili:</strong>
-                  <div className="help-variables">
-                    <code>{'{{civico}}'}</code> - Numero civico
-                    <code>{'{{data_oggi}}'}</code> - Data di oggi
-                    <code>{'{{operatore}}'}</code> - Nome operatore
-                    <code>{'{{#assets}} ... {{/assets}}'}</code> - Lista asset
-                  </div>
-                </div>
-                <textarea
-                  placeholder="# Il Mio Documento&#10;&#10;**Civico:** {{civico}}&#10;**Data:** {{data_oggi}}&#10;**Operatore:** {{operatore}}&#10;&#10;## Asset&#10;{{#assets}}&#10;- **{{nome}}** ({{id_aziendale}})&#10;  - Tipo: {{tipo_asset}}&#10;  - Interventi: {{interventi_count}}&#10;{{/assets}}"
-                  value={currentTemplate.content}
-                  onChange={(e) => setCurrentTemplate({...currentTemplate, content: e.target.value})}
-                  rows={15}
-                />
-              </div>
-              
-              <div className="form-actions">
-                <button 
-                  className="btn-secondary"
-                  onClick={() => {
-                    setCurrentTemplate({ name: '', description: '', content: '', variables: [] });
-                    setActiveTab('templates');
-                  }}
-                >
-                  ❌ Annulla
-                </button>
-                <button 
-                  className="btn-primary"
-                  onClick={saveTemplate}
-                  disabled={!currentTemplate.name || !currentTemplate.content}
-                >
-                  💾 Salva Template
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Generatore Documenti */}
-        {activeTab === 'generate' && (
-          <div className="generate-section">
-            <h3>🚀 Genera Documento</h3>
-            
-            {currentTemplate.id ? (
-              <div className="generate-form">
-                <div className="template-info">
-                  <h4>📄 Template: {currentTemplate.name}</h4>
-                  <p>{currentTemplate.description}</p>
-                </div>
-                
-                <div className="data-inputs">
-                  <h4>🎯 Dati per il Documento</h4>
-                  <div className="inputs-grid">
-                    <div className="input-group">
-                      <label>📍 Civico:</label>
-                      <input
-                        type="text"
-                        placeholder="es. 142"
-                        value={templateData.civico || ''}
-                        onChange={(e) => setTemplateData({...templateData, civico: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div className="input-group">
-                      <label>👤 Operatore:</label>
-                      <input
-                        type="text"
-                        placeholder="Nome operatore"
-                        value={templateData.operatore || ''}
-                        onChange={(e) => setTemplateData({...templateData, operatore: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div className="input-group">
-                      <label>📝 Note:</label>
-                      <textarea
-                        placeholder="Note aggiuntive per il documento"
-                        value={templateData.note || ''}
-                        onChange={(e) => setTemplateData({...templateData, note: e.target.value})}
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="generate-actions">
-                    <button 
-                      className="btn-primary generate-btn"
-                      onClick={() => generateDocument(currentTemplate)}
-                      disabled={loading}
-                    >
-                      {loading ? '⏳ Generazione...' : '🚀 Genera Documento'}
-                    </button>
-                  </div>
-                </div>
-                
-                {generatedDoc && (
-                  <div className="document-result">
-                    <div className="result-header">
-                      <h4>📄 Documento Generato</h4>
-                      <div className="export-actions">
-                        <button 
-                          className="btn-export"
-                          onClick={() => exportDocument('md')}
-                        >
-                          📄 Markdown
-                        </button>
-                        <button 
-                          className="btn-export"
-                          onClick={() => exportDocument('txt')}
-                        >
-                          📝 Testo
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="document-preview">
-                      <pre>{generatedDoc.content}</pre>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="no-template">
-                <div className="empty-icon">📄</div>
-                <h4>Seleziona un Template</h4>
-                <p>Scegli un template dalla lista per generare un documento</p>
-                <button 
-                  className="btn-primary"
-                  onClick={() => setActiveTab('templates')}
-                >
-                  📝 Vai ai Template
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
+        {activeView === 'explorer' && renderDatabaseExplorer()}
+        {activeView === 'reports' && renderReportBuilder()}
+        
         {error && (
           <div className="error-message">
             ❌ {error}
