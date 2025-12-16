@@ -845,6 +845,317 @@ const Docs = ({ username, isAdmin }) => {
           </div>
         </div>
       )}
+      
+      {/* Configurazione Impaginazione */}
+      <div className="config-section">
+        <h4>📄 Impaginazione e Stile</h4>
+        <div className="layout-config">
+          <div className="config-row">
+            <div className="config-group">
+              <label>📰 Titolo Documento:</label>
+              <input 
+                type="text"
+                value={templateConfig.title}
+                onChange={(e) => setTemplateConfig({...templateConfig, title: e.target.value})}
+                placeholder="Titolo del documento"
+              />
+            </div>
+            
+            <div className="config-group">
+              <label>📏 Orientamento:</label>
+              <select 
+                value={templateConfig.orientation}
+                onChange={(e) => setTemplateConfig({...templateConfig, orientation: e.target.value})}
+              >
+                <option value="portrait">📄 Verticale</option>
+                <option value="landscape">📄 Orizzontale</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="config-row">
+            <div className="config-group">
+              <label>📝 Intestazione:</label>
+              <textarea 
+                value={templateConfig.header}
+                onChange={(e) => setTemplateConfig({...templateConfig, header: e.target.value})}
+                placeholder="Testo intestazione personalizzata"
+                rows={2}
+              />
+            </div>
+            
+            <div className="config-group">
+              <label>📝 Piè di pagina:</label>
+              <input 
+                type="text"
+                value={templateConfig.footer}
+                onChange={(e) => setTemplateConfig({...templateConfig, footer: e.target.value})}
+                placeholder="Testo piè di pagina"
+              />
+            </div>
+          </div>
+          
+          <div className="config-row">
+            <div className="config-group checkbox-group">
+              <label className="checkbox-label">
+                <input 
+                  type="checkbox"
+                  checked={templateConfig.logo}
+                  onChange={(e) => setTemplateConfig({...templateConfig, logo: e.target.checked})}
+                />
+                🏢 Logo aziendale
+              </label>
+            </div>
+            
+            <div className="config-group checkbox-group">
+              <label className="checkbox-label">
+                <input 
+                  type="checkbox"
+                  checked={templateConfig.pageNumbers}
+                  onChange={(e) => setTemplateConfig({...templateConfig, pageNumbers: e.target.checked})}
+                />
+                📄 Numerazione pagine
+              </label>
+            </div>
+            
+            <div className="config-group checkbox-group">
+              <label className="checkbox-label">
+                <input 
+                  type="checkbox"
+                  checked={templateConfig.dateTime}
+                  onChange={(e) => setTemplateConfig({...templateConfig, dateTime: e.target.checked})}
+                />
+                📅 Data e ora generazione
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Filtri Dati */}
+      <div className="config-section">
+        <h4>🎯 Filtri e Parametri</h4>
+        <div className="filters-config">
+          {reportConfig.type === 'asset_summary' && (
+            <>
+              <div className="filter-group">
+                <label>📍 Civico:</label>
+                <input 
+                  type="text" 
+                  value={reportConfig.civico}
+                  onChange={(e) => setReportConfig({...reportConfig, civico: e.target.value})}
+                  placeholder="es. 142"
+                />
+              </div>
+              <div className="filter-group">
+                <label>🏷️ Asset ID:</label>
+                <input 
+                  type="text" 
+                  value={reportConfig.asset_id}
+                  onChange={(e) => setReportConfig({...reportConfig, asset_id: e.target.value})}
+                  placeholder="ID specifico asset"
+                />
+              </div>
+            </>
+          )}
+          
+          {reportConfig.type === 'custom_query' && (
+            <div className="filter-group full-width">
+              <label>🔍 Query SQL:</label>
+              <textarea 
+                value={reportConfig.customQuery || ''}
+                onChange={(e) => setReportConfig({...reportConfig, customQuery: e.target.value})}
+                placeholder="SELECT * FROM assets WHERE civico_numero = '142'"
+                rows={4}
+              />
+            </div>
+          )}
+
+          <div className="filter-row">
+            <div className="filter-group">
+              <label>📅 Da:</label>
+              <input 
+                type="date" 
+                value={reportConfig.date_from}
+                onChange={(e) => setReportConfig({...reportConfig, date_from: e.target.value})}
+              />
+            </div>
+            
+            <div className="filter-group">
+              <label>📅 A:</label>
+              <input 
+                type="date" 
+                value={reportConfig.date_to}
+                onChange={(e) => setReportConfig({...reportConfig, date_to: e.target.value})}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="generate-section">
+        <button 
+          className="generate-report-btn primary"
+          onClick={handleAdvancedQuery}
+          disabled={loading || !reportConfig.type}
+        >
+          {loading ? '⏳ Generazione...' : '🚀 Genera Documento'}
+        </button>
+      </div>
+      
+      {reportData && (
+        <div className="report-results">
+          <div className="results-header">
+            <h4>📄 Documento Generato</h4>
+            <div className="export-actions">
+              <button onClick={() => downloadReport('json')} className="export-btn">
+                📄 JSON
+              </button>
+              <button onClick={() => downloadReport('csv')} className="export-btn">
+                📊 CSV
+              </button>
+            </div>
+          </div>
+          
+          <div className="report-content">
+            {reportConfig.type === 'asset_summary' && (
+              <div className="asset-summary-report">
+                <div className="summary-header">
+                  <h5>📋 Riepilogo Asset</h5>
+                  <div className="summary-stats">
+                    <div className="stat">
+                      <span className="label">Totale Asset:</span>
+                      <span className="value">{reportData.asset_count || 0}</span>
+                    </div>
+                    <div className="stat">
+                      <span className="label">Interventi:</span>
+                      <span className="value">{reportData.total_interventions || 0}</span>
+                    </div>
+                    <div className="stat">
+                      <span className="label">Alert Attivi:</span>
+                      <span className="value">{reportData.active_alerts || 0}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {reportData.assets && (
+                  <div className="assets-detail">
+                    <table className="report-table">
+                      <thead>
+                        <tr>
+                          <th>ID Aziendale</th>
+                          <th>Nome</th>
+                          <th>Civico</th>
+                          <th>Tipo</th>
+                          <th>Stato</th>
+                          <th>Interventi</th>
+                          <th>Alert</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reportData.assets.map((asset, idx) => (
+                          <tr key={idx}>
+                            <td>{asset.id_aziendale || '—'}</td>
+                            <td>{asset.nome || asset.descrizione || '—'}</td>
+                            <td>{asset.civico_numero || '—'}</td>
+                            <td>{asset.tipo_asset || '—'}</td>
+                            <td>
+                              <span className={`status ${asset.stato?.toLowerCase()}`}>
+                                {asset.stato || '—'}
+                              </span>
+                            </td>
+                            <td>{asset.interventi_count || 0}</td>
+                            <td>{asset.alert_count || 0}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      </div>
+      )}
+      
+      {templateMode === 'custom' && (
+        <div className="custom-mode">
+          <div className="custom-editor">
+            <h4>🛠️ Template Personalizzato</h4>
+            <p>Crea il tuo template usando variabili dinamiche</p>
+            
+            <div className="editor-toolbar">
+              <div className="variables-help">
+                <strong>Variabili disponibili:</strong>
+                <div className="variable-buttons">
+                  <button onClick={() => setCustomTemplate(prev => prev + '{{civico}}')}>{'{{civico}}'}</button>
+                  <button onClick={() => setCustomTemplate(prev => prev + '{{data_oggi}}')}>{'{{data_oggi}}'}</button>
+                  <button onClick={() => setCustomTemplate(prev => prev + '{{operatore}}')}>{'{{operatore}}'}</button>
+                  <button onClick={() => setCustomTemplate(prev => prev + '{{#assets}}...{{/assets}}')}>{'{{#assets}}'}</button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="template-editor">
+              <div className="editor-section">
+                <label>📝 Template Markdown:</label>
+                <textarea
+                  value={customTemplate}
+                  onChange={(e) => setCustomTemplate(e.target.value)}
+                  placeholder="# {{title}}&#10;&#10;**Data:** {{data_oggi}}&#10;**Civico:** {{civico}}&#10;&#10;## Asset&#10;{{#assets}}&#10;- **{{nome}}** ({{id_aziendale}})&#10;  - Tipo: {{tipo_asset}}&#10;  - Stato: {{stato}}&#10;{{/assets}}"
+                  rows={15}
+                  className="template-textarea"
+                />
+              </div>
+              
+              <div className="editor-section">
+                <label>👀 Anteprima Live:</label>
+                <div className="template-preview">
+                  {customTemplate ? (
+                    <pre className="preview-content">
+                      {customTemplate
+                        .replace(/{{title}}/g, templateConfig.title)
+                        .replace(/{{data_oggi}}/g, new Date().toLocaleDateString('it-IT'))
+                        .replace(/{{civico}}/g, reportConfig.civico || '[civico]')
+                        .replace(/{{operatore}}/g, username || '[operatore]')
+                        .replace(/{{#assets}}([\s\S]*?){{\/assets}}/g, '- Asset Example\n  - Tipo: Esempio\n  - Stato: Attivo')
+                      }
+                    </pre>
+                  ) : (
+                    <div className="empty-preview">
+                      <p>Inizia a scrivere il template per vedere l'anteprima</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="custom-actions">
+              <button 
+                className="save-template-btn"
+                onClick={() => {
+                  alert('Template personalizzato salvato!');
+                }}
+                disabled={!customTemplate}
+              >
+                💾 Salva Template
+              </button>
+              
+              <button 
+                className="generate-custom-btn"
+                onClick={() => {
+                  handleAdvancedQuery();
+                }}
+                disabled={!customTemplate || loading}
+              >
+                {loading ? '⏳ Generazione...' : '📄 Genera da Template'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
