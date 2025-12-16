@@ -181,31 +181,35 @@ const Rubrica = () => {
   if (loading) return <div className="loading">Caricamento rubrica...</div>;
 
   return (
-    <div className="assets-manager">
-      <div className="assets-header">
-        <h2>📇 Rubrica Contatti</h2>
+    <div className="section-container">
+      <div className="section-header">
+        <h1>📇 Rubrica</h1>
         <p>Gestione contatti fornitori, manutentori e collaboratori</p>
-        <div className="header-actions">
+      </div>
+
+      <div className="section-content">
+        {error && (
+          <div className="error-message">
+            ❌ {error}
+          </div>
+        )}
+
+        {/* Barra ricerca e azioni */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
           <input
             type="text"
             placeholder="Cerca contatti..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
+            style={{ flex: 1, minWidth: '200px', maxWidth: '400px' }}
           />
           <button onClick={handleCreateContatto} className="btn btn-primary">
             + Nuovo Contatto
           </button>
         </div>
-      </div>
 
-      {error && (
-        <div className="error-message">
-          ❌ {error}
-        </div>
-      )}
-
-      <div className="rubrica-layout" style={{ display: 'flex', gap: '20px' }}>
+        <div className="rubrica-layout" style={{ display: 'flex', gap: '20px' }}>
         {/* Sidebar categorie */}
         <div className="categorie-sidebar" style={{ minWidth: '250px', maxWidth: '300px' }}>
           <h3>Categorie</h3>
@@ -432,6 +436,7 @@ const Rubrica = () => {
               </button>
             </div>
         </Modal>
+      </div>
     </div>
   );
 };
