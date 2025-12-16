@@ -3,88 +3,121 @@ import { API_URLS } from '../config/api';
 import './Docs.css';
 
 const Docs = ({ username, isAdmin }) => {
-  const [activeSection, setActiveSection] = useState(null); // null = vista principale
-  const [data, setData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
+  const [activeView, setActiveView] = useState('overview'); // 'overview', 'builder', 'templates', 'generator'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({});
-  const [filterOptions, setFilterOptions] = useState({});
-  const [selectedRecords, setSelectedRecords] = useState([]);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showCleanupModal, setShowCleanupModal] = useState(false);
 
-  const sections = [
-    { 
-      key: 'compilazioni', 
-      label: 'Compilazioni Form', 
-      icon: '📋',
-      description: 'Tutte le compilazioni dei form dinamici'
+  // Nuove sezioni per il sistema di documenti
+  const documentSections = [
+    {
+      key: 'templates',
+      label: 'Template Documenti',
+      icon: '📄',
+      description: 'Crea e gestisci template per documenti amministrativi'
     },
-    { 
-      key: 'allegati', 
-      label: 'Allegati', 
-      icon: '📎',
-      description: 'Tutti gli allegati e file caricati dalle compilazioni'
+    {
+      key: 'generator',
+      label: 'Generatore Documenti',
+      icon: '🏗️',
+      description: 'Genera documenti utilizzando dati dinamici dell\'app'
     },
-    { 
-      key: 'scadenze', 
-      label: 'Scadenze Programmate', 
-      icon: '⏰',
-      description: 'Scadenze e attività programmate nel calendario'
+    {
+      key: 'reports',
+      label: 'Report Automatici',
+      icon: '📊',
+      description: 'Report pre-configurati per manutenzioni, asset e costi'
     },
-    { 
-      key: 'alert', 
-      label: 'Alert e Segnalazioni', 
-      icon: '⚠️',
-      description: 'Tutti gli alert, non conformità e segnalazioni generate'
-    },
-    { 
-      key: 'civici', 
-      label: 'Gestione Civici', 
-      icon: '🏠',
-      description: 'Configurazione e gestione civici aziendali'
-    },
-    { 
-      key: 'asset-types', 
-      label: 'Tipi di Asset', 
-      icon: '🔧',
-      description: 'Configurazione tipologie di asset e loro proprietà'
-    },
-    { 
-      key: 'assets-inventory', 
-      label: 'Inventario Asset', 
-      icon: '⚙️',
-      description: 'Inventario completo di tutti gli asset aziendali'
-    },
-    { 
-      key: 'magazzino', 
-      label: 'Magazzino Ricambi', 
-      icon: '📦',
-      description: 'Inventario ricambi e gestione scorte magazzino'
-    },
-    { 
-      key: 'files', 
-      label: 'File e Documenti', 
-      icon: '📁',
-      description: 'Gestione di tutti i file e documenti caricati nel sistema'
+    {
+      key: 'archive',
+      label: 'Archivio Documenti',
+      icon: '🗄️',
+      description: 'Documenti generati e salvati automaticamente'
     }
   ];
 
-  useEffect(() => {
-    if (activeSection) {
-      loadSectionData();
-    }
-  }, [activeSection]);
+  const handleSectionClick = (sectionKey) => {
+    setActiveView(sectionKey);
+  };
 
-  const loadSectionData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`${API_URLS.DOCS}/${activeSection}`);
-      if (!response.ok) {
-        throw new Error(`Errore ${response.status}: ${response.statusText}`);
-      }
+  const renderOverview = () => (
+    <div className="docs-overview">
+      <div className="overview-grid">
+        {documentSections.map(section => (
+          <div 
+            key={section.key}
+            className="section-card"
+            onClick={() => handleSectionClick(section.key)}
+          >
+            <div className="section-icon">{section.icon}</div>
+            <h3>{section.label}</h3>
+            <p>{section.description}</p>
+            <button className="btn btn-primary">
+              Apri Sezione
+            </button>
+          </div>
+        ))}
+      </div>
+      
+      <div className="coming-soon-notice">
+        <h4>🚧 Sezione in Sviluppo</h4>
+        <p>Il nuovo sistema di generazione documenti dinamici è in fase di sviluppo. 
+           Presto potrai creare template personalizzabili e generare documenti amministrativi 
+           utilizzando i dati dell'applicazione.</p>
+      </div>
+    </div>
+  );
+
+  const renderPlaceholder = (sectionKey) => (
+    <div className="section-placeholder">
+      <button 
+        className="btn btn-secondary mb-4"
+        onClick={() => setActiveView('overview')}
+      >
+        ← Torna alla panoramica
+      </button>
+      
+      <div className="placeholder-content">
+        <h3>🚧 {documentSections.find(s => s.key === sectionKey)?.label}</h3>
+        <p>Questa sezione sarà presto disponibile con le seguenti funzionalità:</p>
+        
+        {sectionKey === 'templates' && (
+          <ul>
+            <li>Editor drag & drop per layout documenti</li>
+            <li>Campi dinamici collegati ai dati dell'app</li>
+            <li>Template pre-configurati per documenti amministrativi</li>
+            <li>Anteprima in tempo reale</li>
+          </ul>
+        )}
+        
+        {sectionKey === 'generator' && (
+          <ul>
+            <li>Selezione dati da compilazioni, asset, magazzino</li>
+            <li>Filtri avanzati e aggregazioni</li>
+            <li>Generazione PDF con formattazione professionale</li>
+            <li>Stampa diretta e invio email</li>
+          </ul>
+        )}
+        
+        {sectionKey === 'reports' && (
+          <ul>
+            <li>Rapporti mensili manutenzioni</li>
+            <li>Certificati di conformità asset</li>
+            <li>Registri controlli periodici</li>
+            <li>Analisi costi e KPI</li>
+          </ul>
+        )}
+        
+        {sectionKey === 'archive' && (
+          <ul>
+            <li>Storico documenti generati</li>
+            <li>Ricerca avanzata per data, tipo, contenuto</li>
+            <li>Versioning e cronologia modifiche</li>
+            <li>Backup automatico su cloud</li>
+          </ul>
+        )}
+      </div>
+    </div>
+  );
       const result = await response.json();
       
       setData(result.data || []);
