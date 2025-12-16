@@ -96,10 +96,11 @@ const Assets = ({ isAdmin }) => {
 
   // Mostra la lista dei civici (solo lettura)
   return (
-    <div className="page-container">
-      <h2 style={{ color: 'var(--primary-color)', marginBottom: 'var(--spacing-xl)', fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-semibold)' }}>
-        ⚙️ Assets
-      </h2>
+    <div className="section-container">
+      <div className="section-header">
+        <h1>⚙️ Assets</h1>
+        <p>Gestione asset per civici - Seleziona un civico per visualizzare i suoi asset</p>
+      </div>
       
       {error && (
         <div style={{ background: 'var(--error-light)', color: 'var(--error-dark)', padding: 'var(--spacing-md)', borderRadius: 'var(--border-radius-md)', marginBottom: 'var(--spacing-lg)' }}>
@@ -208,23 +209,22 @@ const Assets = ({ isAdmin }) => {
                   <tr>
                     <th>Numero</th>
                     <th>Descrizione</th>
-                    <th>Azioni</th>
+                    <th className="text-center">Azioni</th>
                   </tr>
                 </thead>
                 <tbody>
                   {civici.map(civico => (
-                    <tr key={civico.numero}>
+                    <tr 
+                      key={civico.numero} 
+                      className="table-row-clickable"
+                      onClick={() => handleCivicoClick(civico)}
+                    >
                       <td style={{ fontFamily: 'var(--font-family-mono)', fontWeight: 'var(--font-weight-semibold)' }}>
                         {civico.numero}
                       </td>
                       <td>{civico.descrizione}</td>
-                      <td>
-                        <button 
-                          className="btn btn-primary btn-sm"
-                          onClick={() => handleCivicoClick(civico)}
-                        >
-                           Gestisci Assets
-                        </button>
+                      <td className="text-center">
+                        <span className="action-icon">⚙️</span>
                       </td>
                     </tr>
                   ))}
@@ -235,20 +235,19 @@ const Assets = ({ isAdmin }) => {
             {/* Mobile Cards */}
             <div className="mobile-only">
               {civici.map(civico => (
-                <div key={civico.numero} className="card-item mobile-card">
-                  <div className="card-item-header">
-                    <span className="card-item-number">{civico.numero}</span>
-                  </div>
-                  <div className="card-item-body">
-                    <p className="card-item-description">{civico.descrizione}</p>
-                  </div>
-                  <div className="card-item-actions">
-                    <button 
-                      className="btn btn-primary btn-sm"
-                      onClick={() => handleCivicoClick(civico)}
-                    >
-                       Assets
-                    </button>
+                <div 
+                  key={civico.numero} 
+                  className="card-item mobile-card clickable-card"
+                  onClick={() => handleCivicoClick(civico)}
+                >
+                  <div className="card-content">
+                    <div className="card-item-header">
+                      <span className="card-item-number">{civico.numero}</span>
+                      <span className="card-icon">⚙️</span>
+                    </div>
+                    <div className="card-item-body">
+                      <p className="card-item-description">{civico.descrizione}</p>
+                    </div>
                   </div>
                 </div>
               ))}

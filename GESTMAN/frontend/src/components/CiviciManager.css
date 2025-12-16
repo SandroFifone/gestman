@@ -97,3 +97,46 @@
     font-size: 12px;
   }
 }
+
+/* === STILI PER RIGHE CLICCABILI (Assets) === */
+.table-row-clickable {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.table-row-clickable:hover {
+  background-color: var(--gray-50, #f8f9fa);
+}
+
+.action-icon {
+  font-size: 1.2rem;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.table-row-clickable:hover .action-icon {
+  opacity: 1;
+}
+
+.clickable-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clickable-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-content {
+  width: 100%;
+}
+
+.card-icon {
+  font-size: 1.1rem;
+  opacity: 0.7;
+}
+
+.clickable-card:hover .card-icon {
+  opacity: 1;
+}
