@@ -214,7 +214,9 @@ const Docs = ({ username, isAdmin }) => {
     </div>
   );
 
-  const renderQueryBuilder = () => (
+  const renderQueryBuilder = () => {
+    console.log('Rendering Query Builder', { reportConfig, relationships });
+    return (
     <div className="query-builder">
       <div className="query-header">
         <h3>🔍 Generatore di Report Avanzati</h3>
@@ -445,7 +447,8 @@ const Docs = ({ username, isAdmin }) => {
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <div className="section-container">
@@ -471,6 +474,11 @@ const Docs = ({ username, isAdmin }) => {
         </div>
         {activeView === 'explorer' && renderDatabaseExplorer()}
         {activeView === 'query' && renderQueryBuilder()}
+        {activeView === 'query' && !renderQueryBuilder && (
+          <div className="error">
+            ⚠️ Funzione renderQueryBuilder non trovata
+          </div>
+        )}
       </div>
     </div>
   );
