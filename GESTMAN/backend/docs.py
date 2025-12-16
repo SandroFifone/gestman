@@ -238,67 +238,92 @@ def advanced_query():
         return jsonify({'error': f"Errore query avanzata: {str(e)}"}), 500
 
 def asset_summary_query(config):
-    """Genera report riassuntivo per asset specifico"""
+    """Genera report riassuntivo per asset (specifico o generale)"""
     asset_id = config.get('asset_id')
-    if not asset_id:
-        return jsonify({'error': 'ID Asset richiesto'}), 400
+    civico = config.get('civico')
+    date_from = config.get('date_from')
+    date_to = config.get('date_to')
     
     # Dati asset da gestman.db
     gestman_conn = get_db_connection('gestman')
     cursor = gestman_conn.cursor()
     
-    cursor.execute("""
-        SELECT a.*, c.nome as civico_nome, c.indirizzo 
+    # Query dinamica basata sui filtri
+    where_conditions = []
+    params = []
+    
+    if asset_id:
+        where_conditions.append("a.id = ?")
+        params.append(asset_id)
+    
+    if civico:
+        where_conditions.append("a.civico = ?")
+        params.append(civico)
+    
+    where_clause = "WHERE " + " AND ".join(where_conditions) if where_conditions else ""
+    
+    query = f"""
+        SELECT a.* 
         FROM assets a 
-        LEFT JOIN civici c ON a.civico_numero = c.numero 
-        WHERE a.id_aziendale = ?
-    """, [asset_id])
-    asset_data = dict(cursor.fetchone()) if cursor.fetchone() else None
+        {where_clause}
+        LIMIT 100
+    """
+    
+    cursor.execute(query, params)
+    assets_data = [dict(row) for row in cursor.fetchall()]
     gestman_conn.close()
     
-    if not asset_data:
-        return jsonify({'error': 'Asset non trovato'}), 404
+    if not assets_data:
+        return jsonify({'error': 'Nessun asset trovato con i criteri specificati'}), 404
     
-    # Dati compilazioni da compilazioni.db
+    # Aggiungi statistiche per ogni asset da compilazioni.db
     comp_conn = get_db_connection('compilazioni')
-    cursor = comp_conn.cursor()
     
-    # Interventi
-    cursor.execute("""
-        SELECT COUNT(*) as total_interventi,
-               MAX(created_at) as ultimo_intervento
-        FROM form_submissions 
-        WHERE asset_id = ?
-    """, [asset_id])
-    interventi = dict(cursor.fetchone())
-    
-    # Alert
-    cursor.execute("""
-        SELECT COUNT(*) as total_alert,
-               COUNT(CASE WHEN stato = 'aperto' THEN 1 END) as alert_aperti
-        FROM alert 
-        WHERE asset = ?
-    """, [asset_id])
-    alert = dict(cursor.fetchone())
-    
-    # Scadenze
-    cursor.execute("""
-        SELECT COUNT(*) as scadenze_programmate,
-               COUNT(CASE WHEN stato = 'scaduta' THEN 1 END) as scadenze_scadute
-        FROM scadenze_calendario 
-        WHERE asset = ?
-    """, [asset_id])
-    scadenze = dict(cursor.fetchone())
+    for asset in assets_data:
+        asset_id_val = asset['id']
+        cursor = comp_conn.cursor()
+        
+        # Interventi per questo asset
+        cursor.execute("""
+            SELECT COUNT(*) as count
+            FROM form_submissions 
+            WHERE asset_id = ?
+        """, [asset_id_val])
+        result = cursor.fetchone()
+        asset['interventi_count'] = result[0] if result else 0
+        
+        # Alert per questo asset
+        cursor.execute("""
+            SELECT COUNT(*) as count
+            FROM alert 
+            WHERE asset = ?
+        """, [asset_id_val])
+        result = cursor.fetchone()
+        asset['alert_count'] = result[0] if result else 0
+        
+        # Scadenze per questo asset
+        cursor.execute("""
+            SELECT COUNT(*) as count
+            FROM scadenze 
+            WHERE asset_id = ?
+        """, [asset_id_val])
+        result = cursor.fetchone()
+        asset['scadenze_count'] = result[0] if result else 0
     
     comp_conn.close()
     
+    # Calcola statistiche generali
+    total_interventi = sum(asset.get('interventi_count', 0) for asset in assets_data)
+    total_alerts = sum(asset.get('alert_count', 0) for asset in assets_data)
+    total_scadenze = sum(asset.get('scadenze_count', 0) for asset in assets_data)
+    
     return jsonify({
-        'asset': asset_data,
-        'statistics': {
-            'interventi': interventi,
-            'alert': alert,
-            'scadenze': scadenze
-        }
+        'asset_count': len(assets_data),
+        'total_interventions': total_interventi,
+        'active_alerts': total_alerts,
+        'total_scadenze': total_scadenze,
+        'assets': assets_data,
+        'query_time': datetime.now().isoformat()
     }), 200
 
 def maintenance_report_query(config):
