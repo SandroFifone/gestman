@@ -621,9 +621,77 @@ def generate_pdf():
         story.append(Paragraph(f"Generato il: {date_str}", styles['Normal']))
         story.append(Spacer(1, 20))
         
-        # Dati tabella
+        # Gestisce sia dati singoli che multi-sezione
+        sections = query_result.get('sections', [])
         table_data = query_result.get('data', [])
-        if table_data:
+        
+        if sections:
+            # Report multi-database
+            for i, section in enumerate(sections):
+                if i > 0:
+                    story.append(PageBreak())
+                
+                # Titolo sezione
+                section_title = f"Database: {section['database']} - Tabella: {section['table']}"
+                story.append(Paragraph(section_title, subtitle_style))
+                story.append(Spacer(1, 12))
+                
+                section_data = section.get('data', [])
+                if section_data:
+                    # Headers
+                    headers = list(section_data[0].keys()) if section_data else []
+                    
+                    # Prepara dati per la tabella
+                    pdf_table_data = [headers]
+                    
+                    for row in section_data:
+                        pdf_row = []
+                        for header in headers:
+                            value = row.get(header, '')
+                            # Gestisci valori None e lunghi
+                            if value is None:
+                                value = ''
+                            elif isinstance(value, str) and len(value) > 50:
+                                value = value[:47] + '...'
+                            pdf_row.append(str(value))
+                        pdf_table_data.append(pdf_row)
+                    
+                    # Crea tabella sezione
+                    table = Table(pdf_table_data)
+                    
+                    # Stile tabella sezione
+                    table_style = TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3498db')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 1), (-1, -1), 8),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ])
+                    
+                    # Applica stile alternato per le righe
+                    for j in range(1, len(pdf_table_data)):
+                        if j % 2 == 0:
+                            table_style.add('BACKGROUND', (0, j), (-1, j), colors.HexColor('#f8f9fa'))
+                    
+                    table.setStyle(table_style)
+                    story.append(table)
+                    
+                    # Statistiche sezione
+                    story.append(Spacer(1, 12))
+                    stats_text = f"Record in {section['table']}: {len(section_data)}"
+                    story.append(Paragraph(stats_text, styles['Normal']))
+                    story.append(Spacer(1, 20))
+                else:
+                    story.append(Paragraph("Nessun dato disponibile per questa sezione", styles['Normal']))
+        
+        elif table_data:
+            # Report singola tabella (backward compatibility)
             # Headers
             headers = list(table_data[0].keys()) if table_data else []
             

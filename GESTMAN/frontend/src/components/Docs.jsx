@@ -223,6 +223,8 @@ const Docs = ({ username, isAdmin }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [selectedDatabase, setSelectedDatabase] = useState('');
+  const [selectedDatabase2, setSelectedDatabase2] = useState('');
+  const [selectedTable2, setSelectedTable2] = useState('');
   const [selectedTableDetail, setSelectedTableDetail] = useState(null);
   
   // Vista accesso rapido
@@ -235,6 +237,17 @@ const Docs = ({ username, isAdmin }) => {
       
       <div className="quick-form">
         <div className="form-row">
+          <label>Titolo Documento:</label>
+          <input 
+            type="text"
+            value={templateConfig.title || ''}
+            onChange={(e) => setTemplateConfig(prev => ({...prev, title: e.target.value}))}
+            placeholder="Es: Report Asset Mensile, Analisi Manutenzioni..."
+            className="title-input"
+          />
+        </div>
+        
+        <div className="form-row">
           <label>Database:</label>
           <select 
             value={selectedDatabase} 
@@ -246,9 +259,21 @@ const Docs = ({ username, isAdmin }) => {
           </select>
         </div>
         
+        <div className="form-row">
+          <label>Database Secondario (opzionale):</label>
+          <select 
+            value={selectedDatabase2 || ''} 
+            onChange={(e) => setSelectedDatabase2(e.target.value)}
+          >
+            <option value="">Nessuno (solo tabella principale)</option>
+            <option value="gestman" disabled={selectedDatabase === 'gestman'}>gestman.db</option>
+            <option value="compilazioni" disabled={selectedDatabase === 'compilazioni'}>compilazioni.db</option>
+          </select>
+        </div>
+        
         {selectedDatabase && (
           <div className="form-row">
-            <label>Tabella:</label>
+            <label>Tabella Principale:</label>
             <select 
               value={selectedTable} 
               onChange={(e) => setSelectedTable(e.target.value)}
@@ -263,13 +288,30 @@ const Docs = ({ username, isAdmin }) => {
           </div>
         )}
         
+        {selectedDatabase2 && (
+          <div className="form-row">
+            <label>Tabella Secondaria:</label>
+            <select 
+              value={selectedTable2 || ''} 
+              onChange={(e) => setSelectedTable2(e.target.value)}
+            >
+              <option value="">Seleziona tabella</option>
+              {databases?.[selectedDatabase2]?.tables.map(table => (
+                <option key={table.table_name} value={table.table_name}>
+                  {table.table_name} ({table.row_count} righe)
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        
         {selectedDatabase && selectedTable && (
           <div className="quick-actions">
             <button 
               onClick={async () => {
                 setLoading(true);
                 try {
-                  // Carica i dati della tabella
+                  // Carica i dati della tabella principale
                   const response = await fetch(`${API_URLS.DOCS}/query`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -280,8 +322,39 @@ const Docs = ({ username, isAdmin }) => {
                     })
                   });
                   const data = await response.json();
-                  setQueryData(data.data || []);
-                  setReportData(data);
+                  
+                  let combinedData = data.data || [];
+                  let reportSections = [{
+                    database: selectedDatabase,
+                    table: selectedTable,
+                    data: combinedData
+                  }];
+                  
+                  // Se c'è un secondo database, carica anche i suoi dati
+                  if (selectedDatabase2 && selectedTable2) {
+                    const response2 = await fetch(`${API_URLS.DOCS}/query`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        database: selectedDatabase2,
+                        table: selectedTable2,
+                        limit: 100
+                      })
+                    });
+                    const data2 = await response2.json();
+                    reportSections.push({
+                      database: selectedDatabase2,
+                      table: selectedTable2,
+                      data: data2.data || []
+                    });
+                  }
+                  
+                  setQueryData(combinedData);
+                  setReportData({
+                    ...data,
+                    sections: reportSections,
+                    multiDb: !!selectedDatabase2
+                  });
                   
                   // Genera PDF direttamente
                   await generatePDF();
@@ -305,7 +378,7 @@ const Docs = ({ username, isAdmin }) => {
             </button>
             
             <button 
-              onClick={() => setCurrentView('advanced')}
+              onClick={() => setActiveView('reports')}
               className="export-btn secondary"
             >
               🔧 Opzioni Avanzate
