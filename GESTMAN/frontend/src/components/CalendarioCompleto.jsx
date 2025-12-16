@@ -1513,20 +1513,13 @@ const CalendarioCompleto = ({ username, sidebarOpen }) => {
   }
 
   return (
-    <div style={{ 
-      padding: '20px', 
-      maxWidth: sidebarOpen ? '1200px' : 'none', 
-      margin: sidebarOpen ? '0 auto' : '0',
-      width: sidebarOpen ? 'auto' : '100%'
-    }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '30px'
-      }}>
-        <h2 style={{ color: '#1a237e', margin: 0 }}>📅 Calendario Manutenzioni</h2>
+    <div className="section-container">
+      <div className="section-header">
+        <h1>📅 Calendario</h1>
+        <p>Gestione scadenze e manutenzioni programmate - Monitora e pianifica interventi</p>
       </div>
+
+      <div className="section-content">
 
       {/* Tabs */}
       <div style={{ borderBottom: '2px solid #e9ecef', marginBottom: '20px' }}>
@@ -2102,6 +2095,7 @@ const CalendarioCompleto = ({ username, sidebarOpen }) => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

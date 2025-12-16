@@ -145,19 +145,22 @@ const AlertScreen = () => {
   const chiusi = filtered.filter(a => a.stato === 'chiuso');
 
   return (
-    <div className="page-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xl)' }}>
-        <h2 style={{ color: 'var(--primary-color)', fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-semibold)', margin: 0 }}>
-          🚨 Gestione Alert
-        </h2>
-        <button 
-          className="btn btn-outline"
-          onClick={loadAlerts}
-          disabled={loading}
-        >
-          {loading ? '🔄 Caricamento...' : '🔄 Ricarica'}
-        </button>
+    <div className="section-container">
+      <div className="section-header">
+        <h1>🚨 Alert</h1>
+        <p>Gestione alert e notifiche - Non conformità, scadenze e tickets</p>
       </div>
+
+      <div className="section-content">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--spacing-lg)' }}>
+          <button 
+            className="btn btn-outline"
+            onClick={loadAlerts}
+            disabled={loading}
+          >
+            {loading ? '🔄 Caricamento...' : '🔄 Ricarica'}
+          </button>
+        </div>
       
       <div className="card">
         <div className="card-content">
@@ -401,6 +404,7 @@ const AlertScreen = () => {
         cancelText={modalState.cancelText}
         showCancel={modalState.showCancel}
       />
+      </div>
     </div>
   );
 };
