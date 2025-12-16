@@ -564,11 +564,13 @@ const FormTemplateManager = ({ isAdmin }) => {
   };
 
   return (
-    <div className="form-template-manager">
-      <div className="header">
+    <div className="section-container">
+      <div className="section-header">
         <h2>🔧 Gestione Form Template</h2>
         <p>Configura i form dinamici per le compilazioni e le checklist di manutenzione</p>
       </div>
+      
+      <div className="section-content">
 
       {/* Tabs Navigation */}
       <div style={{ 
@@ -1736,6 +1738,7 @@ const FormTemplateManager = ({ isAdmin }) => {
           </div>
         </Modal>
       )}
+      </div>
     </div>
   );
 };

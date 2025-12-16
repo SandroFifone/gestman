@@ -164,12 +164,14 @@ const UsersManager = ({ currentUser }) => {
   }
 
   return (
-    <div className="page-container">
-      <h2 style={{ color: 'var(--primary-color)', marginBottom: 'var(--spacing-xl)', fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-semibold)' }}>
-        👥 Gestione Utenti
-      </h2>
+    <div className="section-container">
+      <div className="section-header">
+        <h2>👥 Gestione Utenti</h2>
+        <p>Configura utenti, password e permessi di accesso alle sezioni</p>
+      </div>
       
-      {error && <div className="alert alert-error">{error}</div>}
+      <div className="section-content">
+        {error && <div className="alert alert-error">{error}</div>}
       
       <div className="card">
         <div className="card-header">
@@ -406,6 +408,7 @@ const UsersManager = ({ currentUser }) => {
       <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Aggiungi nuovo utente">
         <AddUserForm onAdd={handleAddUser} setError={setError} />
       </Modal>
+      </div>
     </div>
   );
 }

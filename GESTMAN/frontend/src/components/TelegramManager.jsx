@@ -428,13 +428,13 @@ const TelegramManager = ({ sidebarOpen }) => {
   };
 
   return (
-    <div style={{ 
-      maxWidth: sidebarOpen ? 1000 : 'none', 
-      margin: sidebarOpen ? '0 auto' : '0', 
-      padding: 32,
-      width: sidebarOpen ? 'auto' : '100%'
-    }}>
-      <h2 style={{ color: '#1a237e', marginBottom: 24 }}>🤖 Telegram Manager</h2>
+    <div className="section-container">
+      <div className="section-header">
+        <h2>🤖 Telegram Manager</h2>
+        <p>Gestisci configurazione bot, notifiche e utenti Telegram</p>
+      </div>
+      
+      <div className="section-content">
       
       {/* Messages */}
       {message && (
@@ -926,6 +926,7 @@ const TelegramManager = ({ sidebarOpen }) => {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
