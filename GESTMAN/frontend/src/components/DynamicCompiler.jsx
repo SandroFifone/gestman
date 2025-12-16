@@ -122,38 +122,25 @@ const DynamicCompiler = ({ username }) => {
     setError('');
   };
 
-  const renderBreadcrumb = () => (
-    <div className="compiler-breadcrumb">
-      <button 
-        className={step >= 1 ? 'active' : 'inactive'} 
-        onClick={() => resetToStep(1)}
-        disabled={loading}
-      >
-        1. Civico
-      </button>
-      <span className="separator">→</span>
-      <button 
-        className={step >= 2 ? 'active' : 'inactive'} 
-        onClick={() => resetToStep(2)}
-        disabled={!selectedCivico || loading}
-      >
-        2. Asset
-      </button>
-      <span className="separator">→</span>
-      <button 
-        className={step >= 3 ? 'active' : 'inactive'} 
-        onClick={() => resetToStep(3)}
-        disabled={!selectedAsset || loading}
-      >
-        3. Tipo Form
-      </button>
-      <span className="separator">→</span>
-      <button 
-        className={step >= 4 ? 'active' : 'inactive'} 
-        disabled={!selectedTemplateId || loading}
-      >
-        4. Compilazione
-      </button>
+  const getStepTitle = () => {
+    switch(step) {
+      case 1: return 'Seleziona Civico';
+      case 2: return 'Seleziona Asset';
+      case 3: return 'Seleziona Tipo Form';
+      case 4: return 'Compila Form';
+      default: return '';
+    }
+  };
+
+  const renderStepper = () => (
+    <div className="stepper-progress">
+      <div className="step-indicator">
+        <span className={step >= 1 ? 'step-active' : 'step-inactive'} onClick={() => resetToStep(1)}>1</span>
+        <span className={step >= 2 ? 'step-active' : 'step-inactive'} onClick={() => selectedCivico && resetToStep(2)}>2</span>
+        <span className={step >= 3 ? 'step-active' : 'step-inactive'} onClick={() => selectedAsset && resetToStep(3)}>3</span>
+        <span className={step >= 4 ? 'step-active' : 'step-inactive'}>4</span>
+      </div>
+      <p className="step-title">Step {step}/4: {getStepTitle()}</p>
     </div>
   );
 
@@ -277,10 +264,10 @@ const DynamicCompiler = ({ username }) => {
   };
 
   return (
-    <div className="dynamic-compiler">
-      <div className="compiler-header">
-        <h2>🔧 Compilatore Report</h2>
-        <p>Sezione per la selezione e compilazione report su assets</p>
+    <div className="section-container">
+      <div className="section-header">
+        <h1>📋 Compilazioni</h1>
+        <p>Compila form dinamici per asset - Seleziona civico, asset e tipo di form</p>
       </div>
 
       {error && (
@@ -290,9 +277,9 @@ const DynamicCompiler = ({ username }) => {
         </div>
       )}
 
-      {renderBreadcrumb()}
+      {renderStepper()}
       
-      <div className="compiler-content">
+      <div className="section-content">
         {renderStepContent()}
       </div>
     </div>
