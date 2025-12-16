@@ -279,8 +279,8 @@ const DynamicCompiler = ({ username }) => {
   return (
     <div className="dynamic-compiler">
       <div className="compiler-header">
-        <h2>🔧 Compilatore Dinamico</h2>
-        <p>Sistema di compilazione form configurabile</p>
+        <h2>🔧 Compilatore Report</h2>
+        <p>Sezione per la selezione e compilazione report su assets</p>
       </div>
 
       {error && (
