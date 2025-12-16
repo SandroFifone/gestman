@@ -544,3 +544,162 @@ def alert_analysis_query(config):
             'most_problematic_asset': data[0]['asset'] if data else None
         }
     }), 200
+
+@bp.route('/generate-pdf', methods=['POST'])
+def generate_pdf():
+    """Genera un PDF professionale dai dati della query"""
+    try:
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch
+        from flask import send_file
+        import io
+        
+        data = request.get_json()
+        
+        # Parametri configurazione
+        config = data.get('config', {})
+        query_result = data.get('queryResult', {})
+        template_config = data.get('templateConfig', {})
+        
+        # Configurazione documento
+        orientation = config.get('orientation', 'portrait')
+        page_size = A4 if orientation == 'portrait' else (A4[1], A4[0])
+        
+        # Buffer per il PDF
+        buffer = io.BytesIO()
+        
+        # Crea documento
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=page_size,
+            rightMargin=72,
+            leftMargin=72,
+            topMargin=72,
+            bottomMargin=72
+        )
+        
+        # Stili
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30,
+            textColor=colors.HexColor('#2c3e50'),
+            alignment=1  # Center
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=styles['Heading2'],
+            fontSize=14,
+            spaceAfter=20,
+            textColor=colors.HexColor('#34495e')
+        )
+        
+        # Contenuto del documento
+        story = []
+        
+        # Titolo
+        title = template_config.get('title', 'Report Database')
+        story.append(Paragraph(title, title_style))
+        story.append(Spacer(1, 12))
+        
+        # Sottotitolo con informazioni
+        subtitle = f"Database: {query_result.get('database', 'N/A')} - Tabella: {query_result.get('table', 'N/A')}"
+        story.append(Paragraph(subtitle, subtitle_style))
+        story.append(Spacer(1, 12))
+        
+        # Data generazione
+        date_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+        story.append(Paragraph(f"Generato il: {date_str}", styles['Normal']))
+        story.append(Spacer(1, 20))
+        
+        # Dati tabella
+        table_data = query_result.get('data', [])
+        if table_data:
+            # Headers
+            headers = list(table_data[0].keys()) if table_data else []
+            
+            # Prepara dati per la tabella
+            pdf_table_data = [headers]
+            
+            for row in table_data:
+                pdf_row = []
+                for header in headers:
+                    value = row.get(header, '')
+                    # Gestisci valori None e lunghi
+                    if value is None:
+                        value = ''
+                    elif isinstance(value, str) and len(value) > 50:
+                        value = value[:47] + '...'
+                    pdf_row.append(str(value))
+                pdf_table_data.append(pdf_row)
+            
+            # Crea tabella
+            table = Table(pdf_table_data)
+            
+            # Stile tabella
+            table_style = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3498db')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ])
+            
+            # Applica stile alternato per le righe
+            for i in range(1, len(pdf_table_data)):
+                if i % 2 == 0:
+                    table_style.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#f8f9fa'))
+            
+            table.setStyle(table_style)
+            story.append(table)
+            
+            # Statistiche
+            story.append(Spacer(1, 20))
+            stats_text = f"Totale record: {len(table_data)}"
+            story.append(Paragraph(stats_text, styles['Normal']))
+        
+        else:
+            story.append(Paragraph("Nessun dato disponibile", styles['Normal']))
+        
+        # Footer con configurazione
+        if template_config.get('showFooter', True):
+            story.append(Spacer(1, 30))
+            footer_text = f"Report generato da GestMan - {config.get('database', 'Sistema')}"
+            story.append(Paragraph(footer_text, styles['Italic']))
+        
+        # Genera PDF
+        doc.build(story)
+        
+        # Prepara risposta
+        buffer.seek(0)
+        
+        filename = f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+        
+    except ImportError:
+        return jsonify({
+            'error': 'Libreria ReportLab non installata. Eseguire: pip install reportlab'
+        }), 500
+        
+    except Exception as e:
+        return jsonify({
+            'error': f'Errore generazione PDF: {str(e)}'
+        }), 500

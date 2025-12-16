@@ -133,12 +133,62 @@ const Docs = ({ username, isAdmin }) => {
     }
   };
 
-  // Download report in vari formati
-  const downloadReport = (format = 'json') => {
+  // Genera PDF professionale
+  const generatePDF = async () => {
+    if (!reportData) return;
+    
+    setLoading(true);
+    try {
+      // Prepara i dati per il PDF backend
+      const pdfRequest = {
+        type: 'document_pdf',
+        template: templateConfig,
+        reportData: reportData,
+        reportConfig: reportConfig,
+        metadata: {
+          title: templateConfig.title,
+          author: username || 'GESTMAN',
+          subject: `Report ${reportConfig.type}`,
+          creator: 'GESTMAN System',
+          generated_at: new Date().toISOString()
+        }
+      };
+      
+      const response = await fetch(`${API_URLS.DOCS}/generate-pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pdfRequest)
+      });
+      
+      if (response.ok) {
+        // Scarica il PDF generato
+        const blob = await response.blob();
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+        const filename = `${templateConfig.title.replace(/\s+/g, '_')}_${timestamp}.pdf`;
+        
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+      } else {
+        throw new Error('Errore nella generazione PDF');
+      }
+    } catch (err) {
+      console.error('Errore PDF:', err);
+      setError('Impossibile generare il PDF: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Download dati raw per debug  
+  const downloadRawData = (format = 'json') => {
     if (!reportData) return;
     
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
-    const filename = `report_${reportConfig.type}_${timestamp}.${format}`;
+    const filename = `dati_${reportConfig.type}_${timestamp}.${format}`;
     
     let content, type;
     
@@ -146,7 +196,6 @@ const Docs = ({ username, isAdmin }) => {
       content = JSON.stringify(reportData, null, 2);
       type = 'application/json';
     } else if (format === 'csv') {
-      // Converti in CSV
       if (reportData.assets) {
         const headers = Object.keys(reportData.assets[0] || {}).join(',');
         const rows = reportData.assets.map(asset => 
@@ -708,12 +757,22 @@ const Docs = ({ username, isAdmin }) => {
           <div className="results-header">
             <h4>📄 Documento Generato</h4>
             <div className="export-actions">
-              <button onClick={() => downloadReport('json')} className="export-btn">
-                📄 JSON
+              <button 
+                onClick={generatePDF} 
+                className="export-btn primary-export"
+                disabled={loading}
+              >
+                {loading ? '⏳ Generando PDF...' : '📑 Scarica PDF'}
               </button>
-              <button onClick={() => downloadReport('csv')} className="export-btn">
-                📊 CSV
-              </button>
+              
+              <div className="secondary-exports">
+                <button onClick={() => downloadRawData('json')} className="export-btn secondary">
+                  📄 Dati JSON
+                </button>
+                <button onClick={() => downloadRawData('csv')} className="export-btn secondary">
+                  📊 Dati CSV
+                </button>
+              </div>
             </div>
           </div>
           
