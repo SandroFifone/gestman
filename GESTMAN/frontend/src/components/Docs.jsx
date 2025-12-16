@@ -144,10 +144,10 @@ const Docs = ({ username, isAdmin }) => {
       const pdfRequest = {
         config: {
           orientation: templateConfig.orientation || 'portrait',
-          database: currentDatabase || 'gestman'
+          database: selectedDatabase || 'gestman'
         },
         queryResult: {
-          database: currentDatabase || 'gestman',
+          database: selectedDatabase || 'gestman',
           table: selectedTable || 'N/A',
           data: reportData?.data || queryData || []
         },
@@ -237,8 +237,8 @@ const Docs = ({ username, isAdmin }) => {
         <div className="form-row">
           <label>Database:</label>
           <select 
-            value={currentDatabase} 
-            onChange={(e) => setCurrentDatabase(e.target.value)}
+            value={selectedDatabase} 
+            onChange={(e) => setSelectedDatabase(e.target.value)}
           >
             <option value="">Seleziona database</option>
             <option value="gestman">gestman.db</option>
@@ -246,7 +246,7 @@ const Docs = ({ username, isAdmin }) => {
           </select>
         </div>
         
-        {currentDatabase && (
+        {selectedDatabase && (
           <div className="form-row">
             <label>Tabella:</label>
             <select 
@@ -254,7 +254,7 @@ const Docs = ({ username, isAdmin }) => {
               onChange={(e) => setSelectedTable(e.target.value)}
             >
               <option value="">Seleziona tabella</option>
-              {databases?.[currentDatabase]?.tables.map(table => (
+              {databases?.[selectedDatabase]?.tables.map(table => (
                 <option key={table.table_name} value={table.table_name}>
                   {table.table_name} ({table.row_count} righe)
                 </option>
@@ -263,7 +263,7 @@ const Docs = ({ username, isAdmin }) => {
           </div>
         )}
         
-        {currentDatabase && selectedTable && (
+        {selectedDatabase && selectedTable && (
           <div className="quick-actions">
             <button 
               onClick={async () => {
@@ -274,7 +274,7 @@ const Docs = ({ username, isAdmin }) => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      database: currentDatabase,
+                      database: selectedDatabase,
                       table: selectedTable,
                       limit: 100
                     })
