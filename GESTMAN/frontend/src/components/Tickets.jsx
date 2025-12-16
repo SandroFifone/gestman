@@ -202,22 +202,25 @@ const Tickets = ({ username }) => {
   }
 
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-header">
-        <h1>🎫 I Miei Tickets</h1>
-        <p>Crea e gestisci le tue richieste</p>
-        <div className="tickets-buttons-container">
+    <div className="section-container">
+      <div className="section-header">
+        <h1>🎫 Tickets</h1>
+        <p>Crea e gestisci le tue richieste di intervento</p>
+      </div>
+
+      <div className="section-content">
+        {/* Barra azioni */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
           <button 
             onClick={() => setShowCreateForm(!showCreateForm)} 
-            className={`tickets-button primary-button ${showCreateForm ? 'cancel' : ''}`}
+            className={`btn ${showCreateForm ? 'btn-secondary' : 'btn-primary'}`}
           >
             {showCreateForm ? '❌ Annulla' : '➕ Nuovo Ticket'}
           </button>
-          <button onClick={caricaDati} className="tickets-button refresh-button">
+          <button onClick={caricaDati} className="btn btn-outline">
             🔄 Aggiorna
           </button>
         </div>
-      </div>
 
       {/* Form Creazione Ticket */}
       {showCreateForm && (
@@ -450,9 +453,6 @@ const Tickets = ({ username }) => {
           </div>
         )}
       </div>
-
-      <div className="dashboard-footer">
-        <p>Ultimo aggiornamento: {new Date().toLocaleString('it-IT')}</p>
       </div>
     </div>
   );
