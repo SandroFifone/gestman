@@ -53,6 +53,88 @@ def analyze_table_structure(db_type, table_name):
     except Exception as e:
         return {'error': f"Errore analisi tabella {table_name}: {str(e)}"}
 
+@bp.route('/databases', methods=['GET'])
+def get_databases():
+    """Endpoint per ottenere struttura database - compatibile con frontend"""
+    try:
+        databases = {}
+        
+        # Analizza gestman.db
+        if os.path.exists(GESTMAN_DB):
+            conn = get_db_connection('gestman')
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = cursor.fetchall()
+            
+            gestman_tables = []
+            for table in tables:
+                table_info = analyze_table_structure('gestman', table[0])
+                gestman_tables.append(table_info)
+            
+            databases['gestman'] = {
+                'tables': gestman_tables,
+                'size': 'N/A'
+            }
+            conn.close()
+        
+        # Analizza compilazioni.db
+        if os.path.exists(COMPILAZIONI_DB):
+            conn = get_db_connection('compilazioni')
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = cursor.fetchall()
+            
+            compilazioni_tables = []
+            for table in tables:
+                table_info = analyze_table_structure('compilazioni', table[0])
+                compilazioni_tables.append(table_info)
+            
+            databases['compilazioni'] = {
+                'tables': compilazioni_tables,
+                'size': 'N/A'
+            }
+            conn.close()
+        
+        return jsonify({
+            'databases': databases,
+            'timestamp': datetime.now().isoformat()
+        })
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/query', methods=['POST'])
+def query_table_data():
+    """Query dati da tabella specifica"""
+    try:
+        data = request.get_json()
+        database = data.get('database')
+        table = data.get('table')
+        limit = data.get('limit', 10)
+        
+        conn = get_db_connection(database)
+        cursor = conn.cursor()
+        
+        # Query con limit
+        cursor.execute(f"SELECT * FROM {table} LIMIT ?", (limit,))
+        rows = [dict(row) for row in cursor.fetchall()]
+        
+        # Conta totale righe
+        cursor.execute(f"SELECT COUNT(*) as count FROM {table}")
+        total_count = cursor.fetchone()['count']
+        
+        conn.close()
+        
+        return jsonify({
+            'data': rows,
+            'count': total_count,
+            'table': table,
+            'database': database
+        })
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @bp.route('/analyze-databases', methods=['GET'])
 def analyze_databases():
     """Endpoint che analizza entrambi i database e restituisce le strutture"""

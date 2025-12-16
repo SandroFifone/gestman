@@ -33,6 +33,14 @@ try:
 except Exception as e:
     print(f"ERRORE blueprint alert manager: {e}")
 
+# Blueprint docs
+try:
+    from docs import bp as docs_bp
+    app.register_blueprint(docs_bp, url_prefix='/api/docs')
+    print("Docs blueprint registrato")
+except Exception as e:
+    print(f"ERRORE blueprint docs: {e}")
+
 # Route dirette per /api/alert 
 @app.route('/api/alert', methods=['GET', 'POST'])
 def handle_alert():

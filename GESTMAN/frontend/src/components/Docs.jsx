@@ -35,17 +35,24 @@ const Docs = ({ username, isAdmin }) => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_URLS.DOCS}/databases`);
+      const url = `${API_URLS.DOCS}/databases`;
+      console.log('Chiamando API:', url);
+      
+      const response = await fetch(url);
+      console.log('Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
         setDatabases(data);
         console.log('Database caricati:', data);
       } else {
-        throw new Error('Errore nel caricamento database');
+        const errorText = await response.text();
+        console.error('Errore response:', response.status, errorText);
+        throw new Error(`Errore ${response.status}: ${errorText}`);
       }
     } catch (err) {
       console.error('Errore caricamento database:', err);
-      setError('Impossibile caricare la struttura dei database');
+      setError(`Impossibile caricare database: ${err.message}`);
     } finally {
       setLoading(false);
     }
