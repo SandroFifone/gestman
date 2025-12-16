@@ -452,7 +452,9 @@ const Docs = ({ username, isAdmin }) => {
       <div className="section-header">
         <h2>📚 Documentazione e Report</h2>
         <p>Sistema di generazione documenti dinamici per l'amministrazione aziendale</p>
-        
+      </div>
+
+      <div className="section-content">
         <div className="docs-navigation">
           <button 
             className={`nav-btn ${activeView === 'explorer' ? 'active' : ''}`}
@@ -467,9 +469,6 @@ const Docs = ({ username, isAdmin }) => {
             🔍 Report Avanzati
           </button>
         </div>
-      </div>
-
-      <div className="section-content">
         {activeView === 'explorer' && renderDatabaseExplorer()}
         {activeView === 'query' && renderQueryBuilder()}
       </div>

@@ -168,8 +168,11 @@
 .docs-navigation {
   display: flex;
   gap: var(--spacing-sm);
-  margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
   flex-wrap: wrap;
+  justify-content: center;
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--gray-200);
 }
 
 .nav-btn {
