@@ -213,7 +213,26 @@ def get_relationships():
             ]
         }
         
-        return jsonify(relationships), 200
+        # Trasforma in array piatto per il frontend
+        flat_relationships = []
+        for category_name, rels in relationships.items():
+            for rel in rels:
+                join_info = list(rel['join'].items())[0]  # Prendi il primo join
+                from_parts = join_info[0].split('.')
+                to_parts = join_info[1].split('.')
+                
+                flat_relationships.append({
+                    'from_db': from_parts[0],
+                    'from_table': from_parts[1],
+                    'from_column': from_parts[2] if len(from_parts) > 2 else 'id',
+                    'to_db': to_parts[0],
+                    'to_table': to_parts[1],
+                    'to_column': to_parts[2] if len(to_parts) > 2 else 'id',
+                    'relationship_type': rel['name'],
+                    'description': rel['description']
+                })
+        
+        return jsonify(flat_relationships), 200
         
     except Exception as e:
         return jsonify({'error': f"Errore relazioni: {str(e)}"}), 500

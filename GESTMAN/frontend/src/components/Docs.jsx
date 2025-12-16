@@ -105,7 +105,7 @@ const Docs = ({ username, isAdmin }) => {
   };
 
   const handleAdvancedQuery = async () => {
-    if (!reportConfig.type) return;
+    if (!reportConfig.type || loading) return;  // Evita chiamate multiple mentre una è in corso
     
     setLoading(true);
     setError(null);
@@ -321,25 +321,40 @@ const Docs = ({ username, isAdmin }) => {
           className="query-execute-btn"
           onClick={handleAdvancedQuery}
           disabled={loading || !reportConfig.type}
+          style={{ opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
         >
-          {loading ? 'Generazione...' : '📊 Genera Report'}
+          {loading ? '⏳ Generazione in corso...' : '📊 Genera Report'}
         </button>
       </div>
 
-      {relationships && Array.isArray(relationships) && relationships.length > 0 && (
-        <div className="relationships-info">
-          <h4>🔗 Relazioni Database Rilevate:</h4>
+      {/* Relazioni database */}
+      <div className="relationships-info">
+        <h4>🔗 Relazioni Database Rilevate:</h4>
+        {relationships && Array.isArray(relationships) && relationships.length > 0 ? (
           <div className="relationships-list">
             {relationships.map((rel, idx) => (
               <div key={idx} className="relationship-item">
-                <strong>{rel.from_db}.{rel.from_table}</strong> 
-                → <em>{rel.relationship_type}</em> → 
-                <strong>{rel.to_db}.{rel.to_table}</strong>
+                <div className="rel-main">
+                  <strong>{rel.from_db}.{rel.from_table}</strong> 
+                  <span className="arrow">→</span>
+                  <strong>{rel.to_db}.{rel.to_table}</strong>
+                </div>
+                <div className="rel-details">
+                  <em>{rel.relationship_type}</em>
+                  <span className="rel-desc">({rel.description})</span>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="no-relationships">
+            <p>📊 Le relazioni verranno mostrate qui quando caricate dal backend...</p>
+            <button onClick={loadRelationships} className="reload-btn">
+              🔄 Ricarica Relazioni
+            </button>
+          </div>
+        )}
+      </div>
 
       {reportData && (
         <div className="report-results">
@@ -397,10 +412,10 @@ const Docs = ({ username, isAdmin }) => {
                       <tbody>
                         {reportData.assets.map((asset, idx) => (
                           <tr key={idx}>
-                            <td>{asset.id}</td>
-                            <td>{asset.nome}</td>
-                            <td>{asset.civico}</td>
-                            <td>{asset.tipo}</td>
+                            <td>{asset.id_aziendale || asset.id || '—'}</td>
+                            <td>{asset.nome || asset.descrizione || '—'}</td>
+                            <td>{asset.civico_numero || asset.civico || '—'}</td>
+                            <td>{asset.tipo_asset || asset.tipo || '—'}</td>
                             <td>{asset.interventi_count || 0}</td>
                             <td>{asset.alert_count || 0}</td>
                             <td>{asset.scadenze_count || 0}</td>
