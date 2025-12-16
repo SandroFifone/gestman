@@ -151,11 +151,17 @@ const UsersManager = ({ currentUser }) => {
 
   if (!currentUser?.isAdmin) {
     return (
-      <div className="page-container">
-        <div className="card">
-          <div className="card-content">
-            <div className="text-center text-muted">
-              <strong>Accesso negato.</strong>
+      <div className="section-container">
+        <div className="section-header">
+          <h2>👥 Gestione Utenti</h2>
+          <p>Accesso riservato agli amministratori</p>
+        </div>
+        <div className="section-content">
+          <div className="card">
+            <div className="card-content">
+              <div className="text-center text-muted">
+                <strong>Accesso negato.</strong>
+              </div>
             </div>
           </div>
         </div>

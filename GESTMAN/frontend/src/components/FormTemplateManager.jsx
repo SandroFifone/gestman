@@ -1162,7 +1162,7 @@ const FormTemplateManager = ({ isAdmin }) => {
         <div>
           {/* Selezione Tipo Asset */}
           <div style={{ marginBottom: '30px', padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>
-            <h4 style={{ margin: '0 0 15px 0', color: '#1a237e' }}>
+            <h4 style={{ margin: '0 0 15px 0' }}>
               🎯 Seleziona Tipo Asset per Gestire le Voci Checklist MANUTENZIONI PROGRAMMATE
             </h4>
             <p style={{ margin: '0 0 15px 0', color: '#dc3545', fontSize: '14px' }}>
@@ -1216,7 +1216,7 @@ const FormTemplateManager = ({ isAdmin }) => {
           {/* Voci Checklist per Asset Selezionato */}
           {selectedAssetType && (
             <div style={{ marginBottom: '30px', padding: '20px', background: '#ffffff', borderRadius: '8px', border: '1px solid #e9ecef' }}>
-              <h4 style={{ margin: '0 0 15px 0', color: '#1a237e' }}>
+              <h4 style={{ margin: '0 0 15px 0' }}>
                 📋 Voci Checklist MANUTENZIONI PROGRAMMATE per: {selectedAssetType}
               </h4>
               {checklistItems.length === 0 ? (
@@ -1309,7 +1309,7 @@ const FormTemplateManager = ({ isAdmin }) => {
                 width: '500px',
                 maxWidth: '90vw'
               }}>
-                <h3 style={{ margin: '0 0 20px 0', color: '#1a237e' }}>
+                <h3 style={{ margin: '0 0 20px 0' }}>
                   {editingChecklistItem ? 'Modifica Voce Checklist' : 'Nuova Voce Checklist'}
                 </h3>
                 

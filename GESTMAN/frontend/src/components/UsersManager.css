@@ -59,15 +59,15 @@
   text-align: left;
 }
 .um-table th {
-  background: #f8faff;
-  color: #0a2a66;
+  background: var(--gray-50);
+  color: var(--primary-color);
 }
 .um-table td {
   background: #fff;
 }
 .um-table button {
   margin-right: 8px;
-  background: #0a2a66;
+  background: var(--primary-color);
   color: #fff;
   border: none;
   border-radius: 5px;
@@ -77,16 +77,16 @@
   transition: background 0.2s;
 }
 .um-table button:hover {
-  background: #174ea6;
+  background: var(--primary-dark);
 }
 .um-delete {
-  background: #c00;
+  background: var(--danger-color);
 }
 .um-delete:hover {
-  background: #a00;
+  background: var(--danger-dark);
 }
 .um-error {
-  color: #c00;
+  color: var(--danger-color);
   margin-bottom: 12px;
   font-weight: 500;
 }

@@ -450,7 +450,7 @@ const TelegramManager = ({ sidebarOpen }) => {
 
       {/* Configurazione Bot */}
       <div style={{ background: '#fff', border: '1px solid #e3eaf6', borderRadius: 10, padding: 24, marginBottom: 24 }}>
-        <h3 style={{ marginTop: 0, color: '#1a237e' }}>Configurazione Bot Telegram</h3>
+        <h3 style={{ marginTop: 0 }}>Configurazione Bot Telegram</h3>
         
         {config.active && config.bot_name && (
           <div style={{ background: '#d4edda', color: '#155724', padding: 12, borderRadius: 6, marginBottom: 16 }}>
@@ -500,11 +500,11 @@ const TelegramManager = ({ sidebarOpen }) => {
 
       {/* Gestione Utenti e Alert */}
       <div style={{ background: '#fff', border: '1px solid #e3eaf6', borderRadius: 10, padding: 24 }}>
-        <h3 style={{ marginTop: 0, color: '#1a237e' }}>Gestione Utenti e Alert</h3>
+        <h3 style={{ marginTop: 0 }}>Gestione Utenti e Alert</h3>
         
         {/* Form aggiunta utente */}
         <div style={{ background: '#f8f9fa', padding: 20, borderRadius: 8, marginBottom: 24 }}>
-          <h4 style={{ margin: '0 0 16px 0', color: '#1a237e' }}>Aggiungi Nuovo Utente</h4>
+          <h4 style={{ margin: '0 0 16px 0' }}>Aggiungi Nuovo Utente</h4>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <div>
@@ -664,7 +664,7 @@ const TelegramManager = ({ sidebarOpen }) => {
             padding: 24, 
             marginBottom: 24 
           }}>
-            <h4 style={{ marginTop: 0, color: '#856404' }}>✏️ Modifica Utente</h4>
+            <h4 style={{ marginTop: 0 }}>✏️ Modifica Utente</h4>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
@@ -801,7 +801,7 @@ const TelegramManager = ({ sidebarOpen }) => {
 
         {/* Lista utenti configurati */}
         <div>
-          <h4 style={{ marginBottom: 16, color: '#1a237e' }}>
+          <h4 style={{ marginBottom: 16 }}>
             Utenti Configurati ({users.length})
           </h4>
           

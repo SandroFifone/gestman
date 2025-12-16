@@ -144,7 +144,8 @@
   box-shadow: var(--shadow-md);
 }
 
-.section-header h1 {
+.section-header h1,
+.section-header h2 {
   margin: 0 0 var(--spacing-sm) 0;
   font-size: 2rem;
   font-weight: var(--font-weight-bold);
