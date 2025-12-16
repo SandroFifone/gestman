@@ -210,7 +210,29 @@ function AppContent({ user, onLogout }) {
     };
   }, []);
 
+  // Controlla il ridimensionamento e redirect da sezioni non mobile-friendly
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth <= 768;
+      const currentPath = location.pathname.split('/')[1];
+      
+      // Se siamo su mobile e in una sezione non consentita, redirect a dashboard
+      if (isMobile && (currentPath === 'calendario' || currentPath === 'docs')) {
+        navigate('/dashboard');
+        setSidebarOpen(false); // chiudi sidebar su mobile
+      }
+    };
 
+    // Controllo iniziale
+    handleResize();
+    
+    // Listener per ridimensionamento
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [location.pathname, navigate]);
 
   // Navigazione da breadcrumb (rimossa)
   const handleBreadcrumbNavigate = () => {

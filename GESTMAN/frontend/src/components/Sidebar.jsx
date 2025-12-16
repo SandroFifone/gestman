@@ -12,6 +12,11 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
     userSectionsLength: userSections.length
   });
   
+  // Funzione per rilevare se siamo su smartphone
+  const isMobile = () => {
+    return window.innerWidth <= 768;
+  };
+  
   // Funzione per verificare se l'utente ha accesso a una sezione
   const hasAccess = (section) => {
     const access = isAdmin ? true : userSections.includes(section);
@@ -53,7 +58,7 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
           </button>
         )}
         
-        {hasAccess('calendario') && (
+        {hasAccess('calendario') && !isMobile() && (
           <button 
             className={active === "calendario" ? "active" : ""} 
             onClick={() => onNavigate("calendario")}
@@ -103,7 +108,7 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
           </button>
         )}
         
-        {hasAccess('docs') && (
+        {hasAccess('docs') && !isMobile() && (
           <button 
             className={active === "docs" ? "active" : ""} 
             onClick={() => onNavigate("docs")}
