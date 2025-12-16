@@ -44,8 +44,24 @@ const Docs = ({ username, isAdmin }) => {
       
       if (response.ok) {
         const data = await response.json();
-        setDatabases(data);
-        console.log('Database caricati:', data);
+        console.log('Struttura completa response:', JSON.stringify(data, null, 2));
+        
+        // Il backend restituisce {databases: {...}}, quindi estraiamo solo databases
+        const databasesData = data.databases || data;
+        console.log('Databases estratti:', databasesData);
+        console.log('Chiavi databases:', Object.keys(databasesData));
+        
+        // Verifica struttura per ogni database
+        Object.keys(databasesData).forEach(dbName => {
+          console.log(`Database ${dbName}:`, databasesData[dbName]);
+          console.log(`Tabelle in ${dbName}:`, databasesData[dbName]?.tables?.length || 0);
+          if (databasesData[dbName]?.tables?.length > 0) {
+            console.log(`Prima tabella di ${dbName}:`, databasesData[dbName].tables[0]);
+          }
+        });
+        
+        setDatabases(databasesData);
+        console.log('Database caricati:', databasesData);
       } else {
         const errorText = await response.text();
         console.error('Errore response:', response.status, errorText);
@@ -236,6 +252,14 @@ const Docs = ({ username, isAdmin }) => {
       </div>
       
       <div className="quick-form">
+        {!databases ? (
+          <div className="form-row">
+            <div style={{textAlign: 'center', padding: '20px', color: 'gray'}}>
+              Caricamento database in corso...
+            </div>
+          </div>
+        ) : (
+          <>
         <div className="form-row">
           <label>Titolo Documento:</label>
           <input 
@@ -251,12 +275,22 @@ const Docs = ({ username, isAdmin }) => {
           <label>Database:</label>
           <select 
             value={selectedDatabase} 
-            onChange={(e) => setSelectedDatabase(e.target.value)}
+            onChange={(e) => {
+              console.log('Selecting database:', e.target.value);
+              console.log('Available databases:', databases);
+              setSelectedDatabase(e.target.value);
+              setSelectedTable(''); // Reset table selection
+            }}
           >
             <option value="">Seleziona database</option>
             <option value="gestman">gestman.db</option>
             <option value="compilazioni">compilazioni.db</option>
           </select>
+          {databases && (
+            <small style={{color: 'gray', marginTop: '4px'}}>
+              Debug: Caricati {Object.keys(databases).length} database
+            </small>
+          )}
         </div>
         
         <div className="form-row">
@@ -276,15 +310,34 @@ const Docs = ({ username, isAdmin }) => {
             <label>Tabella Principale:</label>
             <select 
               value={selectedTable} 
-              onChange={(e) => setSelectedTable(e.target.value)}
+              onChange={(e) => {
+                console.log('Selecting table:', e.target.value);
+                setSelectedTable(e.target.value);
+              }}
             >
               <option value="">Seleziona tabella</option>
-              {databases?.[selectedDatabase]?.tables.map(table => (
-                <option key={table.table_name} value={table.table_name}>
-                  {table.table_name} ({table.row_count} righe)
-                </option>
-              ))}
+              {(() => {
+                console.log('Rendering tables for database:', selectedDatabase);
+                console.log('Database object:', databases?.[selectedDatabase]);
+                console.log('Tables array:', databases?.[selectedDatabase]?.tables);
+                
+                const tables = databases?.[selectedDatabase]?.tables;
+                if (!tables || tables.length === 0) {
+                  return <option disabled>Nessuna tabella trovata</option>;
+                }
+                
+                return tables.map(table => (
+                  <option key={table.table_name} value={table.table_name}>
+                    {table.table_name} ({table.row_count} righe)
+                  </option>
+                ));
+              })()}
             </select>
+            {databases && selectedDatabase && (
+              <small style={{color: 'gray', marginTop: '4px'}}>
+                Debug: {databases[selectedDatabase]?.tables?.length || 0} tabelle disponibili
+              </small>
+            )}
           </div>
         )}
         
@@ -384,6 +437,8 @@ const Docs = ({ username, isAdmin }) => {
               🔧 Opzioni Avanzate
             </button>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

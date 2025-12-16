@@ -60,40 +60,56 @@ def get_databases():
         databases = {}
         
         # Analizza gestman.db
+        print(f"Checking gestman.db at: {GESTMAN_DB}")
+        print(f"File exists: {os.path.exists(GESTMAN_DB)}")
+        
         if os.path.exists(GESTMAN_DB):
             conn = get_db_connection('gestman')
             cursor = conn.cursor()
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
             tables = cursor.fetchall()
+            print(f"Found {len(tables)} tables in gestman.db: {[t[0] for t in tables]}")
             
             gestman_tables = []
             for table in tables:
                 table_info = analyze_table_structure('gestman', table[0])
                 gestman_tables.append(table_info)
+                print(f"Table {table[0]} has {table_info.get('row_count', 0)} rows")
             
             databases['gestman'] = {
                 'tables': gestman_tables,
                 'size': 'N/A'
             }
             conn.close()
+        else:
+            print("gestman.db not found!")
+            databases['gestman'] = {'tables': [], 'size': 'N/A'}
         
         # Analizza compilazioni.db
+        print(f"Checking compilazioni.db at: {COMPILAZIONI_DB}")
+        print(f"File exists: {os.path.exists(COMPILAZIONI_DB)}")
+        
         if os.path.exists(COMPILAZIONI_DB):
             conn = get_db_connection('compilazioni')
             cursor = conn.cursor()
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
             tables = cursor.fetchall()
+            print(f"Found {len(tables)} tables in compilazioni.db: {[t[0] for t in tables]}")
             
-            compilazioni_tables = []
+            comp_tables = []
             for table in tables:
                 table_info = analyze_table_structure('compilazioni', table[0])
-                compilazioni_tables.append(table_info)
+                comp_tables.append(table_info)
+                print(f"Table {table[0]} has {table_info.get('row_count', 0)} rows")
             
             databases['compilazioni'] = {
-                'tables': compilazioni_tables,
+                'tables': comp_tables,
                 'size': 'N/A'
             }
             conn.close()
+        else:
+            print("compilazioni.db not found!")
+            databases['compilazioni'] = {'tables': [], 'size': 'N/A'}
         
         return jsonify({
             'databases': databases,
