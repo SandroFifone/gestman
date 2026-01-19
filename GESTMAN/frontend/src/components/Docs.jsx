@@ -493,11 +493,11 @@ const Docs = ({ username, isAdmin }) => {
         </div>
       )}
 
-      {databases && !selectedDatabase && (
+      {databases && Object.keys(databases).length > 0 && !selectedDatabase && (
         <div className="databases-overview">
           <h4>📊 Database Disponibili</h4>
           <div className="databases-grid">
-            {Object.entries(databases.databases).map(([dbName, dbInfo]) => (
+            {Object.entries(databases).map(([dbName, dbInfo]) => (
               <div 
                 key={dbName} 
                 className="database-card clickable"
@@ -641,10 +641,9 @@ const Docs = ({ username, isAdmin }) => {
                     {queryData.data.map((row, idx) => (
                       <tr key={idx} className="data-row">
                         <td className="row-number">{idx + 1}</td>
-                        {Object.entries(row).map(([key, val], i) => (
+                        {row && Object.entries(row).map(([key, val], i) => (
                           <td key={i} className="data-cell">
-                            <div className="cell-content">
-                              {val === null || val === undefined ? (
+                            <div className="cell-content">{val === null || val === undefined ? (
                                 <span className="null-value">NULL</span>
                               ) : String(val).length > 100 ? (
                                 <>
