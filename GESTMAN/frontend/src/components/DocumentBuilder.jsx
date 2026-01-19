@@ -124,11 +124,17 @@ const DocumentBuilder = ({ username }) => {
 
   // Aggiorna config blocco
   const updateBlockConfig = (blockId, newConfig) => {
-    setBlocks(blocks.map(block => 
-      block.id === blockId 
-        ? { ...block, config: { ...block.config, ...newConfig } }
-        : block
-    ));
+    setBlocks(blocks.map(block => {
+      if (block.id === blockId) {
+        const updatedBlock = { ...block, config: newConfig };
+        // Aggiorna anche selectedBlock se è lo stesso
+        if (selectedBlock?.id === blockId) {
+          setSelectedBlock(updatedBlock);
+        }
+        return updatedBlock;
+      }
+      return block;
+    }));
     
     // Aggiorna preview se attiva
     if (showPreview) {
