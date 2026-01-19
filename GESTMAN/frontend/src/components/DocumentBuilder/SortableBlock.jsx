@@ -19,11 +19,24 @@ const getBlockIcon = (type) => {
 };
 
 const getBlockPreview = (block) => {
+  // Funzione per sostituire variabili
+  const replaceVars = (text) => {
+    if (!text) return text;
+    const now = new Date();
+    const month = now.toLocaleDateString('it-IT', { month: 'long' });
+    const year = now.getFullYear();
+    return text
+      .replace(/\{\{\s*month\s*\}\}/g, month)
+      .replace(/\{\{\s*year\s*\}\}/g, year)
+      .replace(/\{\{\s*user\s*\}\}/g, 'Utente');
+  };
+
   switch (block.type) {
     case 'title':
-      return block.config.text || 'Titolo';
+      return replaceVars(block.config.text) || 'Titolo';
     case 'text':
-      return block.config.content?.substring(0, 50) || 'Testo...';
+      const content = block.config.content?.substring(0, 50) || 'Testo...';
+      return replaceVars(content);
     case 'table':
       return `Tabella: ${block.config.table || 'Non configurata'}`;
     case 'statistics':
