@@ -288,7 +288,7 @@ const Docs = ({ username, isAdmin }) => {
           </select>
           {databases && (
             <small style={{color: 'gray', marginTop: '4px'}}>
-              Debug: Caricati {Object.keys(databases).length} database
+              Debug: Caricati {Object.keys(databases || {}).length} database
             </small>
           )}
         </div>
