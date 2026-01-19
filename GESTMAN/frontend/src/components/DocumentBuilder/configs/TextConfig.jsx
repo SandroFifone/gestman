@@ -2,20 +2,20 @@ import React from 'react';
 
 const TextConfig = ({ config, onChange }) => {
   return (
-    <div className="text-config">
-      <div className="config-section">
-        <label>Contenuto Testo:</label>
+    <div className="config-form">
+      <div className="form-group">
+        <label>Contenuto Testo</label>
         <textarea
           value={config.content || ''}
           onChange={(e) => onChange({ ...config, content: e.target.value })}
-          placeholder="Inserisci testo..."
+          placeholder="Inserisci il contenuto del paragrafo..."
           rows={8}
         />
-        <small>Supporta variabili: {'{'}{'{'}}month{'}'}{'}'}, {'{'}{'{'}}year{'}'}{'}'}, {'{'}{'{'}}user{'}'}{'}'}  </small>
+        <div className="form-hint">Variabili disponibili: {'{{'} month {'}} {{'} year {'}} {{'} user {'}}'}</div>
       </div>
 
-      <div className="config-section">
-        <label>Allineamento:</label>
+      <div className="form-group">
+        <label>Allineamento</label>
         <select
           value={config.align || 'left'}
           onChange={(e) => onChange({ ...config, align: e.target.value })}

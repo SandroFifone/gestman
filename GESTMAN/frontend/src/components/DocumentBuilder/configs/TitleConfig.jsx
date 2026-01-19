@@ -2,20 +2,20 @@ import React from 'react';
 
 const TitleConfig = ({ config, onChange }) => {
   return (
-    <div className="title-config">
-      <div className="config-section">
-        <label>Testo Titolo:</label>
+    <div className="config-form">
+      <div className="form-group">
+        <label>Testo Titolo</label>
         <input
           type="text"
           value={config.text || ''}
           onChange={(e) => onChange({ ...config, text: e.target.value })}
-          placeholder="Inserisci titolo..."
+          placeholder="Inserisci il titolo..."
         />
-        <small>Usa variabili: {'{'}{'{'}}month{'}'}{'}'}, {'{'}{'{'}}year{'}'}{'}'}, {'{'}{'{'}}user{'}'}{'}'}  </small>
+        <div className="form-hint">Variabili disponibili: {'{{'} month {'}} {{'} year {'}} {{'} user {'}}'}</div>
       </div>
 
-      <div className="config-section">
-        <label>Livello:</label>
+      <div className="form-group">
+        <label>Livello</label>
         <select
           value={config.level || 'h1'}
           onChange={(e) => onChange({ ...config, level: e.target.value })}
@@ -26,24 +26,27 @@ const TitleConfig = ({ config, onChange }) => {
         </select>
       </div>
 
-      <div className="config-section">
-        <label>Allineamento:</label>
-        <div className="alignment-buttons">
+      <div className="form-group">
+        <label>Allineamento</label>
+        <div className="button-group">
           <button
+            type="button"
             className={config.align === 'left' ? 'active' : ''}
             onClick={() => onChange({ ...config, align: 'left' })}
           >
             ⬅️ Sinistra
           </button>
           <button
+            type="button"
             className={config.align === 'center' ? 'active' : ''}
             onClick={() => onChange({ ...config, align: 'center' })}
           >
             ⬛ Centro
           </button>
           <button
+            type="button"
             className={config.align === 'right' ? 'active' : ''}
-            onChange={() => onChange({ ...config, align: 'right' })}
+            onClick={() => onChange({ ...config, align: 'right' })}
           >
             ➡️ Destra
           </button>
