@@ -9,7 +9,7 @@ const Docs = ({ username, isAdmin }) => {
   const [error, setError] = useState(null);
   
   // Stati per database explorer
-  const [databases, setDatabases] = useState(null);
+  const [databases, setDatabases] = useState({});
   const [queryData, setQueryData] = useState(null);
   const [selectedTable, setSelectedTable] = useState({ db: '', table: '' });
   
@@ -49,18 +49,21 @@ const Docs = ({ username, isAdmin }) => {
         // Il backend restituisce {databases: {...}}, quindi estraiamo solo databases
         const databasesData = data.databases || data;
         console.log('Databases estratti:', databasesData);
-        console.log('Chiavi databases:', Object.keys(databasesData));
         
-        // Verifica struttura per ogni database
-        Object.keys(databasesData).forEach(dbName => {
+        if (databasesData && typeof databasesData === 'object') {
+          console.log('Chiavi databases:', Object.keys(databasesData));
+          
+          // Verifica struttura per ogni database
+          Object.keys(databasesData).forEach(dbName => {
           console.log(`Database ${dbName}:`, databasesData[dbName]);
           console.log(`Tabelle in ${dbName}:`, databasesData[dbName]?.tables?.length || 0);
           if (databasesData[dbName]?.tables?.length > 0) {
             console.log(`Prima tabella di ${dbName}:`, databasesData[dbName].tables[0]);
           }
         });
+        }
         
-        setDatabases(databasesData);
+        setDatabases(databasesData || {});
         console.log('Database caricati:', databasesData);
       } else {
         const errorText = await response.text();
@@ -252,7 +255,7 @@ const Docs = ({ username, isAdmin }) => {
       </div>
       
       <div className="quick-form">
-        {!databases ? (
+        {!databases || Object.keys(databases).length === 0 ? (
           <div className="form-row">
             <div style={{textAlign: 'center', padding: '20px', color: 'gray'}}>
               Caricamento database in corso...
@@ -464,7 +467,7 @@ const Docs = ({ username, isAdmin }) => {
               }}
             >
               <option value="">Seleziona Database</option>
-              {databases && Object.keys(databases).map(dbName => (
+              {databases && typeof databases === 'object' && Object.keys(databases).map(dbName => (
                 <option key={dbName} value={dbName}>{dbName}.db</option>
               ))}
             </select>
