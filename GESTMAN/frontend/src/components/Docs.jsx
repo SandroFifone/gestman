@@ -352,7 +352,7 @@ const Docs = ({ username, isAdmin }) => {
               onChange={(e) => setSelectedTable2(e.target.value)}
             >
               <option value="">Seleziona tabella</option>
-              {databases?.[selectedDatabase2]?.tables.map(table => (
+              {databases?.[selectedDatabase2]?.tables?.map(table => (
                 <option key={table.table_name} value={table.table_name}>
                   {table.table_name} ({table.row_count} righe)
                 </option>
@@ -506,18 +506,18 @@ const Docs = ({ username, isAdmin }) => {
                 <div className="card-header">
                   <h5>📊 {dbName}.db</h5>
                   <div className="db-stats">
-                    <span className="tables">{dbInfo.tables.length} tabelle</span>
-                    <span className="size">{dbInfo.size || 'N/A'}</span>
+                    <span className="tables">{dbInfo?.tables?.length || 0} tabelle</span>
+                    <span className="size">{dbInfo?.size || 'N/A'}</span>
                   </div>
                 </div>
                 <div className="tables-preview">
-                  {dbInfo.tables.slice(0, 3).map(table => (
+                  {dbInfo?.tables?.slice(0, 3).map(table => (
                     <div key={table.table_name} className="table-preview">
                       <span className="name">{table.table_name}</span>
                       <span className="count">{table.row_count} righe</span>
                     </div>
                   ))}
-                  {dbInfo.tables.length > 3 && (
+                  {dbInfo?.tables?.length > 3 && (
                     <div className="more-tables">+{dbInfo.tables.length - 3} altre</div>
                   )}
                 </div>
@@ -542,7 +542,7 @@ const Docs = ({ username, isAdmin }) => {
           </div>
           
           <div className="tables-grid">
-            {databases.databases[selectedDatabase].tables.map(table => (
+            {databases?.[selectedDatabase]?.tables?.map(table => (
               <div 
                 key={table.table_name} 
                 className={`table-card ${selectedTableDetail?.table_name === table.table_name ? 'active' : ''}`}
