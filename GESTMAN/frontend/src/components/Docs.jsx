@@ -464,7 +464,7 @@ const Docs = ({ username, isAdmin }) => {
               }}
             >
               <option value="">Seleziona Database</option>
-              {Object.keys(databases.databases).map(dbName => (
+              {databases && Object.keys(databases).map(dbName => (
                 <option key={dbName} value={dbName}>{dbName}.db</option>
               ))}
             </select>
@@ -622,7 +622,7 @@ const Docs = ({ username, isAdmin }) => {
                   <thead>
                     <tr>
                       <th className="row-number">#</th>
-                      {Object.keys(queryData.data[0]).map(col => (
+                      {queryData?.data?.[0] && Object.keys(queryData.data[0]).map(col => (
                         <th key={col} className="column-header">
                           <div className="column-info">
                             <span className="column-name">{col}</span>
