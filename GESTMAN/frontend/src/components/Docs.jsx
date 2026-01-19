@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_URLS } from '../config/api';
+import DocumentBuilder from './DocumentBuilder';
 import './DocsAdvanced.css';
 import './QuickAccess.css';
 
@@ -1458,6 +1459,12 @@ const Docs = ({ username, isAdmin }) => {
             ⚡ PDF Rapido
           </button>
           <button 
+            className={`nav-btn ${activeView === 'builder' ? 'active' : ''}`}
+            onClick={() => setActiveView('builder')}
+          >
+            📐 Document Builder
+          </button>
+          <button 
             className={`nav-btn ${activeView === 'explorer' ? 'active' : ''}`}
             onClick={() => setActiveView('explorer')}
           >
@@ -1472,6 +1479,7 @@ const Docs = ({ username, isAdmin }) => {
         </div>
 
         {activeView === 'quick' && renderQuickAccess()}
+        {activeView === 'builder' && <DocumentBuilder username={username} databases={databases} />}
         {activeView === 'explorer' && renderDatabaseExplorer()}
         {activeView === 'reports' && renderReportBuilder()}
         

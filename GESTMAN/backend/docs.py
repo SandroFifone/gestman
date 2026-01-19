@@ -790,3 +790,486 @@ def generate_pdf():
         return jsonify({
             'error': f'Errore generazione PDF: {str(e)}'
         }), 500
+
+
+# ===== DOCUMENT BUILDER ENDPOINTS =====
+
+@bp.route('/templates', methods=['GET'])
+def get_templates():
+    """Recupera tutti i template salvati"""
+    try:
+        conn = get_db_connection('compilazioni')
+        cursor = conn.cursor()
+        
+        # Crea tabella se non esiste
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS document_templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                created_by TEXT,
+                shared INTEGER DEFAULT 0,
+                blocks TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        cursor.execute("""
+            SELECT id, name, created_by, shared, blocks, created_at, updated_at
+            FROM document_templates
+            ORDER BY updated_at DESC
+        """)
+        
+        templates = []
+        for row in cursor.fetchall():
+            import json
+            blocks_data = json.loads(row[4]) if row[4] else []
+            templates.append({
+                'id': row[0],
+                'name': row[1],
+                'created_by': row[2],
+                'shared': bool(row[3]),
+                'blocks': blocks_data,
+                'block_count': len(blocks_data),
+                'created_at': row[5],
+                'updated_at': row[6]
+            })
+        
+        conn.close()
+        return jsonify(templates), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore recupero templates: {str(e)}'}), 500
+
+
+@bp.route('/templates', methods=['POST'])
+def save_template():
+    """Salva un nuovo template"""
+    try:
+        data = request.get_json()
+        name = data.get('name')
+        blocks = data.get('blocks', [])
+        created_by = data.get('created_by', 'admin')
+        shared = data.get('shared', False)
+        
+        if not name:
+            return jsonify({'error': 'Nome template richiesto'}), 400
+        
+        import json
+        conn = get_db_connection('compilazioni')
+        cursor = conn.cursor()
+        
+        # Crea tabella se non esiste
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS document_templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                created_by TEXT,
+                shared INTEGER DEFAULT 0,
+                blocks TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        cursor.execute("""
+            INSERT INTO document_templates (name, created_by, shared, blocks)
+            VALUES (?, ?, ?, ?)
+        """, (name, created_by, 1 if shared else 0, json.dumps(blocks)))
+        
+        template_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'id': template_id,
+            'name': name,
+            'message': 'Template salvato con successo'
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore salvataggio template: {str(e)}'}), 500
+
+
+@bp.route('/templates/<int:template_id>', methods=['PUT'])
+def update_template(template_id):
+    """Aggiorna un template esistente"""
+    try:
+        data = request.get_json()
+        name = data.get('name')
+        blocks = data.get('blocks')
+        shared = data.get('shared')
+        
+        import json
+        conn = get_db_connection('compilazioni')
+        cursor = conn.cursor()
+        
+        updates = []
+        params = []
+        
+        if name:
+            updates.append('name = ?')
+            params.append(name)
+        
+        if blocks is not None:
+            updates.append('blocks = ?')
+            params.append(json.dumps(blocks))
+        
+        if shared is not None:
+            updates.append('shared = ?')
+            params.append(1 if shared else 0)
+        
+        updates.append('updated_at = CURRENT_TIMESTAMP')
+        params.append(template_id)
+        
+        query = f"UPDATE document_templates SET {', '.join(updates)} WHERE id = ?"
+        cursor.execute(query, params)
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'Template aggiornato con successo'}), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore aggiornamento template: {str(e)}'}), 500
+
+
+@bp.route('/templates/<int:template_id>', methods=['DELETE'])
+def delete_template(template_id):
+    """Elimina un template"""
+    try:
+        conn = get_db_connection('compilazioni')
+        cursor = conn.cursor()
+        
+        cursor.execute('DELETE FROM document_templates WHERE id = ?', (template_id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'Template eliminato con successo'}), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore eliminazione template: {str(e)}'}), 500
+
+
+@bp.route('/preview-document', methods=['POST'])
+def preview_document():
+    """Genera anteprima del documento basata sui blocchi configurati"""
+    try:
+        data = request.get_json()
+        blocks = data.get('blocks', [])
+        
+        result = {
+            'tables': {},
+            'statistics': {}
+        }
+        
+        for block in blocks:
+            block_id = block.get('id')
+            block_type = block.get('type')
+            config = block.get('config', {})
+            
+            if block_type == 'table':
+                # Esegui query per tabella
+                database = config.get('database')
+                table = config.get('table')
+                columns = config.get('columns', [])
+                filters = config.get('filters', [])
+                order_by = config.get('orderBy', {})
+                
+                if not database or not table:
+                    continue
+                
+                conn = get_db_connection(database)
+                cursor = conn.cursor()
+                
+                # Costruisci query
+                select_cols = ', '.join(columns) if columns else '*'
+                query = f"SELECT {select_cols} FROM {table}"
+                params = []
+                
+                # Applica filtri
+                if filters:
+                    where_conditions = []
+                    for filt in filters:
+                        field = filt.get('field')
+                        operator = filt.get('operator', '=')
+                        value = filt.get('value')
+                        
+                        if field and value:
+                            where_conditions.append(f"{field} {operator} ?")
+                            params.append(value)
+                    
+                    if where_conditions:
+                        query += " WHERE " + " AND ".join(where_conditions)
+                
+                # Applica ordinamento
+                if order_by.get('field'):
+                    direction = order_by.get('direction', 'ASC')
+                    query += f" ORDER BY {order_by['field']} {direction}"
+                
+                # Limita risultati per anteprima
+                query += " LIMIT 50"
+                
+                cursor.execute(query, params)
+                rows = [dict(row) for row in cursor.fetchall()]
+                conn.close()
+                
+                result['tables'][block_id] = {
+                    'rows': rows,
+                    'count': len(rows)
+                }
+            
+            elif block_type == 'statistics':
+                # Calcola statistiche
+                calculations = config.get('calculations', [])
+                stats = {}
+                
+                for calc in calculations:
+                    label = calc.get('label')
+                    calc_type = calc.get('type')
+                    database = calc.get('database')
+                    table = calc.get('table')
+                    field = calc.get('field')
+                    
+                    if not all([database, table, label]):
+                        continue
+                    
+                    conn = get_db_connection(database)
+                    cursor = conn.cursor()
+                    
+                    if calc_type == 'count':
+                        query = f"SELECT COUNT(*) as value FROM {table}"
+                    elif calc_type in ['sum', 'avg', 'min', 'max']:
+                        if not field:
+                            continue
+                        query = f"SELECT {calc_type.upper()}({field}) as value FROM {table}"
+                    else:
+                        continue
+                    
+                    cursor.execute(query)
+                    row = cursor.fetchone()
+                    stats[label] = row['value'] if row else 0
+                    conn.close()
+                
+                result['statistics'][block_id] = stats
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore generazione anteprima: {str(e)}'}), 500
+
+
+@bp.route('/generate-document', methods=['POST'])
+def generate_document():
+    """Genera il documento finale PDF dai blocchi configurati"""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch
+        from flask import send_file
+        import io
+        import json
+        
+        data = request.get_json()
+        blocks = data.get('blocks', [])
+        template_vars = data.get('variables', {})
+        
+        # Buffer per il PDF
+        buffer = io.BytesIO()
+        
+        # Crea documento
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=72,
+            leftMargin=72,
+            topMargin=72,
+            bottomMargin=72
+        )
+        
+        # Stili
+        styles = getSampleStyleSheet()
+        
+        # Contenuto del documento
+        story = []
+        
+        # Processa ogni blocco
+        for block in blocks:
+            block_type = block.get('type')
+            config = block.get('config', {})
+            
+            if block_type == 'title':
+                # Titolo
+                text = config.get('text', '')
+                level = config.get('level', 'h1')
+                align = config.get('align', 'left')
+                
+                # Sostituisci variabili
+                for var, value in template_vars.items():
+                    text = text.replace(f'{{{{{var}}}}}', str(value))
+                
+                # Determina stile
+                if level == 'h1':
+                    style = ParagraphStyle('H1', parent=styles['Heading1'], fontSize=24, spaceAfter=20)
+                elif level == 'h2':
+                    style = ParagraphStyle('H2', parent=styles['Heading2'], fontSize=18, spaceAfter=15)
+                else:
+                    style = ParagraphStyle('H3', parent=styles['Heading3'], fontSize=14, spaceAfter=12)
+                
+                # Allineamento
+                if align == 'center':
+                    style.alignment = 1
+                elif align == 'right':
+                    style.alignment = 2
+                
+                story.append(Paragraph(text, style))
+            
+            elif block_type == 'text':
+                # Testo
+                content = config.get('content', '')
+                align = config.get('align', 'left')
+                
+                # Sostituisci variabili
+                for var, value in template_vars.items():
+                    content = content.replace(f'{{{{{var}}}}}', str(value))
+                
+                text_style = ParagraphStyle('Text', parent=styles['Normal'], fontSize=11)
+                
+                if align == 'center':
+                    text_style.alignment = 1
+                elif align == 'right':
+                    text_style.alignment = 2
+                elif align == 'justify':
+                    text_style.alignment = 4
+                
+                story.append(Paragraph(content, text_style))
+                story.append(Spacer(1, 12))
+            
+            elif block_type == 'table':
+                # Tabella con dati dal database
+                database = config.get('database')
+                table_name = config.get('table')
+                columns = config.get('columns', [])
+                filters = config.get('filters', [])
+                order_by = config.get('orderBy', {})
+                style_config = config.get('style', {})
+                
+                if database and table_name:
+                    conn = get_db_connection(database)
+                    cursor = conn.cursor()
+                    
+                    # Costruisci query
+                    select_cols = ', '.join(columns) if columns else '*'
+                    query = f"SELECT {select_cols} FROM {table_name}"
+                    params = []
+                    
+                    # Applica filtri
+                    if filters:
+                        where_conditions = []
+                        for filt in filters:
+                            field = filt.get('field')
+                            operator = filt.get('operator', '=')
+                            value = filt.get('value')
+                            
+                            if field and value:
+                                where_conditions.append(f"{field} {operator} ?")
+                                params.append(value)
+                        
+                        if where_conditions:
+                            query += " WHERE " + " AND ".join(where_conditions)
+                    
+                    # Applica ordinamento
+                    if order_by.get('field'):
+                        direction = order_by.get('direction', 'ASC')
+                        query += f" ORDER BY {order_by['field']} {direction}"
+                    
+                    cursor.execute(query, params)
+                    rows = [dict(row) for row in cursor.fetchall()]
+                    conn.close()
+                    
+                    if rows:
+                        # Prepara dati tabella
+                        headers = columns if columns else list(rows[0].keys())
+                        table_data = [headers]
+                        
+                        for row in rows:
+                            table_row = []
+                            for col in headers:
+                                value = row.get(col, '')
+                                if value is None:
+                                    value = ''
+                                elif isinstance(value, str) and len(value) > 100:
+                                    value = value[:97] + '...'
+                                table_row.append(str(value))
+                            table_data.append(table_row)
+                        
+                        # Crea tabella PDF
+                        pdf_table = Table(table_data)
+                        
+                        # Applica stile
+                        font_size = style_config.get('fontSize', 9)
+                        table_style_list = [
+                            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3498db')),
+                            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                            ('FONTSIZE', (0, 0), (-1, 0), font_size + 1),
+                            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                            ('FONTSIZE', (0, 1), (-1, -1), font_size),
+                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ]
+                        
+                        if style_config.get('borders', True):
+                            table_style_list.append(('GRID', (0, 0), (-1, -1), 1, colors.black))
+                        
+                        if style_config.get('alternateRows', True):
+                            for i in range(1, len(table_data)):
+                                if i % 2 == 0:
+                                    table_style_list.append(
+                                        ('BACKGROUND', (0, i), (-1, i), colors.HexColor('#f8f9fa'))
+                                    )
+                        
+                        pdf_table.setStyle(TableStyle(table_style_list))
+                        story.append(pdf_table)
+                        story.append(Spacer(1, 20))
+            
+            elif block_type == 'separator':
+                # Separatore
+                style_sep = config.get('style', 'solid')
+                thickness = config.get('thickness', 1)
+                
+                # Crea linea separatrice con HTML/Paragraph
+                sep_html = f'<para><hr width="100%" size="{thickness}" /></para>'
+                story.append(Paragraph(sep_html, styles['Normal']))
+                story.append(Spacer(1, 12))
+            
+            elif block_type == 'pageBreak':
+                # Interruzione pagina
+                story.append(PageBreak())
+        
+        # Genera PDF
+        doc.build(story)
+        buffer.seek(0)
+        
+        # Determina nome file
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"document_{timestamp}.pdf"
+        
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+        
+    except ImportError:
+        return jsonify({
+            'error': 'Libreria ReportLab non installata. Eseguire: pip install reportlab'
+        }), 500
+        
+    except Exception as e:
+        return jsonify({
+            'error': f'Errore generazione documento: {str(e)}'
+        }), 500
