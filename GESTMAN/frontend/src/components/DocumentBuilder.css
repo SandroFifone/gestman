@@ -1,15 +1,13 @@
 /* ===== DOCUMENT BUILDER LAYOUT ===== */
 .document-builder {
-  display: grid;
-  grid-template-columns: 250px 1fr 350px;
-  height: calc(100vh - 60px);
-  gap: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   background: #f5f7fa;
   overflow: hidden;
 }
 
-.document-builder-header {
-  grid-column: 1 / -1;
+.builder-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -17,20 +15,37 @@
   background: white;
   border-bottom: 2px solid #e1e8ed;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  flex-shrink: 0;
 }
 
-.builder-title h1 {
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-left h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 20px;
   color: #2c3e50;
 }
 
-.builder-actions {
+.current-template {
+  font-size: 13px;
+  color: #7f8c8d;
+  background: #e8f4f8;
+  padding: 5px 12px;
+  border-radius: 4px;
+}
+
+.header-actions {
   display: flex;
   gap: 10px;
 }
 
-.builder-actions button {
+.header-actions button,
+.btn-preview,
+.btn-generate {
   padding: 10px 20px;
   border: none;
   border-radius: 6px;
@@ -40,15 +55,15 @@
   transition: all 0.2s;
 }
 
-.btn-template {
-  background: #3498db;
+.btn-preview {
+  background: #9b59b6;
   color: white;
 }
 
-.btn-template:hover {
-  background: #2980b9;
+.btn-preview:hover {
+  background: #8e44ad;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(52,152,219,0.3);
+  box-shadow: 0 4px 8px rgba(155,89,182,0.3);
 }
 
 .btn-generate {
@@ -56,10 +71,32 @@
   color: white;
 }
 
-.btn-generate:hover {
+.btn-generate:hover:not(:disabled) {
   background: #229954;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(39,174,96,0.3);
+}
+
+.btn-generate:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.builder-content {
+  display: grid;
+  grid-template-columns: 250px 1fr 350px;
+  flex: 1;
+  gap: 0;
+  overflow: hidden;
+}
+
+.builder-content:has(.builder-canvas:nth-last-child(1)) {
+  grid-template-columns: 250px 1fr;
+}
+
+.builder-content:has(.live-preview) {
+  grid-template-columns: 1fr;
 }
 
 /* ===== BLOCKS SIDEBAR ===== */
