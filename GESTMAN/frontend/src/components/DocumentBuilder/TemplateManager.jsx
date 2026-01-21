@@ -1,9 +1,19 @@
 import React, { useState } from 'react';
 
-const TemplateManager = ({ templates, currentTemplate, onSave, onLoad, onNew }) => {
+const TemplateManager = ({ templates, currentTemplate, onSave, onLoad, onNew, onDelete }) => {
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('save'); // 'save' | 'load'
   const [templateName, setTemplateName] = useState('');
+
+  const handleDelete = async (templateId, e) => {
+    e.stopPropagation(); // Evita il click sulla card
+    
+    if (!confirm('Sei sicuro di voler eliminare questo template?')) {
+      return;
+    }
+
+    await onDelete(templateId);
+  };
 
   const handleSave = async () => {
     if (!templateName.trim()) {
@@ -92,6 +102,13 @@ const TemplateManager = ({ templates, currentTemplate, onSave, onLoad, onNew }) 
                             setShowModal(false);
                           }}
                         >
+                          <button 
+                            className="template-delete-btn"
+                            onClick={(e) => handleDelete(template.id, e)}
+                            title="Elimina template"
+                          >
+                            🗑️
+                          </button>
                           <div className="template-name">{template.name}</div>
                           <div className="template-meta">
                             <span>📝 {template.blocks?.length || 0} blocchi</span>

@@ -222,6 +222,28 @@ const DocumentBuilder = ({ username }) => {
     setSelectedBlock(null);
   };
 
+  // Elimina template
+  const deleteTemplate = async (templateId) => {
+    try {
+      const response = await fetch(`${API_URLS.DOCS}/templates/${templateId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        // Se il template eliminato è quello corrente, resetta
+        if (currentTemplate?.id === templateId) {
+          setCurrentTemplate(null);
+        }
+        // Ricarica la lista
+        loadTemplates();
+        return true;
+      }
+    } catch (err) {
+      console.error('Errore eliminazione template:', err);
+    }
+    return false;
+  };
+
   // Genera PDF finale
   const generatePDF = async () => {
     try {
@@ -281,6 +303,7 @@ const DocumentBuilder = ({ username }) => {
             currentTemplate={currentTemplate}
             onSave={saveTemplate}
             onLoad={loadTemplate}
+            onDelete={deleteTemplate}
             onNew={() => { setBlocks([]); setCurrentTemplate(null); }}
           />
           <button onClick={generatePDF} className="btn-generate" disabled={blocks.length === 0}>
