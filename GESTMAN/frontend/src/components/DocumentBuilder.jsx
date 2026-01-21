@@ -22,6 +22,7 @@ const DocumentBuilder = ({ username }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [databases, setDatabases] = useState({});
   const [previewData, setPreviewData] = useState(null);
+  const [activeDragId, setActiveDragId] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
