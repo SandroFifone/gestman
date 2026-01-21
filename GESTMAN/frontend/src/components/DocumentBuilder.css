@@ -40,12 +40,15 @@
 
 .header-actions {
   display: flex;
-  gap: 10px;
+  gap: 15px;
 }
 
 .header-actions button,
 .btn-preview,
-.btn-generate {
+.btn-generate,
+.btn-save-template,
+.btn-load-template,
+.btn-new {
   padding: 10px 20px;
   border: none;
   border-radius: 6px;
@@ -53,34 +56,30 @@
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s;
-}
-
-.btn-preview {
-  background: #9b59b6;
+  background: #3498db;
   color: white;
 }
 
-.btn-preview:hover {
-  background: #8e44ad;
+.header-actions button:hover,
+.btn-preview:hover,
+.btn-generate:hover:not(:disabled),
+.btn-save-template:hover,
+.btn-load-template:hover,
+.btn-new:hover {
+  background: #2980b9;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(155,89,182,0.3);
-}
-
-.btn-generate {
-  background: #27ae60;
-  color: white;
-}
-
-.btn-generate:hover:not(:disabled) {
-  background: #229954;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(39,174,96,0.3);
+  box-shadow: 0 4px 8px rgba(52,152,219,0.3);
 }
 
 .btn-generate:disabled {
   background: #95a5a6;
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.template-manager-buttons {
+  display: flex;
+  gap: 10px;
 }
 
 .builder-content {
