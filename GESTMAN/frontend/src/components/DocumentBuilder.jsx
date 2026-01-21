@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import BlocksSidebar from './DocumentBuilder/BlocksSidebar';
 import BuilderCanvas from './DocumentBuilder/BuilderCanvas';
@@ -99,8 +99,14 @@ const DocumentBuilder = ({ username }) => {
     }
   };
 
+  // Gestisci drag start
+  const handleDragStart = (event) => {
+    setActiveDragId(event.active.id);
+  };
+
   // Gestisci drag end
   const handleDragEnd = (event) => {
+    setActiveDragId(null);
     const { active, over } = event;
     
     if (!over) return;
@@ -285,6 +291,7 @@ const DocumentBuilder = ({ username }) => {
         <DndContext 
           sensors={sensors}
           collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           {!showPreview ? (
@@ -313,6 +320,27 @@ const DocumentBuilder = ({ username }) => {
               loading={!previewData}
             />
           )}
+          
+          <DragOverlay>
+            {activeDragId ? (
+              <div className="drag-overlay-item">
+                {activeDragId.startsWith('new-') ? (
+                  <div className="draggable-block dragging-preview">
+                    <span className="block-icon">
+                      {activeDragId.includes('title') ? '📋' :
+                       activeDragId.includes('text') ? '📝' :
+                       activeDragId.includes('table') ? '📊' :
+                       activeDragId.includes('statistics') ? '📈' :
+                       activeDragId.includes('separator') ? '➖' : '📄'}
+                    </span>
+                    <span className="block-name">
+                      {activeDragId.replace('new-', '').replace('-', ' ').toUpperCase()}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </DragOverlay>
         </DndContext>
       </div>
     </div>

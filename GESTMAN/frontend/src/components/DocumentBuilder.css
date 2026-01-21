@@ -917,3 +917,26 @@
 body [data-dnd-kit-id] {
   z-index: 9999 !important;
 }
+
+.drag-overlay-item {
+  z-index: 9999;
+  position: relative;
+}
+
+.dragging-preview {
+  background: white;
+  border: 2px solid #3498db;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  cursor: grabbing;
+  transform: rotate(3deg);
+  opacity: 0.95;
+}
+
+.dragging-preview .block-icon {
+  font-size: 24px;
+}
+
+.dragging-preview .block-name {
+  font-weight: 600;
+  color: #2c3e50;
+}
