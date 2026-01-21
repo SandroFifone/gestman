@@ -1189,6 +1189,43 @@ def generate_document():
                     conn.close()
                     
                     if rows:
+                        # Funzione per formattare valori in modo leggibile
+                        def format_value(value):
+                            if value is None:
+                                return '-'
+                            
+                            # Se è un JSON/dict, formattalo
+                            if isinstance(value, str):
+                                # Prova a parsare JSON
+                                try:
+                                    import json
+                                    parsed = json.loads(value)
+                                    if isinstance(parsed, dict):
+                                        # Mostra solo campi chiave (es: {"nome": "...", "tipo": "..."})
+                                        items = []
+                                        for k, v in list(parsed.items())[:3]:  # Max 3 campi
+                                            items.append(f"{k}: {v}")
+                                        result = ", ".join(items)
+                                        if len(parsed) > 3:
+                                            result += "..."
+                                        return result
+                                    elif isinstance(parsed, list):
+                                        return f"Lista ({len(parsed)} elementi)"
+                                except:
+                                    pass
+                                
+                                # Tronca stringhe lunghe
+                                if len(value) > 50:
+                                    return value[:47] + '...'
+                                return value
+                            
+                            # Numeri
+                            if isinstance(value, (int, float)):
+                                return str(value)
+                            
+                            # Altri tipi
+                            return str(value)
+                        
                         # Prepara dati tabella
                         headers = columns if columns else list(rows[0].keys())
                         table_data = [headers]
@@ -1197,11 +1234,7 @@ def generate_document():
                             table_row = []
                             for col in headers:
                                 value = row.get(col, '')
-                                if value is None:
-                                    value = ''
-                                elif isinstance(value, str) and len(value) > 100:
-                                    value = value[:97] + '...'
-                                table_row.append(str(value))
+                                table_row.append(format_value(value))
                             table_data.append(table_row)
                         
                         # Crea tabella PDF
