@@ -53,7 +53,8 @@ const DocumentBuilder = ({ username }) => {
       const response = await fetch(`${API_URLS.DOCS}/templates`);
       if (response.ok) {
         const data = await response.json();
-        setTemplates(data.templates || []);
+        console.log('Templates caricati:', data);
+        setTemplates(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error('Errore caricamento template:', err);
