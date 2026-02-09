@@ -903,6 +903,95 @@
   }
 }
 
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .builder-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    gap: 8px;
+  }
+  
+  .header-left h2 {
+    font-size: 18px;
+  }
+  
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .header-actions button,
+  .btn-preview,
+  .btn-generate,
+  .btn-save-template,
+  .btn-load-template,
+  .btn-new {
+    flex: 1;
+    min-width: 120px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .builder-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .blocks-sidebar {
+    max-height: 300px;
+    border-bottom: 1px solid #e1e8ed;
+    border-right: none;
+  }
+  
+  .builder-canvas {
+    padding: 12px;
+    flex: 1;
+    overflow-y: auto;
+  }
+  
+  .canvas-droppable {
+    padding: 15px;
+    min-height: 300px;
+  }
+  
+  .sortable-block {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .block-preview {
+    padding: 10px;
+    font-size: 12px;
+    word-break: break-word;
+  }
+  
+  .config-panel {
+    border-left: none;
+    border-top: 1px solid #e1e8ed;
+    padding: 15px;
+    max-height: 400px;
+  }
+  
+  .form-group {
+    margin-bottom: 12px;
+  }
+  
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    font-size: 16px; /* Previene zoom su iOS */
+  }
+}
+
 /* ===== SCROLLBAR STYLING ===== */
 .blocks-sidebar::-webkit-scrollbar,
 .builder-canvas::-webkit-scrollbar,
