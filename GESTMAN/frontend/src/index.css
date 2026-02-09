@@ -2,6 +2,15 @@
 @import './styles/design-system.css';
 
 /* Reset globale migliorato */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 #root {
   width: 100vw;
   height: 100vh;
@@ -15,6 +24,8 @@ body {
   min-height: 100vh;
   background-color: var(--gray-50);
   font-family: var(--font-family-primary);
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* Stili per bottoni globali */

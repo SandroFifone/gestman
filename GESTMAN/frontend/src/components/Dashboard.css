@@ -5,6 +5,9 @@
   margin: 0 auto;
   background-color: #f8f9fa;
   min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .dashboard-header {
@@ -109,6 +112,9 @@
   border-radius: 8px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   border: 1px solid #e5e7eb;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .dashboard-section h2 {
@@ -122,9 +128,11 @@
 
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
   gap: 8px;
   margin-bottom: 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .stat-card {
@@ -134,6 +142,9 @@
   border-left: 2px solid;
   transition: transform 0.1s, box-shadow 0.1s;
   border: 1px solid #e5e7eb;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .stat-card:hover {
@@ -244,8 +255,10 @@
 
 .asset-types-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
   gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .asset-type-item {
