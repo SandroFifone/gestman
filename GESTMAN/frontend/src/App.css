@@ -29,7 +29,8 @@
 @media (max-width: 767px) {
   .main-content {
     padding: 8px;
-    width: 100vw;
+    width: 100%;
+    max-width: 100%;
   }
 }
 
