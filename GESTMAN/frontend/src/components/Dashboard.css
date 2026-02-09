@@ -7,6 +7,7 @@
   min-height: 100vh;
   overflow-x: hidden;
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
@@ -326,7 +327,6 @@
   .dashboard-container {
     padding: 8px;
     max-width: 100%;
-    width: 100%;
     margin: 0;
   }
   
@@ -342,11 +342,11 @@
   .dashboard-section {
     padding: 12px;
     margin: 0;
-    width: 100%;
+    max-width: 100%;
   }
   
   .dashboard-grid {
-    gap: 12px;
+    width: 100%;
   }
   
   .refresh-button {
@@ -385,19 +385,7 @@
   .stat-card {
     padding: 10px;
     min-width: 0;
-    width: 100%;
-  }
-  
-  .stat-value {
-    font-size: 1.2rem;
-  }
-  
-  .stat-title {
-    font-size: 0.7rem;
-  }
-  
-  .asset-types-breakdown {
-    padding: 10px;
+    max-width: 100%;
   }
   
   .stat-header {
@@ -411,10 +399,12 @@
   
   .stat-title {
     font-size: 0.75rem;
+    word-break: break-word;
   }
   
   .asset-type-item {
     padding: 8px 10px;
+    max-width: 100%;
   }
   
   .dashboard-footer {
