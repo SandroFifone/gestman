@@ -3,6 +3,7 @@ import CustomModal from './CustomModal';
 import TextWithRicambiLinks from './TextWithRicambiLinks';
 import { useCustomModal } from '../hooks/useCustomModal';
 import { API_URLS } from '../config/api';
+import './AlertScreen.css';
 
 const AlertTabs = [
   { key: "non_conformita", label: "Non Conformità" },
@@ -14,6 +15,8 @@ const AlertScreen = () => {
   const [activeTab, setActiveTab] = useState("non_conformita");
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedAlertMobile, setSelectedAlertMobile] = useState(null);
+  const [expandedDescriptions, setExpandedDescriptions] = useState({});
   
   // Hook per i modali personalizzati
   const { modalState, showAlert, showConfirm, showError, closeModal } = useCustomModal();
@@ -215,98 +218,141 @@ const AlertScreen = () => {
                       }}>
                         {activeTab === 'Tickets' ? 'Tickets attivi' : 'Alert attivi'}
                       </h3>
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>Data</th>
-                            <th>Descrizione</th>
-                            {activeTab !== 'scadenza' && <th>{activeTab === 'Tickets' ? 'Utente' : 'Operatore'}</th>}
-                            <th>Civico</th>
-                            <th>Asset</th>
-                            <th>Stato</th>
-                            {activeTab !== 'Tickets' && <th>Note</th>}
-                            <th>Azioni</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {attivi.map(alert => (
-                            <tr key={alert.id}>
-                              <td>{getDataPerScadenze(alert)}</td>
-                              <td style={{ fontWeight: 'var(--font-weight-medium)' }}>
-                                {activeTab === 'Tickets' ? (
-                                  <button 
-                                    onClick={() => showNote(alert.descrizione)} 
-                                    className="btn btn-sm btn-info"
-                                  >
-                                    👁️ Vedi
-                                  </button>
-                                ) : (
-                                  alert.descrizione
-                                )}
-                              </td>
-                              {activeTab !== 'scadenza' && (
-                                <td style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--primary-color)' }}>
-                                  {alert.operatore || 'N/A'}
-                                </td>
-                              )}
-                              <td>{alert.civico}</td>
-                              <td>{alert.asset}</td>
-                              <td>
-                                <span style={{ 
-                                  color: getStatoColor(alert.stato),
-                                  fontWeight: 'var(--font-weight-semibold)',
-                                  padding: '4px 8px',
-                                  borderRadius: '4px',
-                                  backgroundColor: `${getStatoColor(alert.stato)}15`,
-                                  fontSize: '0.875rem'
-                                }}>
-                                  {getStatoLabel(alert.stato)}
-                                </span>
-                              </td>
-                              {activeTab !== 'Tickets' && (
-                                <td>
-                                  <button 
-                                    onClick={() => showNote(alert.note)} 
-                                    className="btn btn-sm btn-info"
-                                  >
-                                    👁️ Vedi
-                                  </button>
-                                </td>
-                              )}
-                              <td>
-                                {activeTab === 'Tickets' ? (
-                                  <div style={{ display: 'flex', gap: '8px' }}>
-                                    {alert.stato === 'aperto' && (
-                                      <button 
-                                        onClick={() => takeTicket(alert.id)} 
-                                        className="btn btn-sm btn-outline"
-                                        style={{ color: 'var(--warning-color)', borderColor: 'var(--warning-color)' }}
-                                      >
-                                        Prendi in carico
-                                      </button>
-                                    )}
-                                    {(alert.stato === 'in_carico' || alert.stato === 'aperto') && (
-                                      <button 
-                                        onClick={() => closeAlert(alert.id)} 
-                                        className="btn btn-sm btn-primary"
-                                      >
-                                        Chiudi
-                                      </button>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <button 
-                                    onClick={() => closeAlert(alert.id)} 
-                                    className="btn btn-sm btn-primary"
-                                  >
-                                    Chiudi
-                                  </button>
-                                )}
-                              </td>
+                      
+                      {/* Tabella desktop */}
+                      <div className="alert-table-desktop">
+                        <table className="table">
+                          <thead>
+                            <tr>
+                              <th>Data</th>
+                              <th>Descrizione</th>
+                              {activeTab !== 'scadenza' && <th>{activeTab === 'Tickets' ? 'Utente' : 'Operatore'}</th>}
+                              <th>Civico</th>
+                              <th>Asset</th>
+                              <th>Stato</th>
+                              {activeTab !== 'Tickets' && <th>Note</th>}
+                              <th>Azioni</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {attivi.map(alert => (
+                              <tr key={alert.id}>
+                                <td>{getDataPerScadenze(alert)}</td>
+                                <td style={{ fontWeight: 'var(--font-weight-medium)' }}>
+                                  {activeTab === 'Tickets' ? (
+                                    <button 
+                                      onClick={() => showNote(alert.descrizione)} 
+                                      className="btn btn-sm btn-info"
+                                    >
+                                      👁️ Vedi
+                                    </button>
+                                  ) : (
+                                    alert.descrizione
+                                  )}
+                                </td>
+                                {activeTab !== 'scadenza' && (
+                                  <td style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--primary-color)' }}>
+                                    {alert.operatore || 'N/A'}
+                                  </td>
+                                )}
+                                <td>{alert.civico}</td>
+                                <td>{alert.asset}</td>
+                                <td>
+                                  <span style={{ 
+                                    color: getStatoColor(alert.stato),
+                                    fontWeight: 'var(--font-weight-semibold)',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    backgroundColor: `${getStatoColor(alert.stato)}15`,
+                                    fontSize: '0.875rem'
+                                  }}>
+                                    {getStatoLabel(alert.stato)}
+                                  </span>
+                                </td>
+                                {activeTab !== 'Tickets' && (
+                                  <td>
+                                    <button 
+                                      onClick={() => showNote(alert.note)} 
+                                      className="btn btn-sm btn-info"
+                                    >
+                                      👁️ Vedi
+                                    </button>
+                                  </td>
+                                )}
+                                <td>
+                                  {activeTab === 'Tickets' ? (
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                      {alert.stato === 'aperto' && (
+                                        <button 
+                                          onClick={() => takeTicket(alert.id)} 
+                                          className="btn btn-sm btn-outline"
+                                          style={{ color: 'var(--warning-color)', borderColor: 'var(--warning-color)' }}
+                                        >
+                                          Prendi in carico
+                                        </button>
+                                      )}
+                                      {(alert.stato === 'in_carico' || alert.stato === 'aperto') && (
+                                        <button 
+                                          onClick={() => closeAlert(alert.id)} 
+                                          className="btn btn-sm btn-primary"
+                                        >
+                                          Chiudi
+                                        </button>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <button 
+                                      onClick={() => closeAlert(alert.id)} 
+                                      className="btn btn-sm btn-primary"
+                                    >
+                                      Chiudi
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Card mobile compatte */}
+                      <div className="alert-cards-mobile">
+                        {attivi.map(alert => (
+                          <div 
+                            key={alert.id}
+                            className={`alert-card-mobile ${activeTab}`}
+                            onClick={() => setSelectedAlertMobile(alert)}
+                          >
+                            <div className="alert-card-header">
+                              <span className="alert-card-date">{getDataPerScadenze(alert)}</span>
+                              <span className={`alert-card-stato ${alert.stato}`}>
+                                {getStatoLabel(alert.stato)}
+                              </span>
+                            </div>
+                            <div className="alert-card-body">
+                              <p className={`alert-card-descrizione ${!expandedDescriptions[alert.id] ? 'truncated' : ''}`}>
+                                {alert.descrizione}
+                              </p>
+                              <div className="alert-card-info">
+                                {activeTab !== 'scadenza' && (
+                                  <div className="alert-card-info-row">
+                                    <span className="alert-card-info-label">{activeTab === 'Tickets' ? 'Utente:' : 'Operatore:'}</span>
+                                    <span className="alert-card-info-value">{alert.operatore || 'N/A'}</span>
+                                  </div>
+                                )}
+                                <div className="alert-card-info-row">
+                                  <span className="alert-card-info-label">Civico:</span>
+                                  <span className="alert-card-info-value">{alert.civico}</span>
+                                </div>
+                                <div className="alert-card-info-row">
+                                  <span className="alert-card-info-label">Asset:</span>
+                                  <span className="alert-card-info-value">{alert.asset}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </>
                   )}
                   
@@ -321,27 +367,30 @@ const AlertScreen = () => {
                       }}>
                         Alert chiusi (ultimi 30gg)
                       </h3>
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>Data</th>
-                            <th>Descrizione</th>
-                            {activeTab !== 'scadenza' && <th>{activeTab === 'Tickets' ? 'Utente' : 'Operatore'}</th>}
-                            <th>Civico</th>
-                            <th>Asset</th>
-                            <th>Stato</th>
-                            {activeTab !== 'Tickets' && <th>Note</th>}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {chiusi.map(alert => (
-                            <tr key={alert.id}>
-                              <td>{getDataPerScadenze(alert)}</td>
-                              <td style={{ fontWeight: 'var(--font-weight-medium)' }}>
-                                {activeTab === 'Tickets' ? (
-                                  <button 
-                                    onClick={() => showNote(alert.descrizione)} 
-                                    className="btn btn-sm btn-info"
+                      
+                      {/* Tabella desktop */}
+                      <div className="alert-table-desktop">
+                        <table className="table">
+                          <thead>
+                            <tr>
+                              <th>Data</th>
+                              <th>Descrizione</th>
+                              {activeTab !== 'scadenza' && <th>{activeTab === 'Tickets' ? 'Utente' : 'Operatore'}</th>}
+                              <th>Civico</th>
+                              <th>Asset</th>
+                              <th>Stato</th>
+                              {activeTab !== 'Tickets' && <th>Note</th>}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {chiusi.map(alert => (
+                              <tr key={alert.id}>
+                                <td>{getDataPerScadenze(alert)}</td>
+                                <td style={{ fontWeight: 'var(--font-weight-medium)' }}>
+                                  {activeTab === 'Tickets' ? (
+                                    <button 
+                                      onClick={() => showNote(alert.descrizione)} 
+                                      className="btn btn-sm btn-info"
                                   >
                                     👁️ Vedi
                                   </button>
@@ -382,6 +431,46 @@ const AlertScreen = () => {
                           ))}
                         </tbody>
                       </table>
+                      </div>
+
+                      {/* Card mobile compatte per chiusi */}
+                      <div className="alert-cards-mobile">
+                        {chiusi.map(alert => (
+                          <div 
+                            key={alert.id}
+                            className={`alert-card-mobile ${activeTab}`}
+                            onClick={() => setSelectedAlertMobile(alert)}
+                          >
+                            <div className="alert-card-header">
+                              <span className="alert-card-date">{getDataPerScadenze(alert)}</span>
+                              <span className={`alert-card-stato ${alert.stato}`}>
+                                {getStatoLabel(alert.stato)}
+                              </span>
+                            </div>
+                            <div className="alert-card-body">
+                              <p className="alert-card-descrizione truncated">
+                                {alert.descrizione}
+                              </p>
+                              <div className="alert-card-info">
+                                {activeTab !== 'scadenza' && (
+                                  <div className="alert-card-info-row">
+                                    <span className="alert-card-info-label">{activeTab === 'Tickets' ? 'Utente:' : 'Operatore:'}</span>
+                                    <span className="alert-card-info-value">{alert.operatore || 'N/A'}</span>
+                                  </div>
+                                )}
+                                <div className="alert-card-info-row">
+                                  <span className="alert-card-info-label">Civico:</span>
+                                  <span className="alert-card-info-value">{alert.civico}</span>
+                                </div>
+                                <div className="alert-card-info-row">
+                                  <span className="alert-card-info-label">Asset:</span>
+                                  <span className="alert-card-info-value">{alert.asset}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </>
                   )}
                 </>
@@ -390,6 +479,119 @@ const AlertScreen = () => {
           </div>
         </div>
       </div>
+      
+      {/* Modal dettaglio alert mobile */}
+      {selectedAlertMobile && (
+        <div className="contatto-detail-modal" onClick={() => setSelectedAlertMobile(null)}>
+          <div className="contatto-detail-content" onClick={(e) => e.stopPropagation()}>
+            <div className="contatto-detail-header">
+              <div>
+                <h3 style={{ margin: 0, fontSize: 'var(--font-size-lg)', color: 'var(--gray-900)' }}>
+                  {activeTab === 'non_conformita' ? 'Non Conformità' : activeTab === 'scadenza' ? 'Scadenza' : 'Ticket'}
+                </h3>
+                <span className={`alert-card-stato ${selectedAlertMobile.stato}`} style={{ display: 'inline-block', marginTop: '8px' }}>
+                  {getStatoLabel(selectedAlertMobile.stato)}
+                </span>
+              </div>
+              <button 
+                className="btn-icon-only" 
+                onClick={() => setSelectedAlertMobile(null)}
+                style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="contatto-detail-body">
+              <div className="contatto-detail-section">
+                <label className="contatto-detail-label">Data:</label>
+                <p className="contatto-detail-value">{getDataPerScadenze(selectedAlertMobile)}</p>
+              </div>
+
+              <div className="contatto-detail-section">
+                <label className="contatto-detail-label">Descrizione:</label>
+                <p className="contatto-detail-value" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                  {selectedAlertMobile.descrizione}
+                </p>
+              </div>
+
+              {activeTab !== 'scadenza' && (
+                <div className="contatto-detail-section">
+                  <label className="contatto-detail-label">{activeTab === 'Tickets' ? 'Utente:' : 'Operatore:'}</label>
+                  <p className="contatto-detail-value">{selectedAlertMobile.operatore || 'N/A'}</p>
+                </div>
+              )}
+
+              <div className="contatto-detail-section">
+                <label className="contatto-detail-label">Civico:</label>
+                <p className="contatto-detail-value">{selectedAlertMobile.civico}</p>
+              </div>
+
+              <div className="contatto-detail-section">
+                <label className="contatto-detail-label">Asset:</label>
+                <p className="contatto-detail-value">{selectedAlertMobile.asset}</p>
+              </div>
+
+              {activeTab !== 'Tickets' && selectedAlertMobile.note && (
+                <div className="contatto-detail-section">
+                  <label className="contatto-detail-label">Note:</label>
+                  <div className="contatto-detail-value" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                    <TextWithRicambiLinks text={selectedAlertMobile.note} />
+                  </div>
+                </div>
+              )}
+
+              {/* Azioni disponibili solo per alert attivi */}
+              {selectedAlertMobile.stato !== 'chiuso' && (
+                <div className="contatto-detail-actions" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)', marginTop: 'var(--spacing-md)' }}>
+                  {activeTab === 'Tickets' ? (
+                    <>
+                      {selectedAlertMobile.stato === 'aperto' && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            takeTicket(selectedAlertMobile.id);
+                            setSelectedAlertMobile(null);
+                          }}
+                          className="btn btn-outline"
+                          style={{ width: '100%', color: 'var(--warning-color)', borderColor: 'var(--warning-color)' }}
+                        >
+                          Prendi in carico
+                        </button>
+                      )}
+                      {(selectedAlertMobile.stato === 'in_carico' || selectedAlertMobile.stato === 'aperto') && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            closeAlert(selectedAlertMobile.id);
+                            setSelectedAlertMobile(null);
+                          }}
+                          className="btn btn-primary"
+                          style={{ width: '100%' }}
+                        >
+                          Chiudi Ticket
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        closeAlert(selectedAlertMobile.id);
+                        setSelectedAlertMobile(null);
+                      }}
+                      className="btn btn-primary"
+                      style={{ width: '100%' }}
+                    >
+                      Chiudi Alert
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Modal personalizzato */}
       <CustomModal

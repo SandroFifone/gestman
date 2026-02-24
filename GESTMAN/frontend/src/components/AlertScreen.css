@@ -1,0 +1,221 @@
+/* AlertScreen.css - Alert Management Responsive */
+
+/* Tabs container */
+.alert-tabs {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+/* Alert cards mobile - nascoste su desktop */
+.alert-cards-mobile {
+  display: none;
+}
+
+/* Desktop table - visibile di default */
+.alert-table-desktop {
+  display: block;
+}
+
+/* === MOBILE RESPONSIVE (≤768px) === */
+@media (max-width: 768px) {
+  /* Nascondi tabella su mobile */
+  .alert-table-desktop {
+    display: none !important;
+  }
+
+  /* Mostra card compatte su mobile */
+  .alert-cards-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .alert-card-mobile {
+    background: white;
+    border: 1px solid var(--gray-300);
+    border-left: 4px solid;
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+  }
+
+  .alert-card-mobile:active {
+    transform: scale(0.98);
+  }
+
+  /* Colori bordo per tipo */
+  .alert-card-mobile.non_conformita {
+    border-left-color: var(--error-color);
+    background: #fff5f5;
+  }
+
+  .alert-card-mobile.scadenza {
+    border-left-color: var(--warning-color);
+    background: #fffbf0;
+  }
+
+  .alert-card-mobile.tickets {
+    border-left-color: #2196f3;
+    background: #f3f9ff;
+  }
+
+  /* Header card con stato */
+  .alert-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-sm);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .alert-card-date {
+    font-size: var(--font-size-xs);
+    color: var(--gray-600);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .alert-card-stato {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    padding: 4px 8px;
+    border-radius: var(--border-radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .alert-card-stato.aperto {
+    background: var(--error-color);
+    color: white;
+  }
+
+  .alert-card-stato.in_carico {
+    background: var(--warning-color);
+    color: white;
+  }
+
+  .alert-card-stato.chiuso {
+    background: var(--success-color);
+    color: white;
+  }
+
+  /* Corpo card */
+  .alert-card-body {
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .alert-card-descrizione {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--gray-900);
+    margin: 0 0 var(--spacing-xs) 0;
+    line-height: 1.4;
+  }
+
+  .alert-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: var(--font-size-sm);
+    color: var(--gray-700);
+  }
+
+  .alert-card-info-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .alert-card-info-label {
+    font-weight: var(--font-weight-semibold);
+    color: var(--gray-600);
+    min-width: 70px;
+  }
+
+  .alert-card-info-value {
+    color: var(--gray-900);
+    font-weight: var(--font-weight-medium);
+  }
+
+  /* Footer card con azioni */
+  .alert-card-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--gray-200);
+  }
+
+  .alert-card-actions .btn {
+    flex: 1;
+    font-size: var(--font-size-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    white-space: nowrap;
+  }
+
+  .alert-card-actions .btn-sm {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  /* Tabs mobile - compatti */
+  .alert-tabs {
+    gap: var(--spacing-xs);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: var(--spacing-xs);
+  }
+
+  .alert-tabs button {
+    flex-shrink: 0;
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    white-space: nowrap;
+  }
+
+  /* Empty state mobile */
+  .text-muted.text-center {
+    padding: var(--spacing-lg) !important;
+    font-size: var(--font-size-sm);
+  }
+
+  /* Sezioni alert attivi/chiusi */
+  .alert-section-title {
+    font-size: var(--font-size-md) !important;
+    margin-bottom: var(--spacing-sm) !important;
+  }
+
+  /* Pulsante espandi descrizione */
+  .alert-descrizione-toggle {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    margin-top: var(--spacing-xs);
+  }
+
+  /* Descrizione troncata */
+  .alert-card-descrizione.truncated {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Badge count nelle tab */
+  .alert-tabs button span {
+    font-size: 10px !important;
+    min-width: 18px !important;
+    height: 18px !important;
+    padding: 0 4px !important;
+  }
+}
