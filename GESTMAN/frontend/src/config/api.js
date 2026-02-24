@@ -74,5 +74,8 @@ export const API_URLS = {
   // API per la stampa
   PRINT_REPORT: `${API_BASE_URL}/api/docs/print-report`,
   
+  // API per widgets dashboard
+  widgets: (username) => `${API_BASE_URL}/api/users/${username}/widgets`,
+  
   BASE: API_BASE_URL
 };

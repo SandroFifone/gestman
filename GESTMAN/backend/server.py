@@ -565,9 +565,26 @@ def init_user_sections_table():
     conn.commit()
     conn.close()
 
+def init_user_widgets_table():
+    """Inizializza la tabella per i widget personalizzati nella dashboard"""
+    conn = get_db()
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS user_widgets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            section TEXT NOT NULL,
+            position INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
 # Inizializza le tabelle all'avvio
 init_user_notes_table()
 init_user_sections_table()
+init_user_widgets_table()
 
 # --- API GESTIONE NOTE UTENTE ---
 
@@ -715,6 +732,118 @@ def save_user_notes_by_username(username):
         
     except Exception as e:
         return jsonify({"error": f"Errore salvataggio note: {str(e)}"}), 500
+
+# --- API GESTIONE WIDGETS DASHBOARD ---
+
+@app.route("/api/users/<username>/widgets", methods=["GET"])
+def get_user_widgets(username):
+    """Ottiene i widget personalizzati di un utente"""
+    try:
+        conn = get_db()
+        
+        # Trova l'user_id dal username
+        user = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+        if not user:
+            conn.close()
+            return jsonify({"error": "Utente non trovato"}), 404
+        
+        user_id = user["id"]
+        
+        # Ottieni i widget dell'utente ordinati per position
+        widgets = conn.execute(
+            "SELECT id, section, position FROM user_widgets WHERE user_id = ? ORDER BY position",
+            (user_id,)
+        ).fetchall()
+        
+        conn.close()
+        
+        widgets_list = [{"id": w["id"], "section": w["section"], "position": w["position"]} for w in widgets]
+        return jsonify({"widgets": widgets_list})
+        
+    except Exception as e:
+        return jsonify({"error": f"Errore recupero widget: {str(e)}"}), 500
+
+@app.route("/api/users/<username>/widgets", methods=["POST"])
+def add_user_widget(username):
+    """Aggiunge un widget alla dashboard dell'utente"""
+    try:
+        data = request.get_json()
+        section = data.get("section", "").strip()
+        
+        if not section:
+            return jsonify({"error": "Sezione richiesta"}), 400
+        
+        conn = get_db()
+        
+        # Trova l'user_id dal username
+        user = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+        if not user:
+            conn.close()
+            return jsonify({"error": "Utente non trovato"}), 404
+        
+        user_id = user["id"]
+        
+        # Verifica che l'utente non abbia già questo widget
+        existing = conn.execute(
+            "SELECT id FROM user_widgets WHERE user_id = ? AND section = ?",
+            (user_id, section)
+        ).fetchone()
+        
+        if existing:
+            conn.close()
+            return jsonify({"error": "Widget già presente"}), 400
+        
+        # Ottieni la posizione massima
+        max_pos = conn.execute(
+            "SELECT MAX(position) as max_pos FROM user_widgets WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()
+        
+        position = (max_pos["max_pos"] or -1) + 1
+        now = datetime.now().isoformat()
+        
+        # Inserisci il nuovo widget
+        cursor = conn.execute(
+            "INSERT INTO user_widgets (user_id, section, position, created_at) VALUES (?, ?, ?, ?)",
+            (user_id, section, position, now)
+        )
+        
+        widget_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"success": True, "id": widget_id, "section": section, "position": position})
+        
+    except Exception as e:
+        return jsonify({"error": f"Errore aggiunta widget: {str(e)}"}), 500
+
+@app.route("/api/users/<username>/widgets/<int:widget_id>", methods=["DELETE"])
+def delete_user_widget(username, widget_id):
+    """Rimuove un widget dalla dashboard dell'utente"""
+    try:
+        conn = get_db()
+        
+        # Trova l'user_id dal username
+        user = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+        if not user:
+            conn.close()
+            return jsonify({"error": "Utente non trovato"}), 404
+        
+        user_id = user["id"]
+        
+        # Elimina il widget solo se appartiene all'utente
+        conn.execute(
+            "DELETE FROM user_widgets WHERE id = ? AND user_id = ?",
+            (widget_id, user_id)
+        )
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"success": True})
+        
+    except Exception as e:
+        return jsonify({"error": f"Errore rimozione widget: {str(e)}"}), 500
 
 # --- API gestione permessi sezioni utenti ---
 

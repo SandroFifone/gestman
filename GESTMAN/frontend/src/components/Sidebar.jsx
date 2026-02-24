@@ -2,6 +2,19 @@ import React from "react";
 import { Link } from "react-router-dom";
 import "./Sidebar.css";
 
+// Mappa sezioni con icone e label
+export const SECTIONS_MAP = {
+  home: { icon: '🏠', label: 'Home', route: 'home' },
+  assets: { icon: '⚙️', label: 'Assets', route: 'assets' },
+  calendario: { icon: '📅', label: 'Calendario', route: 'calendario' },
+  'dynamic-compiler': { icon: '📋', label: 'Compilatore', route: 'dynamic-compiler', section: 'compilazioni' },
+  alert: { icon: '🚨', label: 'Alert', route: 'alert' },
+  rubrica: { icon: '📇', label: 'Rubrica', route: 'rubrica' },
+  tickets: { icon: '🎫', label: 'Tickets', route: 'tickets' },
+  docs: { icon: '📚', label: 'Docs', route: 'docs' },
+  magazzino: { icon: '📦', label: 'Magazzino', route: 'magazzino' }
+};
+
 // Props: isAdmin (boolean), onNavigate (function), active (string), isOpen (boolean), onClose (function), userSections (array)
 const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = [] }) => {
   
@@ -23,6 +36,19 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
     console.log(`[DEBUG SIDEBAR] hasAccess(${section}):`, access, 'userSections:', userSections);
     return access;
   };
+
+  // Handler per drag start - salva dati della sezione
+  const handleDragStart = (e, route, section) => {
+    const dragData = {
+      route: route,
+      section: section || route,
+      icon: SECTIONS_MAP[route]?.icon || '📌',
+      label: SECTIONS_MAP[route]?.label || route
+    };
+    e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+
   return (
     <>
       {/* Backdrop per tablet portrait */}
@@ -42,6 +68,8 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
           <button 
             className={active === "home" ? "active" : ""} 
             onClick={() => onNavigate("home")}
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'home', 'dashboard')}
           >
             <span className="sidebar-icon">🏠</span>
             <span>Home</span>
@@ -52,6 +80,8 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
           <button 
             className={active === "assets" ? "active" : ""} 
             onClick={() => onNavigate("assets")}
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'assets', 'assets')}
           >
             <span className="sidebar-icon">⚙️</span>
             <span>Assets</span>
@@ -62,6 +92,8 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
           <button 
             className={active === "calendario" ? "active" : ""} 
             onClick={() => onNavigate("calendario")}
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'calendario', 'calendario')}
           >
             <span className="sidebar-icon">📅</span>
             <span>Calendario</span>
@@ -72,6 +104,8 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
           <button 
             className={active === "dynamic-compiler" ? "active" : ""} 
             onClick={() => onNavigate("dynamic-compiler")}
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'dynamic-compiler', 'compilazioni')}
           >
             <span className="sidebar-icon">📋</span>
             <span>Compilatore</span>
@@ -82,6 +116,8 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
           <button 
             className={active === "alert" ? "active" : ""} 
             onClick={() => onNavigate("alert")}
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'alert', 'alert')}
           >
             <span className="sidebar-icon">🚨</span>
             <span>Alert</span>
@@ -92,6 +128,8 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
           <button 
             className={active === "rubrica" ? "active" : ""} 
             onClick={() => onNavigate("rubrica")}
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'rubrica', 'rubrica')}
           >
             <span className="sidebar-icon">📇</span>
             <span>Rubrica</span>
@@ -102,6 +140,8 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
           <button 
             className={active === "tickets" ? "active" : ""} 
             onClick={() => onNavigate("tickets")}
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'tickets', 'tickets')}
           >
             <span className="sidebar-icon">🎫</span>
             <span>Tickets</span>
@@ -112,6 +152,8 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
           <button 
             className={active === "docs" ? "active" : ""} 
             onClick={() => onNavigate("docs")}
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'docs', 'docs')}
           >
             <span className="sidebar-icon">📚</span>
             <span>Docs</span>
@@ -122,6 +164,8 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
           <button 
             className={active === "magazzino" ? "active" : ""} 
             onClick={() => onNavigate("magazzino")}
+            draggable
+            onDragStart={(e) => handleDragStart(e, 'magazzino', 'magazzino')}
           >
             <span className="sidebar-icon">📦</span>
             <span>Magazzino</span>

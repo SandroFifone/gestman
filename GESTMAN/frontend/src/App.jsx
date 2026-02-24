@@ -304,7 +304,7 @@ function AppContent({ user, onLogout }) {
         <main className={`main-content ${sidebarOpen ? 'sidebar-open' : ''}`}>
           <Routes>
             {/* Home route - sempre disponibile */}
-            <Route path="/" element={<PersonalDashboard user={user} isAdmin={user.isAdmin} />} />
+            <Route path="/" element={<PersonalDashboard user={user} isAdmin={user.isAdmin} onNavigate={handleNavigate} />} />
             
             {/* Admin routes */}
             {user.isAdmin && (

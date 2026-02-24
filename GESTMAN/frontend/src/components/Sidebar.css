@@ -119,10 +119,21 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   text-align: left;
-  cursor: pointer;
+  cursor: move;
   transition: var(--transition-fast);
   position: relative;
   outline: none;
+}
+
+.sidebar-nav button:hover {
+  background: var(--gray-50);
+  color: var(--primary-color);
+  transform: translateX(4px);
+  cursor: grab;
+}
+
+.sidebar-nav button:active {
+  cursor: grabbing;
 }
 
 .sidebar-icon {
@@ -130,12 +141,7 @@
   min-width: 24px;
   text-align: center;
   font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
-}
-
-.sidebar-nav button:hover {
-  background: var(--gray-50);
-  color: var(--primary-color);
-  transform: translateX(4px);
+  pointer-events: none;
 }
 
 .sidebar-nav button.active {

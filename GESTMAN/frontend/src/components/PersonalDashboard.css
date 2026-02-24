@@ -37,6 +37,112 @@
   gap: var(--spacing-sm);
 }
 
+/* Widget Area Card */
+.widgets-area-card {
+  min-height: 300px;
+  transition: all 0.3s ease;
+}
+
+.widgets-area-card.drag-over {
+  border: 2px dashed var(--primary-color);
+  background: linear-gradient(135deg, rgba(10, 42, 102, 0.05), rgba(10, 42, 102, 0.02));
+  transform: scale(1.01);
+}
+
+.widget-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  border: 2px dashed var(--gray-300);
+  border-radius: var(--border-radius-lg);
+  background: var(--gray-25);
+}
+
+.widgets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.widget-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-lg);
+  background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+  border: none;
+  border-radius: var(--border-radius-lg);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  min-height: 100px;
+}
+
+.widget-button:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.widget-button:active {
+  transform: translateY(-2px);
+}
+
+.widget-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.widget-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.widget-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--error-color);
+  color: white;
+  border: 2px solid white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  box-shadow: var(--shadow-md);
+  line-height: 1;
+  padding: 0;
+}
+
+.widget-item:hover .widget-remove {
+  opacity: 1;
+}
+
+.widget-remove:hover {
+  background: var(--error-dark);
+  transform: scale(1.1);
+}
+
 /* Calendario Moderno */
 .calendar-container {
   flex: 1;
@@ -620,6 +726,35 @@
 
 /* Responsive per convertitore */
 @media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .widgets-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: var(--spacing-sm);
+  }
+
+  .widget-button {
+    padding: var(--spacing-md);
+    min-height: 80px;
+  }
+
+  .widget-icon {
+    font-size: 1.5rem;
+  }
+
+  .widget-label {
+    font-size: var(--font-size-xs);
+  }
+
+  .widget-remove {
+    opacity: 1;
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+  }
+
   .input-group, .result-group {
     flex-direction: column;
     gap: var(--spacing-sm);

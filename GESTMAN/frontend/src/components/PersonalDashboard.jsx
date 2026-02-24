@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './PersonalDashboard.css';
 import TelegramMessageModal from './TelegramMessageModal';
+import { SECTIONS_MAP } from './Sidebar';
+import { API_URLS } from '../config/api';
 import convert from 'convert-units';
 
-const PersonalDashboard = ({ user, isAdmin }) => {
+const PersonalDashboard = ({ user, isAdmin, onNavigate }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [notes, setNotes] = useState('');
   const [savedNotes, setSavedNotes] = useState('');
@@ -13,6 +15,10 @@ const PersonalDashboard = ({ user, isAdmin }) => {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(false);
+  
+  // Stati per widget area
+  const [widgets, setWidgets] = useState([]);
+  const [isDragOver, setIsDragOver] = useState(false);
   
   // Stati per conversioni - Una sola riga configurabile
   const [conversion, setConversion] = useState({
@@ -98,6 +104,7 @@ const PersonalDashboard = ({ user, isAdmin }) => {
 
     // Carica dati iniziali
     loadUserNotes();
+    loadUserWidgets();
     checkTelegramStatus();
 
     return () => clearInterval(timer);
@@ -256,6 +263,79 @@ const PersonalDashboard = ({ user, isAdmin }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadUserWidgets = async () => {
+    try {
+      const response = await fetch(API_URLS.widgets(user.username));
+      const data = await response.json();
+      
+      if (response.ok) {
+        setWidgets(data.widgets || []);
+        console.log(`[DASHBOARD] Widget caricati: ${data.widgets?.length || 0}`);
+      }
+    } catch (error) {
+      console.error('Errore caricamento widget:', error);
+    }
+  };
+
+  const addWidget = async (section) => {
+    try {
+      const response = await fetch(API_URLS.widgets(user.username), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setWidgets(prev => [...prev, data]);
+        console.log(`[DASHBOARD] Widget aggiunto: ${section}`);
+      } else if (data.error === 'Widget già presente') {
+        console.log(`[DASHBOARD] Widget ${section} già presente`);
+      }
+    } catch (error) {
+      console.error('Errore aggiunta widget:', error);
+    }
+  };
+
+  const removeWidget = async (widgetId) => {
+    try {
+      const response = await fetch(`${API_URLS.widgets(user.username)}/${widgetId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        setWidgets(prev => prev.filter(w => w.id !== widgetId));
+        console.log(`[DASHBOARD] Widget rimosso: ${widgetId}`);
+      }
+    } catch (error) {
+      console.error('Errore rimozione widget:', error);
+    }
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    try {
+      const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
+      if (dragData.section) {
+        await addWidget(dragData.section);
+      }
+    } catch (error) {
+      console.error('Errore drop widget:', error);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
   };
 
   const checkTelegramStatus = async () => {
@@ -482,6 +562,55 @@ const PersonalDashboard = ({ user, isAdmin }) => {
       <div className="section-content">
 
       <div className="dashboard-grid">
+        {/* Widget Area - Scorciatoie Personalizzate */}
+        <div 
+          className={`dashboard-card widgets-area-card ${isDragOver ? 'drag-over' : ''}`}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+        >
+          <h2>📌 Widget Area</h2>
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--gray-600)', marginBottom: 'var(--spacing-md)' }}>
+            Trascina qui le sezioni dalla sidebar per creare scorciatoie
+          </p>
+          
+          {widgets.length === 0 ? (
+            <div className="widget-placeholder">
+              <span style={{ fontSize: '3rem', opacity: 0.3 }}>📌</span>
+              <p style={{ color: 'var(--gray-500)', fontSize: 'var(--font-size-sm)', margin: '8px 0 0 0' }}>
+                Nessun widget. Trascina una sezione qui!
+              </p>
+            </div>
+          ) : (
+            <div className="widgets-grid">
+              {widgets.map(widget => {
+                const sectionData = SECTIONS_MAP[widget.section] || { icon: '📌', label: widget.section, route: widget.section };
+                return (
+                  <div key={widget.id} className="widget-item">
+                    <button
+                      className="widget-button"
+                      onClick={() => onNavigate && onNavigate(sectionData.route)}
+                    >
+                      <span className="widget-icon">{sectionData.icon}</span>
+                      <span className="widget-label">{sectionData.label}</span>
+                    </button>
+                    <button
+                      className="widget-remove"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeWidget(widget.id);
+                      }}
+                      title="Rimuovi widget"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Conversioni Tecniche */}
         <div className="dashboard-card conversions-card">
           <h2>⚙️ Conversioni</h2>
