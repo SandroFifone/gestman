@@ -110,21 +110,27 @@ const PersonalDashboard = ({ user, isAdmin }) => {
         const localNotes = localStorage.getItem(`notes_${user.username}`);
         
         if (localNotes && localNotes.trim()) {
-          // Controlla se le note del server sono diverse da quelle locali
+          // Controlla se le note del server sono vuote
           const response = await fetch(`/api/users/${user.username}/notes`);
           if (response.ok) {
             const serverData = await response.json();
             const serverNotes = serverData.notes || '';
             
-            // Se le note locali sono più recenti o il server è vuoto, sincronizza
-            if (localNotes !== serverNotes && (!serverNotes || localNotes.length > serverNotes.length)) {
-              console.log(`[DASHBOARD] Sincronizzando note locali al server per ${user.username}`);
+            // SOLO se il server è completamente vuoto, sincronizza le note locali
+            if (!serverNotes || serverNotes.trim() === '') {
+              console.log(`[DASHBOARD] Server vuoto, sincronizzando note locali per ${user.username}`);
               
               await fetch(`/api/users/${user.username}/notes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ notes: localNotes })
               });
+            } else {
+              // Se il server ha già note, usa quelle e pulisci localStorage obsoleto
+              console.log(`[DASHBOARD] Usando note dal server e aggiornando localStorage`);
+              localStorage.setItem(`notes_${user.username}`, serverNotes);
+              setNotes(serverNotes);
+              setSavedNotes(serverNotes);
             }
           }
         }
