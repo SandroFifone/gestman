@@ -86,8 +86,8 @@
   }
   
   .modal-dialog {
-    min-width: 500px;
-    max-width: 80%;
+    min-width: unset; /* Rimosso min-width: 500px per prevenire overflow su mobile */
+    max-width: 90%;
     padding: var(--spacing-lg);
     max-height: 85vh;
   }

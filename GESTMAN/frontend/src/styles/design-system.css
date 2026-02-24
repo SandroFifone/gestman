@@ -830,3 +830,67 @@ body {
     margin: 0 auto;
   }
 }
+
+/* ====================
+   MOBILE OVERFLOW PROTECTION
+   Garantisce che modali, input e elementi con z-index alto
+   non sbordino dai confini del viewport su dispositivi mobile reali
+   ==================== */
+@media (max-width: 767px) {
+  /* Forza tutti i modal overlay a rispettare il viewport */
+  [class*="modal-overlay"],
+  [class*="overlay"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Forza tutti i modal dialog/content a rispettare il viewport */
+  [class*="modal-dialog"],
+  [class*="modal-content"],
+  [class*="modal-body"] {
+    width: 100% !important;
+    max-width: calc(100% - 16px) !important;
+    min-width: unset !important;
+    margin-left: 8px !important;
+    margin-right: 8px !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Input fields dentro modali */
+  input,
+  select,
+  textarea {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Dropdown e menu contestuali */
+  [class*="dropdown"],
+  [class*="menu"],
+  [class*="popover"] {
+    max-width: calc(100% - 16px) !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Previeni horizontal scroll globale su mobile */
+  body, html {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Fix iOS Safari input zoom */
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px !important; /* Previene zoom automatico su iOS */
+  }
+}
