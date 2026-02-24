@@ -18,12 +18,13 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  max-width: 600px;
+  max-width: calc(100% - 16px); /* Previeni overflow su mobile */
   width: 100%;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* Modal header */
@@ -154,23 +155,29 @@
 
 /* Responsive design */
 @media (max-width: 768px) {
+  .telegram-modal-overlay {
+    padding: 8px; /* Ridotto padding per smartphone piccoli */
+  }
+  
   .telegram-modal-content {
-    margin: 10px;
-    max-height: 90vh;
+    margin: 0;
+    max-height: 95vh;
+    max-width: calc(100% - 8px); /* Margine minimo su mobile */
+    border-radius: 8px;
   }
   
   .telegram-modal-header,
   .telegram-modal-body,
   .telegram-modal-footer {
-    padding: 16px;
+    padding: 12px; /* Ridotto da 16px per risparmiare spazio */
   }
   
   .telegram-modal-title {
-    font-size: 16px;
+    font-size: 15px;
   }
   
   .message-full-content {
     font-size: 14px;
-    padding: 16px;
+    padding: 12px;
   }
 }

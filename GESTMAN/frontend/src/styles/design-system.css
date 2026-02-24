@@ -831,6 +831,50 @@ body {
   }
 }
 
+/* === MOBILE OVERFLOW PROTECTION === */
+/* Forza box-sizing corretto su TUTTI gli elementi con z-index alto per prevenire overflow su mobile */
+@media (max-width: 767px) {
+  /* Proteggi modal e overlay da overflow */
+  [class*="modal"],
+  [class*="overlay"],
+  [class*="dropdown"] {
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+  }
+  
+  /* Forza box-sizing su TUTTI gli input, textarea, select dentro elementi fixed/absolute */
+  [style*="position: fixed"] input,
+  [style*="position: fixed"] textarea,
+  [style*="position: fixed"] select,
+  [style*="position: absolute"] input,
+  [style*="position: absolute"] textarea,
+  [style*="position: absolute"] select,
+  .modal-overlay input,
+  .modal-overlay textarea,
+  .modal-overlay select,
+  .modal-dialog input,
+  .modal-dialog textarea,
+  .modal-dialog select {
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+  }
+  
+  /* iOS Safari fix - previeni zoom su input focus */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important; /* iOS Safari non zooma se ≥16px */
+  }
+  
+  /* Forza larghezza corretta su modal content */
+  .modal-content,
+  .custom-modal-content,
+  .telegram-modal-content {
+    max-width: calc(100% - 16px) !important;
+    width: calc(100% - 16px) !important;
+    margin: 8px !important;
+  }
+}
 /* ====================
    MOBILE OVERFLOW PROTECTION
    Garantisce che modali, input e elementi con z-index alto
