@@ -1,0 +1,418 @@
+/* Rubrica.css - Gestione Contatti Responsive */
+
+/* Layout principale */
+.rubrica-layout {
+  display: flex;
+  gap: 20px;
+}
+
+/* Sidebar Categorie - Desktop */
+.categorie-sidebar {
+  min-width: 250px;
+  max-width: 300px;
+  flex-shrink: 0;
+}
+
+.categorie-sidebar h3 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--gray-900);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Container categorie - su desktop normale, su mobile scroll orizzontale */
+.categorie-sidebar-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.categoria-item {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin: 5px 0;
+  border: none;
+  border-radius: 8px;
+  background: #f8f9fa;
+  color: #333;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+}
+
+.categoria-item:hover {
+  background: #e9ecef;
+  transform: translateX(4px);
+}
+
+.categoria-item.active {
+  background: #007bff;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* Contenuto contatti */
+.contatti-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.contatti-content h3 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--gray-900);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Grid contatti - Desktop */
+.contatti-grid {
+  display: grid;
+  gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+/* Lista compatta mobile - nascosta su desktop */
+.contatti-list-mobile {
+  display: none;
+}
+
+/* Card contatto completa - Desktop */
+.contatto-card {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-md);
+  transition: all 0.2s ease;
+}
+
+.contatto-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.contatto-card-header {
+  background: #f8f9fa;
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.contatto-card-header h4 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gray-900);
+  font-size: var(--font-size-md);
+}
+
+.contatto-actions {
+  display: flex;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.contatto-card-content {
+  padding: var(--spacing-sm);
+}
+
+.contatto-card-content p {
+  margin: var(--spacing-xs) 0;
+  font-size: var(--font-size-sm);
+  color: var(--gray-700);
+}
+
+.contatto-card-content strong {
+  color: var(--gray-900);
+}
+
+.contatto-card-content a {
+  margin-left: 5px;
+  color: #007bff;
+  text-decoration: none;
+}
+
+.contatto-card-content a:hover {
+  text-decoration: underline;
+}
+
+.contatto-card-content small {
+  color: #666;
+  font-size: var(--font-size-xs);
+}
+
+/* Modal per visualizzare contatto su mobile */
+.contatto-detail-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1060;
+  padding: var(--spacing-md);
+}
+
+.contatto-detail-content {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  max-width: 600px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+  box-sizing: border-box;
+}
+
+.contatto-detail-header {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+  padding: var(--spacing-lg);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.contatto-detail-header h3 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.contatto-detail-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: var(--font-size-xl);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.contatto-detail-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.contatto-detail-body {
+  padding: var(--spacing-lg);
+}
+
+.contatto-detail-field {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--gray-50);
+  border-radius: var(--border-radius-md);
+  border-left: 3px solid var(--primary-color);
+}
+
+.contatto-detail-field-label {
+  font-size: var(--font-size-xs);
+  color: var(--gray-600);
+  text-transform: uppercase;
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.contatto-detail-field-value {
+  font-size: var(--font-size-base);
+  color: var(--gray-900);
+  font-weight: var(--font-weight-medium);
+}
+
+.contatto-detail-field-value a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.contatto-detail-field-value a:hover {
+  text-decoration: underline;
+}
+
+.contatto-detail-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--gray-200);
+  background: var(--gray-50);
+  position: sticky;
+  bottom: 0;
+}
+
+/* === MOBILE RESPONSIVE (≤768px) === */
+@media (max-width: 768px) {
+  /* Layout mobile: categorie sopra, lista sotto */
+  .rubrica-layout {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  /* Categorie mobile - compatte orizzontalmente scrollabili */
+  .categorie-sidebar {
+    min-width: unset;
+    max-width: unset;
+    width: 100%;
+  }
+
+  .categorie-sidebar h3 {
+    font-size: var(--font-size-md);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  /* Scroll orizzontale per categorie su mobile */
+  .categorie-sidebar-scroll {
+    display: flex;
+    flex-direction: row; /* Orizzontale su mobile */
+    gap: var(--spacing-xs);
+    overflow-x: auto;
+    padding-bottom: var(--spacing-sm);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .categoria-item {
+    flex-shrink: 0;
+    min-width: fit-content;
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin: 0;
+    white-space: nowrap;
+    font-size: var(--font-size-sm);
+  }
+
+  /* Nascondi grid card completa su mobile */
+  .contatti-grid {
+    display: none !important;
+  }
+
+  /* Mostra lista compatta su mobile */
+  .contatti-list-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .contatto-list-item {
+    background: white;
+    border: 1px solid var(--gray-300);
+    border-left: 4px solid;
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+  }
+
+  .contatto-list-item:active {
+    transform: scale(0.98);
+    background: var(--gray-50);
+  }
+
+  .contatto-list-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .contatto-list-name {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--gray-900);
+    margin: 0 0 var(--spacing-xs) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .contatto-list-details {
+    font-size: var(--font-size-xs);
+    color: var(--gray-600);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .contatto-list-icon {
+    font-size: var(--font-size-xl);
+    color: var(--gray-400);
+  }
+
+  /* Modal dettagli contatto - mobile ottimizzato */
+  .contatto-detail-modal {
+    padding: 0;
+  }
+
+  .contatto-detail-content {
+    max-height: 100vh;
+    border-radius: 0;
+    max-width: 100%;
+  }
+
+  .contatto-detail-header {
+    padding: var(--spacing-md);
+  }
+
+  .contatto-detail-header h3 {
+    font-size: var(--font-size-lg);
+  }
+
+  .contatto-detail-body {
+    padding: var(--spacing-md);
+  }
+
+  .contatto-detail-field {
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-sm);
+  }
+
+  .contatto-detail-actions {
+    padding: var(--spacing-md);
+    gap: var(--spacing-sm);
+  }
+
+  .contatto-detail-actions .btn {
+    flex: 1;
+  }
+
+  /* Barra ricerca mobile */
+  .search-input {
+    min-width: unset;
+    width: 100%;
+    max-width: 100%;
+    margin-right: 0;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  /* Contatti content mobile */
+  .contatti-content h3 {
+    font-size: var(--font-size-md);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .empty-state {
+    padding: 20px !important;
+    font-size: var(--font-size-sm);
+  }
+}

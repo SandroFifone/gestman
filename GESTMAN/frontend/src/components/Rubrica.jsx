@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import './AssetsManager.css'; // Riutilizziamo gli stili esistenti
+import './Rubrica.css'; // Stili specifici per Rubrica
 
 const Rubrica = () => {
   const [categorie, setCategorie] = useState([]);
@@ -13,6 +14,7 @@ const Rubrica = () => {
   const [modalType, setModalType] = useState('contatto'); // 'contatto' o 'categoria'
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedContattoMobile, setSelectedContattoMobile] = useState(null); // Per modal mobile
 
   // Form states
   const [contattoForm, setContattoForm] = useState({
@@ -214,49 +216,51 @@ const Rubrica = () => {
         <div className="categorie-sidebar" style={{ minWidth: '250px', maxWidth: '300px' }}>
           <h3>Categorie</h3>
           
-          <button
-            onClick={handleShowAll}
-            className={`categoria-item ${!categoriaSelezionata ? 'active' : ''}`}
-            style={{
-              display: 'block',
-              width: '100%',
-              padding: '12px',
-              margin: '5px 0',
-              border: 'none',
-              borderRadius: '8px',
-              background: !categoriaSelezionata ? '#007bff' : '#f8f9fa',
-              color: !categoriaSelezionata ? 'white' : '#333',
-              cursor: 'pointer',
-              textAlign: 'left'
-            }}
-          >
-            📋 Tutti i contatti ({contatti.length})
-          </button>
+          <div className="categorie-sidebar-scroll">
+            <button
+              onClick={handleShowAll}
+              className={`categoria-item ${!categoriaSelezionata ? 'active' : ''}`}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '12px',
+                margin: '5px 0',
+                border: 'none',
+                borderRadius: '8px',
+                background: !categoriaSelezionata ? '#007bff' : '#f8f9fa',
+                color: !categoriaSelezionata ? 'white' : '#333',
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+            >
+              📋 Tutti i contatti ({contatti.length})
+            </button>
 
-          {categorie.map(categoria => {
-            const contattiCategoria = contatti.filter(c => c.categoria_id === categoria.id);
-            return (
-              <button
-                key={categoria.id}
-                onClick={() => handleCategoriaClick(categoria)}
-                className={`categoria-item ${categoriaSelezionata?.id === categoria.id ? 'active' : ''}`}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '12px',
-                  margin: '5px 0',
-                  border: 'none',
-                  borderRadius: '8px',
-                  background: categoriaSelezionata?.id === categoria.id ? categoria.colore : '#f8f9fa',
-                  color: categoriaSelezionata?.id === categoria.id ? 'white' : '#333',
-                  cursor: 'pointer',
-                  textAlign: 'left'
-                }}
-              >
-                {categoria.icona} {categoria.nome} ({contattiCategoria.length})
-              </button>
-            );
-          })}
+            {categorie.map(categoria => {
+              const contattiCategoria = contatti.filter(c => c.categoria_id === categoria.id);
+              return (
+                <button
+                  key={categoria.id}
+                  onClick={() => handleCategoriaClick(categoria)}
+                  className={`categoria-item ${categoriaSelezionata?.id === categoria.id ? 'active' : ''}`}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '12px',
+                    margin: '5px 0',
+                    border: 'none',
+                    borderRadius: '8px',
+                    background: categoriaSelezionata?.id === categoria.id ? categoria.colore : '#f8f9fa',
+                    color: categoriaSelezionata?.id === categoria.id ? 'white' : '#333',
+                    cursor: 'pointer',
+                    textAlign: 'left'
+                  }}
+                >
+                  {categoria.icona} {categoria.nome} ({contattiCategoria.length})
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Lista contatti */}
@@ -274,6 +278,7 @@ const Rubrica = () => {
             </div>
           )}
 
+          {/* Grid completa - Desktop */}
           <div className="contatti-grid" style={{ display: 'grid', gap: '15px', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
             {filteredContatti.map(contatto => (
               <div key={contatto.id} className="card" style={{ border: `2px solid ${categoriaSelezionata ? categoriaSelezionata.colore : '#e9ecef'}` }}>
@@ -331,8 +336,133 @@ const Rubrica = () => {
               </div>
             ))}
           </div>
+
+          {/* Lista compatta - Mobile */}
+          <div className="contatti-list-mobile">
+            {filteredContatti.map(contatto => (
+              <div 
+                key={contatto.id} 
+                className="contatto-list-item"
+                onClick={() => setSelectedContattoMobile(contatto)}
+                style={{ 
+                  borderLeftColor: categoriaSelezionata ? categoriaSelezionata.colore : '#007bff'
+                }}
+              >
+                <div className="contatto-list-info">
+                  <div className="contatto-list-name">
+                    {contatto.categoria_icona} {contatto.nome}
+                  </div>
+                  <div className="contatto-list-details">
+                    {contatto.azienda && `${contatto.azienda} • `}
+                    {contatto.telefono || contatto.email}
+                  </div>
+                </div>
+                <div className="contatto-list-icon">›</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* Modal dettagli contatto - Mobile */}
+      {selectedContattoMobile && (
+        <div className="contatto-detail-modal" onClick={() => setSelectedContattoMobile(null)}>
+          <div className="contatto-detail-content" onClick={(e) => e.stopPropagation()}>
+            <div className="contatto-detail-header">
+              <h3>
+                {selectedContattoMobile.categoria_icona} {selectedContattoMobile.nome}
+              </h3>
+              <button 
+                className="contatto-detail-close"
+                onClick={() => setSelectedContattoMobile(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="contatto-detail-body">
+              {selectedContattoMobile.azienda && (
+                <div className="contatto-detail-field">
+                  <div className="contatto-detail-field-label">🏢 Azienda</div>
+                  <div className="contatto-detail-field-value">{selectedContattoMobile.azienda}</div>
+                </div>
+              )}
+              
+              {selectedContattoMobile.ruolo && (
+                <div className="contatto-detail-field">
+                  <div className="contatto-detail-field-label">👤 Ruolo</div>
+                  <div className="contatto-detail-field-value">{selectedContattoMobile.ruolo}</div>
+                </div>
+              )}
+
+              {selectedContattoMobile.telefono && (
+                <div className="contatto-detail-field">
+                  <div className="contatto-detail-field-label">📞 Telefono</div>
+                  <div className="contatto-detail-field-value">
+                    <a href={`tel:${selectedContattoMobile.telefono}`}>
+                      {selectedContattoMobile.telefono}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {selectedContattoMobile.email && (
+                <div className="contatto-detail-field">
+                  <div className="contatto-detail-field-label">📧 Email</div>
+                  <div className="contatto-detail-field-value">
+                    <a href={`mailto:${selectedContattoMobile.email}`}>
+                      {selectedContattoMobile.email}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {selectedContattoMobile.indirizzo && (
+                <div className="contatto-detail-field">
+                  <div className="contatto-detail-field-label">📍 Indirizzo</div>
+                  <div className="contatto-detail-field-value">{selectedContattoMobile.indirizzo}</div>
+                </div>
+              )}
+
+              {selectedContattoMobile.note && (
+                <div className="contatto-detail-field">
+                  <div className="contatto-detail-field-label">📝 Note</div>
+                  <div className="contatto-detail-field-value">{selectedContattoMobile.note}</div>
+                </div>
+              )}
+
+              <div className="contatto-detail-field" style={{ background: 'transparent', border: 'none', padding: 0 }}>
+                <small style={{ color: '#666' }}>
+                  Categoria: {selectedContattoMobile.categoria_nome}
+                </small>
+              </div>
+            </div>
+
+            <div className="contatto-detail-actions">
+              <button
+                onClick={() => {
+                  setSelectedContattoMobile(null);
+                  handleEditContatto(selectedContattoMobile);
+                }}
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+              >
+                ✏️ Modifica
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedContattoMobile(null);
+                  handleDeleteContatto(selectedContattoMobile);
+                }}
+                className="btn btn-danger"
+                style={{ flex: 1 }}
+              >
+                🗑️ Elimina
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal per aggiunta/modifica contatto */}
       <Modal 
