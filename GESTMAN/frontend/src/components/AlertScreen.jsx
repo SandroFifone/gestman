@@ -167,7 +167,7 @@ const AlertScreen = () => {
       
       <div className="card">
         <div className="card-content">
-          <div style={{ display: "flex", gap: "var(--spacing-md)", marginBottom: "var(--spacing-lg)" }}>
+          <div className="alert-tabs">
             {AlertTabs.map(tab => (
               <button
                 key={tab.key}
