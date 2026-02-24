@@ -284,6 +284,7 @@ const PersonalDashboard = ({ user, isAdmin, onNavigate }) => {
       console.log('[DASHBOARD] Chiamata addWidget per:', section);
       const url = API_URLS.widgets(user.username);
       console.log('[DASHBOARD] URL chiamata:', url);
+      console.log('[DASHBOARD] Body request:', JSON.stringify({ section }));
       
       const response = await fetch(url, {
         method: 'POST',
@@ -291,20 +292,30 @@ const PersonalDashboard = ({ user, isAdmin, onNavigate }) => {
         body: JSON.stringify({ section })
       });
 
+      console.log('[DASHBOARD] Response status:', response.status);
       const data = await response.json();
-      console.log('[DASHBOARD] Risposta server:', data);
+      console.log('[DASHBOARD] Risposta server completa:', JSON.stringify(data));
       
       if (response.ok) {
-        // Ricarica tutti i widget per essere sicuri
-        await loadUserWidgets();
         console.log(`[DASHBOARD] Widget aggiunto con successo: ${section}`);
+        // Forza ricarica immediata
+        const widgetsResponse = await fetch(API_URLS.widgets(user.username));
+        const widgetsData = await widgetsResponse.json();
+        console.log('[DASHBOARD] Widget ricaricati:', widgetsData);
+        setWidgets(widgetsData.widgets || []);
+        
+        // Feedback visivo
+        alert(`Widget "${SECTIONS_MAP[section]?.label || section}" aggiunto!`);
       } else if (data.error === 'Widget già presente') {
         console.log(`[DASHBOARD] Widget ${section} già presente`);
+        alert(`Widget già presente!`);
       } else {
         console.error('[DASHBOARD] Errore dal server:', data.error);
+        alert(`Errore: ${data.error}`);
       }
     } catch (error) {
       console.error('[DASHBOARD] Errore aggiunta widget:', error);
+      alert(`Errore connessione: ${error.message}`);
     }
   };
 
