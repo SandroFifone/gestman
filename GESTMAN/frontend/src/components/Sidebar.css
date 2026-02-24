@@ -134,6 +134,16 @@
 
 .sidebar-nav button:active {
   cursor: grabbing;
+  opacity: 0.7;
+}
+
+.sidebar-nav button[draggable="true"]:hover::after {
+  content: '⋮⋮';
+  position: absolute;
+  right: var(--spacing-md);
+  color: var(--gray-400);
+  font-size: var(--font-size-xs);
+  letter-spacing: 2px;
 }
 
 .sidebar-icon {

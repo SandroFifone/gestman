@@ -47,6 +47,13 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
     };
     e.dataTransfer.setData('application/json', JSON.stringify(dragData));
     e.dataTransfer.effectAllowed = 'copy';
+    
+    // Chiudi la sidebar dopo un breve delay per permettere il drop
+    setTimeout(() => {
+      if (onClose && isMobile()) {
+        onClose();
+      }
+    }, 300);
   };
 
   return (
