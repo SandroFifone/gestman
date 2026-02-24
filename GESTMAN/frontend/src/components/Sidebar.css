@@ -162,6 +162,22 @@
   transform: translateX(4px);
 }
 
+/* Feedback visivo per long press su mobile */
+.sidebar-nav button.long-press-active {
+  background: rgba(99, 102, 241, 0.2);
+  border: 2px dashed var(--primary-color);
+  animation: pulse-border 0.5s ease-in-out;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: var(--primary-color);
+  }
+  50% {
+    border-color: var(--primary-light);
+  }
+}
+
 .sidebar-nav button.active::before {
   content: '';
   position: absolute;

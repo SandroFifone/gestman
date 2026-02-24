@@ -15,8 +15,11 @@ export const SECTIONS_MAP = {
   magazzino: { icon: '📦', label: 'Magazzino', route: 'magazzino' }
 };
 
-// Props: isAdmin (boolean), onNavigate (function), active (string), isOpen (boolean), onClose (function), userSections (array)
-const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = [] }) => {
+// Props: isAdmin (boolean), onNavigate (function), active (string), isOpen (boolean), onClose (function), userSections (array), onWidgetSelect (function per passare sezione selezionata a PersonalDashboard)
+const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = [], onWidgetSelect }) => {
+  
+  const [longPressTimer, setLongPressTimer] = React.useState(null);
+  const [longPressActive, setLongPressActive] = React.useState(null);
   
   // Debug: logga sempre i parametri ricevuti
   console.log('[DEBUG SIDEBAR] Props ricevute:', {
@@ -57,6 +60,56 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
     }, 300);
   };
 
+  // Long press per mobile - attiva selezione widget
+  const handleTouchStart = (e, route, section) => {
+    if (!isMobile() || !onWidgetSelect) return;
+    
+    const timer = setTimeout(() => {
+      // Vibrazione feedback (se supportata)
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+      
+      const widgetData = {
+        route: route,
+        section: section || route,
+        icon: SECTIONS_MAP[route]?.icon || '📌',
+        label: SECTIONS_MAP[route]?.label || route
+      };
+      
+      console.log('[SIDEBAR MOBILE] Long press attivato:', widgetData);
+      setLongPressActive(route);
+      
+      // Passa la sezione selezionata al PersonalDashboard
+      onWidgetSelect(widgetData);
+      
+      // Chiudi sidebar dopo 300ms
+      setTimeout(() => {
+        if (onClose) onClose();
+        setLongPressActive(null);
+      }, 300);
+      
+    }, 500); // 500ms per long press
+    
+    setLongPressTimer(timer);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  const handleTouchMove = () => {
+    // Annulla long press se l'utente scorre
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+      setLongPressActive(null);
+    }
+  };
+
   return (
     <>
       {/* Backdrop per tablet portrait */}
@@ -74,10 +127,13 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
       <nav className="sidebar-nav">
         {hasAccess('dashboard') && (
           <button 
-            className={active === "home" ? "active" : ""} 
+            className={`${active === "home" ? "active" : ""} ${longPressActive === 'home' ? "long-press-active" : ""}`}
             onClick={() => onNavigate("home")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'home', 'dashboard')}
+            onTouchStart={(e) => handleTouchStart(e, 'home', 'dashboard')}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
           >
             <span className="sidebar-icon">🏠</span>
             <span>Home</span>
@@ -86,10 +142,13 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
         
         {hasAccess('assets') && (
           <button 
-            className={active === "assets" ? "active" : ""} 
+            className={`${active === "assets" ? "active" : ""} ${longPressActive === 'assets' ? "long-press-active" : ""}`}
             onClick={() => onNavigate("assets")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'assets', 'assets')}
+            onTouchStart={(e) => handleTouchStart(e, 'assets', 'assets')}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
           >
             <span className="sidebar-icon">⚙️</span>
             <span>Assets</span>
@@ -98,10 +157,13 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
         
         {hasAccess('calendario') && !isMobile() && (
           <button 
-            className={active === "calendario" ? "active" : ""} 
+            className={`${active === "calendario" ? "active" : ""} ${longPressActive === 'calendario' ? "long-press-active" : ""}`}
             onClick={() => onNavigate("calendario")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'calendario', 'calendario')}
+            onTouchStart={(e) => handleTouchStart(e, 'calendario', 'calendario')}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
           >
             <span className="sidebar-icon">📅</span>
             <span>Calendario</span>
@@ -110,10 +172,13 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
         
         {hasAccess('compilazioni') && (
           <button 
-            className={active === "dynamic-compiler" ? "active" : ""} 
+            className={`${active === "dynamic-compiler" ? "active" : ""} ${longPressActive === 'dynamic-compiler' ? "long-press-active" : ""}`}
             onClick={() => onNavigate("dynamic-compiler")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'dynamic-compiler', 'compilazioni')}
+            onTouchStart={(e) => handleTouchStart(e, 'dynamic-compiler', 'compilazioni')}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
           >
             <span className="sidebar-icon">📋</span>
             <span>Compilatore</span>
@@ -122,10 +187,13 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
         
         {hasAccess('alert') && (
           <button 
-            className={active === "alert" ? "active" : ""} 
+            className={`${active === "alert" ? "active" : ""} ${longPressActive === 'alert' ? "long-press-active" : ""}`}
             onClick={() => onNavigate("alert")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'alert', 'alert')}
+            onTouchStart={(e) => handleTouchStart(e, 'alert', 'alert')}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
           >
             <span className="sidebar-icon">🚨</span>
             <span>Alert</span>
@@ -134,10 +202,13 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
         
         {hasAccess('rubrica') && (
           <button 
-            className={active === "rubrica" ? "active" : ""} 
+            className={`${active === "rubrica" ? "active" : ""} ${longPressActive === 'rubrica' ? "long-press-active" : ""}`}
             onClick={() => onNavigate("rubrica")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'rubrica', 'rubrica')}
+            onTouchStart={(e) => handleTouchStart(e, 'rubrica', 'rubrica')}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
           >
             <span className="sidebar-icon">📇</span>
             <span>Rubrica</span>
@@ -146,10 +217,13 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
         
         {hasAccess('tickets') && (
           <button 
-            className={active === "tickets" ? "active" : ""} 
+            className={`${active === "tickets" ? "active" : ""} ${longPressActive === 'tickets' ? "long-press-active" : ""}`}
             onClick={() => onNavigate("tickets")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'tickets', 'tickets')}
+            onTouchStart={(e) => handleTouchStart(e, 'tickets', 'tickets')}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
           >
             <span className="sidebar-icon">🎫</span>
             <span>Tickets</span>
@@ -158,10 +232,13 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
         
         {hasAccess('docs') && !isMobile() && (
           <button 
-            className={active === "docs" ? "active" : ""} 
+            className={`${active === "docs" ? "active" : ""} ${longPressActive === 'docs' ? "long-press-active" : ""}`}
             onClick={() => onNavigate("docs")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'docs', 'docs')}
+            onTouchStart={(e) => handleTouchStart(e, 'docs', 'docs')}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
           >
             <span className="sidebar-icon">📚</span>
             <span>Docs</span>
@@ -170,10 +247,13 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
         
         {hasAccess('magazzino') && (
           <button 
-            className={active === "magazzino" ? "active" : ""} 
+            className={`${active === "magazzino" ? "active" : ""} ${longPressActive === 'magazzino' ? "long-press-active" : ""}`}
             onClick={() => onNavigate("magazzino")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'magazzino', 'magazzino')}
+            onTouchStart={(e) => handleTouchStart(e, 'magazzino', 'magazzino')}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
           >
             <span className="sidebar-icon">📦</span>
             <span>Magazzino</span>

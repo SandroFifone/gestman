@@ -80,6 +80,7 @@ function AppContent({ user, onLogout }) {
   const [currentUser, setCurrentUser] = useState(user); // Stato locale per aggiornamenti utente
   const [selectedCivico, setSelectedCivico] = useState(null); // per breadcrumb e navigazione
   const [sidebarOpen, setSidebarOpen] = useState(false); // per mobile sidebar
+  const [pendingWidgetFromSidebar, setPendingWidgetFromSidebar] = useState(null); // per mobile long press
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -299,12 +300,21 @@ function AppContent({ user, onLogout }) {
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           userSections={userSections}
+          onWidgetSelect={(widgetData) => setPendingWidgetFromSidebar(widgetData)}
         />
         
         <main className={`main-content ${sidebarOpen ? 'sidebar-open' : ''}`}>
           <Routes>
             {/* Home route - sempre disponibile */}
-            <Route path="/" element={<PersonalDashboard user={user} isAdmin={user.isAdmin} onNavigate={handleNavigate} />} />
+            <Route path="/" element={
+              <PersonalDashboard 
+                user={user} 
+                isAdmin={user.isAdmin} 
+                onNavigate={handleNavigate}
+                pendingWidgetFromSidebar={pendingWidgetFromSidebar}
+                onPendingWidgetProcessed={() => setPendingWidgetFromSidebar(null)}
+              />
+            } />
             
             {/* Admin routes */}
             {user.isAdmin && (

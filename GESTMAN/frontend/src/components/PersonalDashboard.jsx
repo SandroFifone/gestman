@@ -5,7 +5,7 @@ import { SECTIONS_MAP } from './Sidebar';
 import { API_URLS } from '../config/api';
 import convert from 'convert-units';
 
-const PersonalDashboard = ({ user, isAdmin, onNavigate }) => {
+const PersonalDashboard = ({ user, isAdmin, onNavigate, pendingWidgetFromSidebar, onPendingWidgetProcessed }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [notes, setNotes] = useState('');
   const [savedNotes, setSavedNotes] = useState('');
@@ -19,6 +19,7 @@ const PersonalDashboard = ({ user, isAdmin, onNavigate }) => {
   // Stati per widget area
   const [widgets, setWidgets] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [pendingWidget, setPendingWidget] = useState(null); // Per mobile: sezione selezionata da aggiungere
   
   // Stati per conversioni - Una sola riga configurabile
   const [conversion, setConversion] = useState({
@@ -107,8 +108,29 @@ const PersonalDashboard = ({ user, isAdmin, onNavigate }) => {
     loadUserWidgets();
     checkTelegramStatus();
 
-    return () => clearInterval(timer);
+    // Listener per ricevere sezione selezionata da Sidebar (mobile)
+    const handleSectionSelected = (e) => {
+      if (e.detail && e.detail.section) {
+        console.log('[DASHBOARD] Sezione ricevuta da sidebar:', e.detail);
+        setPendingWidget(e.detail);
+      }
+    };
+
+    window.addEventListener('sectionSelected', handleSectionSelected);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('sectionSelected', handleSectionSelected);
+    };
   }, [user.username]);
+
+  // Sincronizza pending widget da sidebar (mobile long press)
+  useEffect(() => {
+    if (pendingWidgetFromSidebar) {
+      console.log('[DASHBOARD] Ricevuto pending widget da sidebar:', pendingWidgetFromSidebar);
+      setPendingWidget(pendingWidgetFromSidebar);
+    }
+  }, [pendingWidgetFromSidebar]);
 
   // Sincronizza note localStorage al server se necessario
   useEffect(() => {
@@ -373,6 +395,20 @@ const PersonalDashboard = ({ user, isAdmin, onNavigate }) => {
     setIsDragOver(false);
   };
 
+  // Handler per click su Widget Area quando c'è una sezione pendente (mobile)
+  const handleWidgetAreaClick = async () => {
+    if (pendingWidget) {
+      console.log('[DASHBOARD] Click widget area con pending:', pendingWidget);
+      await addWidget(pendingWidget.section);
+      setPendingWidget(null);
+      
+      // Notifica App.jsx per resettare anche il suo state
+      if (onPendingWidgetProcessed) {
+        onPendingWidgetProcessed();
+      }
+    }
+  };
+
   const checkTelegramStatus = async () => {
     try {
       // Controlla se l'utente è abilitato per Telegram
@@ -588,7 +624,19 @@ const PersonalDashboard = ({ user, isAdmin, onNavigate }) => {
   };
 
   return (
-    <div className="section-container">
+    <div 
+      className="section-container"
+      onClick={(e) => {
+        // Se c'è pending widget e il click è fuori dalla widget area, annulla
+        if (pendingWidget && !e.target.closest('.widgets-area-card')) {
+          console.log('[DASHBOARD] Click fuori widget area, annullo pending');
+          setPendingWidget(null);
+          if (onPendingWidgetProcessed) {
+            onPendingWidgetProcessed();
+          }
+        }
+      }}
+    >
       <div className="section-header">
         <h2>Buon lavoro, {user.nome || user.username}!</h2>
         <p>La tua dashboard personale - {formatTime(currentDate)}</p>
@@ -599,14 +647,18 @@ const PersonalDashboard = ({ user, isAdmin, onNavigate }) => {
       <div className="dashboard-grid">
         {/* Widget Area - Scorciatoie Personalizzate */}
         <div 
-          className={`dashboard-card widgets-area-card ${isDragOver ? 'drag-over' : ''}`}
+          className={`dashboard-card widgets-area-card ${isDragOver ? 'drag-over' : ''} ${pendingWidget ? 'pending-widget' : ''}`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
+          onClick={handleWidgetAreaClick}
         >
           <h2>📌 Widget Area</h2>
           <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--gray-600)', marginBottom: 'var(--spacing-md)' }}>
-            Trascina qui le sezioni dalla sidebar per creare scorciatoie
+            {pendingWidget 
+              ? `Tap qui per aggiungere "${pendingWidget.label}"` 
+              : 'Trascina qui le sezioni dalla sidebar per creare scorciatoie'
+            }
           </p>
           
           {widgets.length === 0 ? (
