@@ -843,7 +843,9 @@
     font-size: var(--font-size-xs);
   }
 
+  /* X sempre visibile su mobile */
   .widget-remove {
+    display: flex !important;
     opacity: 1;
     width: 20px;
     height: 20px;

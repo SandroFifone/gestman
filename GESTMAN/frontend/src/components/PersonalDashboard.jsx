@@ -362,6 +362,32 @@ const PersonalDashboard = ({ user, isAdmin, onNavigate }) => {
     setIsDragOver(false);
   };
 
+  // Handler touch per mobile
+  const handleTouchEnd = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const dataText = sessionStorage.getItem('dragData');
+      console.log('[DASHBOARD] Touch end, data:', dataText);
+      
+      if (!dataText) {
+        console.error('[DASHBOARD] Nessun dato nel touch');
+        return;
+      }
+      
+      const dragData = JSON.parse(dataText);
+      console.log('[DASHBOARD] Touch data parsed:', dragData);
+      
+      if (dragData.section) {
+        console.log('[DASHBOARD] Aggiunta widget sezione (touch):', dragData.section);
+        await addWidget(dragData.section);
+        sessionStorage.removeItem('dragData');
+      }
+    } catch (error) {
+      console.error('[DASHBOARD] Errore touch end:', error);
+    }
+  };
+
   const checkTelegramStatus = async () => {
     try {
       // Controlla se l'utente è abilitato per Telegram
@@ -592,6 +618,7 @@ const PersonalDashboard = ({ user, isAdmin, onNavigate }) => {
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
+          onTouchEnd={handleTouchEnd}
         >
           <h2>📌 Widget Area</h2>
           <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--gray-600)', marginBottom: 'var(--spacing-md)' }}>
