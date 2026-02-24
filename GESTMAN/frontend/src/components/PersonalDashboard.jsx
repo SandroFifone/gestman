@@ -281,22 +281,30 @@ const PersonalDashboard = ({ user, isAdmin, onNavigate }) => {
 
   const addWidget = async (section) => {
     try {
-      const response = await fetch(API_URLS.widgets(user.username), {
+      console.log('[DASHBOARD] Chiamata addWidget per:', section);
+      const url = API_URLS.widgets(user.username);
+      console.log('[DASHBOARD] URL chiamata:', url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ section })
       });
 
       const data = await response.json();
+      console.log('[DASHBOARD] Risposta server:', data);
       
       if (response.ok) {
-        setWidgets(prev => [...prev, data]);
-        console.log(`[DASHBOARD] Widget aggiunto: ${section}`);
+        // Ricarica tutti i widget per essere sicuri
+        await loadUserWidgets();
+        console.log(`[DASHBOARD] Widget aggiunto con successo: ${section}`);
       } else if (data.error === 'Widget già presente') {
         console.log(`[DASHBOARD] Widget ${section} già presente`);
+      } else {
+        console.error('[DASHBOARD] Errore dal server:', data.error);
       }
     } catch (error) {
-      console.error('Errore aggiunta widget:', error);
+      console.error('[DASHBOARD] Errore aggiunta widget:', error);
     }
   };
 
@@ -317,24 +325,40 @@ const PersonalDashboard = ({ user, isAdmin, onNavigate }) => {
 
   const handleDrop = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(false);
     
     try {
-      const dragData = JSON.parse(e.dataTransfer.getData('application/json'));
+      const dataText = e.dataTransfer.getData('application/json');
+      console.log('[DASHBOARD] Drop ricevuto, data:', dataText);
+      
+      if (!dataText) {
+        console.error('[DASHBOARD] Nessun dato nel drop');
+        return;
+      }
+      
+      const dragData = JSON.parse(dataText);
+      console.log('[DASHBOARD] Drag data parsed:', dragData);
+      
       if (dragData.section) {
+        console.log('[DASHBOARD] Aggiunta widget sezione:', dragData.section);
         await addWidget(dragData.section);
+      } else {
+        console.error('[DASHBOARD] Nessuna sezione nel dragData');
       }
     } catch (error) {
-      console.error('Errore drop widget:', error);
+      console.error('[DASHBOARD] Errore drop widget:', error);
     }
   };
 
   const handleDragOver = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(true);
   };
 
-  const handleDragLeave = () => {
+  const handleDragLeave = (e) => {
+    e.preventDefault();
     setIsDragOver(false);
   };
 

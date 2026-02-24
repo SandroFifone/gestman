@@ -47,10 +47,11 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
     };
     e.dataTransfer.setData('application/json', JSON.stringify(dragData));
     e.dataTransfer.effectAllowed = 'copy';
+    console.log('[SIDEBAR] Drag start:', dragData);
     
     // Chiudi la sidebar dopo un breve delay per permettere il drop
     setTimeout(() => {
-      if (onClose && isMobile()) {
+      if (onClose) {
         onClose();
       }
     }, 300);
