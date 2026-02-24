@@ -49,14 +49,12 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
     e.dataTransfer.effectAllowed = 'copy';
     console.log('[SIDEBAR] Drag start:', dragData);
     
-    // Chiudi la sidebar solo su desktop dopo un breve delay
-    if (!isMobile()) {
-      setTimeout(() => {
-        if (onClose) {
-          onClose();
-        }
-      }, 300);
-    }
+    // Chiudi la sidebar sempre dopo un breve delay per permettere il drop
+    setTimeout(() => {
+      if (onClose) {
+        onClose();
+      }
+    }, 300);
   };
 
   return (
