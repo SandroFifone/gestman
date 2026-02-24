@@ -49,33 +49,14 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
     e.dataTransfer.effectAllowed = 'copy';
     console.log('[SIDEBAR] Drag start:', dragData);
     
-    // Chiudi la sidebar dopo un breve delay per permettere il drop
-    setTimeout(() => {
-      if (onClose) {
-        onClose();
-      }
-    }, 300);
-  };
-
-  // Handler touch per mobile
-  const handleTouchStart = (e, route, section) => {
-    const dragData = {
-      route: route,
-      section: section || route,
-      icon: SECTIONS_MAP[route]?.icon || '📌',
-      label: SECTIONS_MAP[route]?.label || route
-    };
-    
-    // Salva i dati in sessionStorage per il touch
-    sessionStorage.setItem('dragData', JSON.stringify(dragData));
-    console.log('[SIDEBAR] Touch start:', dragData);
-    
-    // Chiudi sidebar
-    setTimeout(() => {
-      if (onClose) {
-        onClose();
-      }
-    }, 200);
+    // Chiudi la sidebar solo su desktop dopo un breve delay
+    if (!isMobile()) {
+      setTimeout(() => {
+        if (onClose) {
+          onClose();
+        }
+      }, 300);
+    }
   };
 
   return (
@@ -99,7 +80,6 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
             onClick={() => onNavigate("home")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'home', 'dashboard')}
-            onTouchStart={(e) => handleTouchStart(e, 'home', 'dashboard')}
           >
             <span className="sidebar-icon">🏠</span>
             <span>Home</span>
@@ -112,7 +92,6 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
             onClick={() => onNavigate("assets")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'assets', 'assets')}
-            onTouchStart={(e) => handleTouchStart(e, 'assets', 'assets')}
           >
             <span className="sidebar-icon">⚙️</span>
             <span>Assets</span>
@@ -125,7 +104,6 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
             onClick={() => onNavigate("calendario")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'calendario', 'calendario')}
-            onTouchStart={(e) => handleTouchStart(e, 'calendario', 'calendario')}
           >
             <span className="sidebar-icon">📅</span>
             <span>Calendario</span>
@@ -138,7 +116,6 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
             onClick={() => onNavigate("dynamic-compiler")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'dynamic-compiler', 'compilazioni')}
-            onTouchStart={(e) => handleTouchStart(e, 'dynamic-compiler', 'compilazioni')}
           >
             <span className="sidebar-icon">📋</span>
             <span>Compilatore</span>
@@ -151,7 +128,6 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
             onClick={() => onNavigate("alert")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'alert', 'alert')}
-            onTouchStart={(e) => handleTouchStart(e, 'alert', 'alert')}
           >
             <span className="sidebar-icon">🚨</span>
             <span>Alert</span>
@@ -164,7 +140,6 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
             onClick={() => onNavigate("rubrica")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'rubrica', 'rubrica')}
-            onTouchStart={(e) => handleTouchStart(e, 'rubrica', 'rubrica')}
           >
             <span className="sidebar-icon">📇</span>
             <span>Rubrica</span>
@@ -177,7 +152,6 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
             onClick={() => onNavigate("tickets")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'tickets', 'tickets')}
-            onTouchStart={(e) => handleTouchStart(e, 'tickets', 'tickets')}
           >
             <span className="sidebar-icon">🎫</span>
             <span>Tickets</span>
@@ -190,7 +164,6 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
             onClick={() => onNavigate("docs")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'docs', 'docs')}
-            onTouchStart={(e) => handleTouchStart(e, 'docs', 'docs')}
           >
             <span className="sidebar-icon">📚</span>
             <span>Docs</span>
@@ -203,7 +176,6 @@ const Sidebar = ({ isAdmin, onNavigate, active, isOpen, onClose, userSections = 
             onClick={() => onNavigate("magazzino")}
             draggable
             onDragStart={(e) => handleDragStart(e, 'magazzino', 'magazzino')}
-            onTouchStart={(e) => handleTouchStart(e, 'magazzino', 'magazzino')}
           >
             <span className="sidebar-icon">📦</span>
             <span>Magazzino</span>

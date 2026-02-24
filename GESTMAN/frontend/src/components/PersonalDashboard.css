@@ -596,6 +596,8 @@
   border: 2px dashed var(--primary-color);
   background: #e3f2fd;
   transform: scale(1.02);
+  z-index: 9999;
+  position: relative;
 }
 
 .widget-placeholder {
