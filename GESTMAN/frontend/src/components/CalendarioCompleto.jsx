@@ -3,7 +3,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import FormScadenzaDinamica from "./FormScadenzaDinamica";
 
-const CalendarioCompleto = ({ username, sidebarOpen }) => {
+const CalendarioCompleto = ({ username, sidebarOpen, isAdmin }) => {
   const [activeTab, setActiveTab] = useState('scadenze');
   const [scadenze, setScadenze] = useState([]);
   const [assetTypes, setAssetTypes] = useState([]);
@@ -38,6 +38,12 @@ const CalendarioCompleto = ({ username, sidebarOpen }) => {
     asset: '',
     asset_tipo: '',
     data_scadenza: '',
+  });
+  
+  // Stato per scheduler alert automatici
+  const [alertSchedulerEnabled, setAlertSchedulerEnabled] = useState(false);
+  const [alertSchedulerLastRun, setAlertSchedulerLastRun] = useState(null);
+  const [showAlertDropdown, setShowAlertDropdown] = useState(false);
     frequenza_tipo: '',
     giorni_preavviso: 7
   });
@@ -67,11 +73,24 @@ const CalendarioCompleto = ({ username, sidebarOpen }) => {
     }
   }, [filtroRangeGiorni, filtroCivico, filtroAssetType, filtroAssetSpecifico]);
 
+  // Chiudi dropdown quando si clicca fuori
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showAlertDropdown && !event.target.closest('[data-alert-dropdown]')) {
+        setShowAlertDropdown(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showAlertDropdown]);
+
   const caricaDati = async () => {
     if (activeTab === 'scadenze') {
       await caricaScadenze();
       await caricaCivici();
       await caricaAssetTypes();
+      await loadAlertSchedulerConfig(); // Carica stato scheduler alert
       // NON caricare tipologie automaticamente - solo quando si seleziona un tipo asset
       // NON generare automaticamente gli alert - lasciare solo il pulsante manuale
       // await generaAlertScadenze();
@@ -113,6 +132,67 @@ const CalendarioCompleto = ({ username, sidebarOpen }) => {
       }
     } catch (err) {
       setError("Errore di comunicazione con il server");
+    }
+  };
+
+  const loadAlertSchedulerConfig = async () => {
+    try {
+      const response = await fetch("/api/calendario/alert-scheduler-config");
+      const data = await response.json();
+      
+      if (response.ok) {
+        setAlertSchedulerEnabled(data.enabled || false);
+        setAlertSchedulerLastRun(data.last_run);
+      }
+    } catch (err) {
+      console.error("Errore caricamento config scheduler:", err);
+    }
+  };
+
+  const toggleAlertScheduler = async (newState) => {
+    try {
+      const response = await fetch("/api/calendario/alert-scheduler-config", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          enabled: newState,
+          username: username 
+        })
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setAlertSchedulerEnabled(newState);
+        setMessage(data.message || `Alert automatici ${newState ? 'attivati' : 'disattivati'}`);
+        setTimeout(() => setMessage(""), 3000);
+      } else {
+        setError(data.error || "Errore aggiornamento configurazione");
+      }
+    } catch (err) {
+      setError("Errore di comunicazione con il server");
+    }
+  };
+
+  const testAlertScheduler = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/calendario/genera-alert", {
+        method: 'POST'
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setMessage(`✓ Test completato! Generati ${data.alert_generati} alert`);
+        setTimeout(() => setMessage(""), 5000);
+        await loadAlertSchedulerConfig(); // Ricarica per aggiornare last_run
+      } else {
+        setError(data.error || "Errore nel test");
+      }
+    } catch (err) {
+      setError("Errore di comunicazione con il server");
+    } finally {
+      setLoading(false);
+      setShowAlertDropdown(false);
     }
   };
 
@@ -754,22 +834,150 @@ const CalendarioCompleto = ({ username, sidebarOpen }) => {
             ➕ Nuova Scadenza
           </button>
           
-          <button 
-            onClick={generaAlertScadenze}
-            style={{
-              background: '#ff6b35',
-              color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px'
-            }}
-          >
-            🔔 Genera Alert
-          </button>
+          {/* Dropdown Alert Automatici - Solo Admin */}
+          {isAdmin && (
+            <div style={{ position: 'relative' }} data-alert-dropdown>
+              <button
+                onClick={() => setShowAlertDropdown(!showAlertDropdown)}
+                style={{
+                  background: alertSchedulerEnabled ? '#4caf50' : '#ff9800',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
+                  transition: 'all 0.2s'
+                }}
+              >
+                🔔 Alert Auto: {alertSchedulerEnabled ? 'ON' : 'OFF'}
+                <span style={{ fontSize: '10px' }}>▼</span>
+              </button>
+              
+              {showAlertDropdown && (
+                <div 
+                  data-alert-dropdown
+                  style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  marginTop: '4px',
+                  background: 'white',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  minWidth: '280px',
+                  zIndex: 1000,
+                  padding: '12px'
+                }}>
+                  {/* Toggle ON/OFF */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px',
+                    borderBottom: '1px solid #eee',
+                    marginBottom: '8px'
+                  }}>
+                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#333' }}>
+                      Attiva Alert Automatici
+                    </span>
+                    <label style={{
+                      position: 'relative',
+                      display: 'inline-block',
+                      width: '44px',
+                      height: '24px',
+                      cursor: 'pointer'
+                    }}>
+                      <input 
+                        type="checkbox"
+                        checked={alertSchedulerEnabled}
+                        onChange={(e) => toggleAlertScheduler(e.target.checked)}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: alertSchedulerEnabled ? '#4caf50' : '#ccc',
+                        borderRadius: '24px',
+                        transition: '0.3s',
+                        cursor: 'pointer'
+                      }}>
+                        <span style={{
+                          position: 'absolute',
+                          height: '18px',
+                          width: '18px',
+                          left: alertSchedulerEnabled ? '23px' : '3px',
+                          bottom: '3px',
+                          backgroundColor: 'white',
+                          borderRadius: '50%',
+                          transition: '0.3s'
+                        }}></span>
+                      </span>
+                    </label>
+                  </div>
+                  
+                  {/* Info */}
+                  <div style={{
+                    padding: '8px',
+                    background: '#f5f5f5',
+                    borderRadius: '4px',
+                    marginBottom: '8px'
+                  }}>
+                    <div style={{ fontSize: '11px', color: '#666', marginBottom: '4px' }}>
+                      {alertSchedulerEnabled 
+                        ? '✓ Controllo giornaliero ore 7:00 AM' 
+                        : '✗ Controllo disattivato'}
+                    </div>
+                    {alertSchedulerLastRun && (
+                      <div style={{ fontSize: '10px', color: '#999' }}>
+                        Ultimo: {new Date(alertSchedulerLastRun).toLocaleString('it-IT')}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Bottone Test */}
+                  <button
+                    onClick={testAlertScheduler}
+                    disabled={loading}
+                    style={{
+                      width: '100%',
+                      background: '#2196f3',
+                      color: 'white',
+                      border: 'none',
+                      padding: '8px 12px',
+                      borderRadius: '4px',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      opacity: loading ? 0.6 : 1,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {loading ? '⏳ Test in corso...' : '🧪 Test Immediato'}
+                  </button>
+                  
+                  <div style={{
+                    fontSize: '10px',
+                    color: '#999',
+                    marginTop: '8px',
+                    fontStyle: 'italic',
+                    textAlign: 'center'
+                  }}>
+                    Il test genera alert senza attendere le 7:00
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
           <button 
             onClick={caricaScadenze}
             style={{

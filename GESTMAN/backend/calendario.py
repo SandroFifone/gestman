@@ -195,6 +195,26 @@ def init_calendario_db():
         
         print("[DEBUG] Inserite tipologie di manutenzione iniziali per asset generici")
     
+    # Tabella per configurazione scheduler alert automatici
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS alert_scheduler_config (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        enabled BOOLEAN DEFAULT 0,
+        last_run TEXT,
+        updated_at TEXT,
+        updated_by TEXT
+    )
+    ''')
+    
+    # Inserisci configurazione di default se non esiste
+    c.execute("SELECT COUNT(*) FROM alert_scheduler_config WHERE id = 1")
+    if c.fetchone()[0] == 0:
+        c.execute("""
+            INSERT INTO alert_scheduler_config (id, enabled, updated_at)
+            VALUES (1, 0, ?)
+        """, (datetime.datetime.now().isoformat(),))
+        print("[DEBUG] Inizializzata configurazione scheduler alert (disabled di default)")
+    
     conn.commit()
     
     # Inizializza voci frese se non esistono
@@ -1742,6 +1762,65 @@ def trigger_genera_alert():
         return jsonify({'ok': True, 'alert_generati': alert_generati})
     except Exception as e:
         return jsonify({'error': f'Errore generazione alert: {e}'}), 500
+
+@bp.route('/alert-scheduler-config', methods=['GET'])
+def get_alert_scheduler_config():
+    """Ottiene la configurazione dello scheduler alert automatici"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        c.execute("SELECT * FROM alert_scheduler_config WHERE id = 1")
+        config = c.fetchone()
+        conn.close()
+        
+        if config:
+            return jsonify({
+                'enabled': bool(config['enabled']),
+                'last_run': config['last_run'],
+                'updated_at': config['updated_at'],
+                'updated_by': config['updated_by']
+            })
+        else:
+            return jsonify({
+                'enabled': False,
+                'last_run': None,
+                'updated_at': None,
+                'updated_by': None
+            })
+    except Exception as e:
+        return jsonify({'error': f'Errore lettura configurazione: {e}'}), 500
+
+@bp.route('/alert-scheduler-config', methods=['POST'])
+def update_alert_scheduler_config():
+    """Aggiorna la configurazione dello scheduler (solo admin)"""
+    try:
+        data = request.get_json()
+        enabled = data.get('enabled', False)
+        username = data.get('username', 'unknown')
+        
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        
+        c.execute("""
+            UPDATE alert_scheduler_config 
+            SET enabled = ?, updated_at = ?, updated_by = ?
+            WHERE id = 1
+        """, (1 if enabled else 0, datetime.datetime.now().isoformat(), username))
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"[SCHEDULER] Alert automatici {'ATTIVATI' if enabled else 'DISATTIVATI'} da {username}")
+        
+        return jsonify({
+            'ok': True, 
+            'enabled': enabled,
+            'message': f"Alert automatici {'attivati' if enabled else 'disattivati'}"
+        })
+    except Exception as e:
+        return jsonify({'error': f'Errore aggiornamento configurazione: {e}'}), 500
 
 # --- INIZIALIZZAZIONE ---
 init_calendario_db()

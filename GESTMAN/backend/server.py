@@ -8,6 +8,8 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import json
 from datetime import datetime
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 
 app = Flask(__name__)
@@ -1005,6 +1007,88 @@ def test_connection():
         "timestamp": datetime.datetime.now().isoformat(),
         "server": "Flask/GESTMAN"
     })
+
+# --- SCHEDULER ALERT AUTOMATICI ---
+def scheduled_alert_check():
+    """
+    Funzione eseguita ogni giorno alle 7:00 AM.
+    Controlla se lo scheduler è abilitato e genera gli alert.
+    """
+    try:
+        print("[SCHEDULER] Esecuzione controllo alert schedulato...")
+        
+        # Verifica se lo scheduler è abilitato
+        db_path = os.path.join(os.path.dirname(__file__), 'compilazioni.db')
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        
+        c.execute("SELECT enabled FROM alert_scheduler_config WHERE id = 1")
+        result = c.fetchone()
+        
+        if result and result[0]:
+            print("[SCHEDULER] Alert automatici ABILITATI - Generazione in corso...")
+            
+            # Importa e chiama la funzione di generazione alert
+            from calendario import genera_alert_scadenze
+            alert_generati = genera_alert_scadenze()
+            
+            # Aggiorna last_run
+            c.execute("""
+                UPDATE alert_scheduler_config 
+                SET last_run = ?
+                WHERE id = 1
+            """, (datetime.now().isoformat(),))
+            conn.commit()
+            
+            print(f"[SCHEDULER] Completato. Generati {alert_generati} alert")
+        else:
+            print("[SCHEDULER] Alert automatici DISABILITATI - Nessuna azione")
+        
+        conn.close()
+        
+    except Exception as e:
+        print(f"[SCHEDULER] ERRORE durante controllo alert: {e}")
+        import traceback
+        traceback.print_exc()
+
+# Inizializza lo scheduler SOLO se non siamo in un worker Gunicorn
+# In produzione con Gunicorn, lo scheduler dovrebbe girare in un processo separato
+# oppure solo nel processo principale
+def init_scheduler():
+    """
+    Inizializza lo scheduler solo se appropriato.
+    - In development (python server.py): sempre attivo
+    - In production (Gunicorn): solo se ENABLE_SCHEDULER=true
+    """
+    import os
+    
+    # Controlla se siamo in Gunicorn (variabile settata automaticamente)
+    is_gunicorn = "gunicorn" in os.environ.get("SERVER_SOFTWARE", "").lower()
+    enable_scheduler = os.environ.get("ENABLE_SCHEDULER", "false").lower() == "true"
+    
+    # In development, sempre attivo
+    # In production, solo se esplicitamente abilitato
+    should_start = not is_gunicorn or enable_scheduler
+    
+    if should_start:
+        try:
+            scheduler = BackgroundScheduler(daemon=True)
+            scheduler.add_job(
+                func=scheduled_alert_check,
+                trigger=CronTrigger(hour=7, minute=0),  # Ogni giorno alle 7:00 AM
+                id='alert_scadenze_check',
+                name='Controllo Alert Scadenze Giornaliero',
+                replace_existing=True
+            )
+            scheduler.start()
+            print("[SCHEDULER] ✓ Scheduler alert inizializzato - esecuzione giornaliera alle 7:00 AM")
+        except Exception as e:
+            print(f"[SCHEDULER] ✗ Errore inizializzazione scheduler: {e}")
+    else:
+        print("[SCHEDULER] ⚠ Scheduler disabilitato (worker Gunicorn). Avviare con ENABLE_SCHEDULER=true in un processo separato.")
+
+# Avvia scheduler
+init_scheduler()
 
 if __name__ == "__main__":
     # Configura il server per accettare connessioni remote

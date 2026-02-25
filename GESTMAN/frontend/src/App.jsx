@@ -344,7 +344,7 @@ function AppContent({ user, onLogout }) {
               <Route path="/rubrica" element={<Rubrica />} />
             )}
             {userSections.includes('calendario') && (
-              <Route path="/calendario" element={<CalendarioCompleto username={user.username} sidebarOpen={sidebarOpen} />} />
+              <Route path="/calendario" element={<CalendarioCompleto username={user.username} sidebarOpen={sidebarOpen} isAdmin={user.isAdmin} />} />
             )}
             {userSections.includes('docs') && (
               <Route path="/docs" element={<Docs username={user.username} isAdmin={user.isAdmin} />} />
