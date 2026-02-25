@@ -8,8 +8,17 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import json
 from datetime import datetime
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
+
+# Importa APScheduler se disponibile (opzionale per produzione)
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.triggers.cron import CronTrigger
+    HAS_APSCHEDULER = True
+except ImportError:
+    print("[SCHEDULER] ⚠ APScheduler non installato - scheduler alert disabilitato")
+    HAS_APSCHEDULER = False
+    BackgroundScheduler = None
+    CronTrigger = None
 
 
 app = Flask(__name__)
@@ -1061,6 +1070,11 @@ def init_scheduler():
     - In production (Gunicorn): solo se ENABLE_SCHEDULER=true
     """
     import os
+    
+    # Verifica se APScheduler è disponibile
+    if not HAS_APSCHEDULER:
+        print("[SCHEDULER] ⚠ APScheduler non disponibile - installa con: pip install APScheduler==3.10.4")
+        return
     
     # Controlla se siamo in Gunicorn (variabile settata automaticamente)
     is_gunicorn = "gunicorn" in os.environ.get("SERVER_SOFTWARE", "").lower()
