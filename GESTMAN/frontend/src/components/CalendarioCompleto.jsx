@@ -44,9 +44,7 @@ const CalendarioCompleto = ({ username, sidebarOpen, isAdmin }) => {
   const [alertSchedulerEnabled, setAlertSchedulerEnabled] = useState(false);
   const [alertSchedulerLastRun, setAlertSchedulerLastRun] = useState(null);
   const [showAlertDropdown, setShowAlertDropdown] = useState(false);
-    frequenza_tipo: '',
-    giorni_preavviso: 7
-  });
+  
   // Stati per la vista calendario
   const [vistaCalendario, setVistaCalendario] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
