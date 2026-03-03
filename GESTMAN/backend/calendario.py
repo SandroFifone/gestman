@@ -534,63 +534,54 @@ def completa_scadenza_con_checklist():
         if scadenza_completata:
             civico, asset, asset_tipo, data_scadenza_str, checklist_voce_id, frequenza_tipo, giorni_preavviso, nome_manutenzione, descrizione = scadenza_completata
             
-            # Calcola la prossima data di scadenza - gestisce diversi formati di data
-            try:
-                # Prova prima con formato ISO completo
-                if 'T' in data_scadenza_str:
-                    data_attuale = datetime.datetime.fromisoformat(data_scadenza_str).date()
-                else:
-                    # Formato solo data
-                    data_attuale = datetime.datetime.strptime(data_scadenza_str, '%Y-%m-%d').date()
-            except ValueError:
-                # Fallback: usa data odierna
-                data_attuale = datetime.date.today()
-                print(f"[WARNING] Formato data non riconosciuto: {data_scadenza_str}, usando data odierna")
+            # Calcola la prossima data di scadenza partendo dalla data di esecuzione (oggi)
+            # NON dalla data di scadenza originale, altrimenti se esegui in ritardo la prossima scadenza è nel passato
+            data_esecuzione = datetime.date.today()
             
             if frequenza_tipo == "settimanale":
-                prossima_data = data_attuale + datetime.timedelta(weeks=1)
+                prossima_data = data_esecuzione + datetime.timedelta(weeks=1)
             elif frequenza_tipo == "bisettimanale":
-                prossima_data = data_attuale + datetime.timedelta(weeks=2)
+                prossima_data = data_esecuzione + datetime.timedelta(weeks=2)
             elif frequenza_tipo == "mensile":
                 # Aggiungi un mese
-                if data_attuale.month == 12:
-                    prossima_data = data_attuale.replace(year=data_attuale.year + 1, month=1)
+                if data_esecuzione.month == 12:
+                    prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1, month=1)
                 else:
-                    prossima_data = data_attuale.replace(month=data_attuale.month + 1)
+                    prossima_data = data_esecuzione.replace(month=data_esecuzione.month + 1)
             elif frequenza_tipo == "bimestrale":
                 # Aggiungi 2 mesi
-                new_month = data_attuale.month + 2
-                new_year = data_attuale.year
+                new_month = data_esecuzione.month + 2
+                new_year = data_esecuzione.year
                 if new_month > 12:
                     new_month -= 12
                     new_year += 1
-                prossima_data = data_attuale.replace(year=new_year, month=new_month)
+                prossima_data = data_esecuzione.replace(year=new_year, month=new_month)
             elif frequenza_tipo == "trimestrale":
                 # Aggiungi 3 mesi
-                new_month = data_attuale.month + 3
-                new_year = data_attuale.year
+                new_month = data_esecuzione.month + 3
+                new_year = data_esecuzione.year
                 if new_month > 12:
                     new_month -= 12
                     new_year += 1
-                prossima_data = data_attuale.replace(year=new_year, month=new_month)
+                prossima_data = data_esecuzione.replace(year=new_year, month=new_month)
             elif frequenza_tipo == "semestrale":
                 # Aggiungi 6 mesi
-                new_month = data_attuale.month + 6
-                new_year = data_attuale.year
+                new_month = data_esecuzione.month + 6
+                new_year = data_esecuzione.year
                 if new_month > 12:
                     new_month -= 12
                     new_year += 1
-                prossima_data = data_attuale.replace(year=new_year, month=new_month)
+                prossima_data = data_esecuzione.replace(year=new_year, month=new_month)
             elif frequenza_tipo == "annuale":
-                prossima_data = data_attuale.replace(year=data_attuale.year + 1)
+                prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1)
             elif frequenza_tipo == "biennale":
-                prossima_data = data_attuale.replace(year=data_attuale.year + 2)
+                prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 2)
             else:
                 # Default mensile
-                if data_attuale.month == 12:
-                    prossima_data = data_attuale.replace(year=data_attuale.year + 1, month=1)
+                if data_esecuzione.month == 12:
+                    prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1, month=1)
                 else:
-                    prossima_data = data_attuale.replace(month=data_attuale.month + 1)
+                    prossima_data = data_esecuzione.replace(month=data_esecuzione.month + 1)
             
             # Crea la nuova scadenza ricorrente
             c.execute("""
@@ -1427,20 +1418,19 @@ def completa_scadenza(scadenza_id):
                     }
                     frequenza_mesi = frequenza_mesi_map.get(frequenza_tipo.lower(), 1)
                     
-                    try:
-                        data_scadenza_dt = datetime.datetime.fromisoformat(data_scadenza)
-                    except:
-                        data_scadenza_dt = now
+                    # Usa la data di esecuzione (oggi), non la data di scadenza originale
+                    # Altrimenti se completi in ritardo, la prossima scadenza è nel passato
+                    data_esecuzione = now
                     
                     if HAS_DATEUTIL:
                         if frequenza_mesi < 1:
                             giorni = int(frequenza_mesi * 30)
-                            prossima_scadenza = data_scadenza_dt + datetime.timedelta(days=giorni)
+                            prossima_scadenza = data_esecuzione + datetime.timedelta(days=giorni)
                         else:
-                            prossima_scadenza = data_scadenza_dt + relativedelta(months=int(frequenza_mesi))
+                            prossima_scadenza = data_esecuzione + relativedelta(months=int(frequenza_mesi))
                     else:
                         giorni_da_aggiungere = int(frequenza_mesi * 30)
-                        prossima_scadenza = data_scadenza_dt + datetime.timedelta(days=giorni_da_aggiungere)
+                        prossima_scadenza = data_esecuzione + datetime.timedelta(days=giorni_da_aggiungere)
                     
                     # Calcola scadenza successiva
                     if HAS_DATEUTIL:
@@ -1514,14 +1504,9 @@ def completa_scadenza(scadenza_id):
                 WHERE id = ?
             """, (now.isoformat(), operatore, note, now.isoformat(), scadenza_id))
             
-            # Calcola prossima scadenza
-            if data_prossima_str:
-                try:
-                    data_prossima = datetime.datetime.fromisoformat(data_prossima_str)
-                except:
-                    data_prossima = now + datetime.timedelta(days=30)
-            else:
-                data_prossima = now + datetime.timedelta(days=30)
+            # Calcola prossima scadenza partendo dalla data di esecuzione (oggi)
+            # NON dalla data_prossima_scadenza salvata, altrimenti se completi in ritardo la prossima è nel passato
+            data_esecuzione = now
             
             # Calcola frequenza per la scadenza successiva
             if frequenza_tipo:
@@ -1534,14 +1519,14 @@ def completa_scadenza(scadenza_id):
                 if HAS_DATEUTIL:
                     if frequenza_mesi < 1:
                         giorni = int(frequenza_mesi * 30)
-                        data_successiva = data_prossima + datetime.timedelta(days=giorni)
+                        data_successiva = data_esecuzione + datetime.timedelta(days=giorni)
                     else:
-                        data_successiva = data_prossima + relativedelta(months=int(frequenza_mesi))
+                        data_successiva = data_esecuzione + relativedelta(months=int(frequenza_mesi))
                 else:
                     giorni_da_aggiungere = int(frequenza_mesi * 30)
-                    data_successiva = data_prossima + datetime.timedelta(days=giorni_da_aggiungere)
+                    data_successiva = data_esecuzione + datetime.timedelta(days=giorni_da_aggiungere)
             else:
-                data_successiva = data_prossima + datetime.timedelta(days=30)
+                data_successiva = data_esecuzione + datetime.timedelta(days=30)
             
             # Crea nuova scadenza
             c.execute("""
@@ -2325,36 +2310,30 @@ def completa_scadenza_internal(data):
         if scadenza_completata:
             civico, asset, asset_tipo, data_scadenza_str, checklist_voce_id, frequenza_tipo, giorni_preavviso, nome_manutenzione, descrizione = scadenza_completata
             
-            # Calcola la prossima data di scadenza
-            try:
-                if 'T' in data_scadenza_str:
-                    data_attuale = datetime.datetime.fromisoformat(data_scadenza_str).date()
-                else:
-                    data_attuale = datetime.datetime.strptime(data_scadenza_str, '%Y-%m-%d').date()
-            except ValueError:
-                data_attuale = datetime.date.today()
-                print(f"[WARNING] Formato data non riconosciuto: {data_scadenza_str}, usando data odierna")
+            # Calcola la prossima data di scadenza partendo dalla data di esecuzione (oggi)
+            # NON dalla data di scadenza originale, altrimenti se esegui in ritardo la prossima scadenza è nel passato
+            data_esecuzione = datetime.date.today()
             
             # Calcola prossima data basata sulla frequenza
             if frequenza_tipo == "settimanale":
-                prossima_data = data_attuale + datetime.timedelta(weeks=1)
+                prossima_data = data_esecuzione + datetime.timedelta(weeks=1)
             elif frequenza_tipo == "bisettimanale":
-                prossima_data = data_attuale + datetime.timedelta(weeks=2)
+                prossima_data = data_esecuzione + datetime.timedelta(weeks=2)
             elif frequenza_tipo == "mensile":
-                if data_attuale.month == 12:
-                    prossima_data = data_attuale.replace(year=data_attuale.year + 1, month=1)
+                if data_esecuzione.month == 12:
+                    prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1, month=1)
                 else:
-                    prossima_data = data_attuale.replace(month=data_attuale.month + 1)
+                    prossima_data = data_esecuzione.replace(month=data_esecuzione.month + 1)
             elif frequenza_tipo == "annuale":
-                prossima_data = data_attuale.replace(year=data_attuale.year + 1)
+                prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1)
             elif frequenza_tipo == "biennale":
-                prossima_data = data_attuale.replace(year=data_attuale.year + 2)
+                prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 2)
             else:
                 # Default mensile
-                if data_attuale.month == 12:
-                    prossima_data = data_attuale.replace(year=data_attuale.year + 1, month=1)
+                if data_esecuzione.month == 12:
+                    prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1, month=1)
                 else:
-                    prossima_data = data_attuale.replace(month=data_attuale.month + 1)
+                    prossima_data = data_esecuzione.replace(month=data_esecuzione.month + 1)
             
             # Crea la nuova scadenza ricorrente
             c.execute("""
@@ -2438,25 +2417,24 @@ def crea_nuova_scadenza_ricorrente(scad_info, operatore, cursor):
         
         # Calcola prossima data basata sulla frequenza
         if frequenza_tipo == "settimanale":
-            prossima_data = data_attuale + datetime.timedelta(weeks=1)
-        elif frequenza_tipo == "bisettimanale":
-            prossima_data = data_attuale + datetime.timedelta(weeks=2)
-        elif frequenza_tipo == "mensile":
-            if data_attuale.month == 12:
-                prossima_data = data_attuale.replace(year=data_attuale.year + 1, month=1)
+                prossima_data = data_esecuzione + datetime.timedelta(weeks=1)
+            elif frequenza_tipo == "bisettimanale":
+                prossima_data = data_esecuzione + datetime.timedelta(weeks=2)
+            elif frequenza_tipo == "mensile":
+                if data_esecuzione.month == 12:
+                    prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1, month=1)
+                else:
+                    prossima_data = data_esecuzione.replace(month=data_esecuzione.month + 1)
+            elif frequenza_tipo == "annuale":
+                prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1)
+            elif frequenza_tipo == "biennale":
+                prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 2)
             else:
-                prossima_data = data_attuale.replace(month=data_attuale.month + 1)
-        elif frequenza_tipo == "annuale":
-            prossima_data = data_attuale.replace(year=data_attuale.year + 1)
-        elif frequenza_tipo == "biennale":
-            prossima_data = data_attuale.replace(year=data_attuale.year + 2)
-        else:
-            # Default mensile
-            if data_attuale.month == 12:
-                prossima_data = data_attuale.replace(year=data_attuale.year + 1, month=1)
-            else:
-                prossima_data = data_attuale.replace(month=data_attuale.month + 1)
-        
+                # Default mensile
+                if data_esecuzione.month == 12:
+                    prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1, month=1)
+                else:
+                    prossima_data = data_esecuzione.replace(month=data_esecuzione.month + 1)
         # 1. SALVA L'ESECUZIONE NELLO STORICO
         cursor.execute("""
             INSERT INTO scadenze_storico_esecuzioni 
