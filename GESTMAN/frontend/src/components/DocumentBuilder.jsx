@@ -257,6 +257,11 @@ const DocumentBuilder = ({ username }) => {
             date: new Date().toISOString(),
             month: new Date().toLocaleDateString('it-IT', { month: 'long' }),
             year: new Date().getFullYear()
+          },
+          generated_by: username,
+          metadata: {
+            title: `Documento ${new Date().toLocaleDateString('it-IT')}`,
+            related_type: 'manual'
           }
         })
       });
@@ -269,9 +274,13 @@ const DocumentBuilder = ({ username }) => {
         link.download = `documento_${Date.now()}.pdf`;
         link.click();
         URL.revokeObjectURL(url);
+        
+        // Mostra messaggio di successo
+        alert('✓ Documento generato e salvato nello storico!');
       }
     } catch (err) {
       console.error('Errore generazione PDF:', err);
+      alert('Errore nella generazione del documento');
     }
   };
 
