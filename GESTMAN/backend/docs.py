@@ -1288,8 +1288,57 @@ def generate_document():
         
         # Determina nome file
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"document_{timestamp}.pdf"
+        username = data.get('generated_by', 'unknown')
+        filename = f"document_{username}_{timestamp}.pdf"
         
+        # Salva file fisicamente
+        documents_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'documents')
+        os.makedirs(documents_dir, exist_ok=True)
+        filepath = os.path.join(documents_dir, filename)
+        
+        pdf_content = buffer.getvalue()
+        file_size = len(pdf_content)
+        
+        with open(filepath, 'wb') as f:
+            f.write(pdf_content)
+        
+        # Inserisci record in document_history
+        metadata = data.get('metadata', {})
+        conn = get_db_connection('compilazioni')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO document_history (
+                filename, title, generated_by, civico_numero, asset_id,
+                periodo_inizio, periodo_fine, related_type, related_ids,
+                template_id, parameters_json, file_size_bytes, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            filename,
+            metadata.get('title'),
+            username,
+            metadata.get('civico_numero'),
+            metadata.get('asset_id'),
+            metadata.get('periodo_inizio'),
+            metadata.get('periodo_fine'),
+            metadata.get('related_type', 'manual'),
+            json.dumps(metadata.get('related_ids', [])) if metadata.get('related_ids') else None,
+            metadata.get('template_id'),
+            json.dumps({
+                'variables': template_vars,
+                'blocks_count': len(blocks),
+                **metadata.get('extra_params', {})
+            }),
+            file_size,
+            metadata.get('notes')
+        ))
+        
+        history_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        # Restituisci PDF + metadati
+        buffer.seek(0)
         return send_file(
             buffer,
             as_attachment=True,
@@ -1306,3 +1355,272 @@ def generate_document():
         return jsonify({
             'error': f'Errore generazione documento: {str(e)}'
         }), 500
+
+
+# =========================================
+# ENDPOINTS PER DOCUMENT HISTORY
+# =========================================
+
+@bp.route('/history', methods=['GET'])
+def get_document_history():
+    """
+    Ottiene la lista dei documenti generati con filtri opzionali
+    Query params: civico, from, to, generated_by, related_type, limit, offset
+    """
+    try:
+        # Parametri filtro
+        civico = request.args.get('civico')
+        date_from = request.args.get('from')
+        date_to = request.args.get('to')
+        generated_by = request.args.get('generated_by')
+        related_type = request.args.get('related_type')
+        limit = int(request.args.get('limit', 100))
+        offset = int(request.args.get('offset', 0))
+        
+        conn = get_db_connection('compilazioni')
+        cursor = conn.cursor()
+        
+        # Costruisci query dinamica
+        query = """
+            SELECT 
+                id, filename, title, generated_at, generated_by,
+                civico_numero, asset_id, periodo_inizio, periodo_fine,
+                related_type, related_ids, template_id, file_size_bytes, notes
+            FROM document_history
+            WHERE 1=1
+        """
+        params = []
+        
+        if civico:
+            query += " AND civico_numero = ?"
+            params.append(civico)
+        
+        if date_from:
+            query += " AND generated_at >= ?"
+            params.append(date_from)
+        
+        if date_to:
+            query += " AND generated_at <= ?"
+            params.append(date_to)
+        
+        if generated_by:
+            query += " AND generated_by = ?"
+            params.append(generated_by)
+        
+        if related_type:
+            query += " AND related_type = ?"
+            params.append(related_type)
+        
+        query += " ORDER BY generated_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        # Count totale
+        count_query = "SELECT COUNT(*) as total FROM document_history WHERE 1=1"
+        count_params = []
+        
+        if civico:
+            count_query += " AND civico_numero = ?"
+            count_params.append(civico)
+        if date_from:
+            count_query += " AND generated_at >= ?"
+            count_params.append(date_from)
+        if date_to:
+            count_query += " AND generated_at <= ?"
+            count_params.append(date_to)
+        if generated_by:
+            count_query += " AND generated_by = ?"
+            count_params.append(generated_by)
+        if related_type:
+            count_query += " AND related_type = ?"
+            count_params.append(related_type)
+        
+        cursor.execute(count_query, count_params)
+        total = cursor.fetchone()['total']
+        
+        conn.close()
+        
+        documents = [dict(row) for row in rows]
+        
+        # Parse JSON fields
+        import json
+        for doc in documents:
+            if doc.get('related_ids'):
+                try:
+                    doc['related_ids'] = json.loads(doc['related_ids'])
+                except:
+                    pass
+            if doc.get('parameters_json'):
+                try:
+                    doc['parameters'] = json.loads(doc['parameters_json'])
+                    del doc['parameters_json']
+                except:
+                    pass
+        
+        return jsonify({
+            'documents': documents,
+            'total': total,
+            'limit': limit,
+            'offset': offset
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore recupero storico: {str(e)}'}), 500
+
+
+@bp.route('/history/<int:history_id>', methods=['GET'])
+def get_document_detail(history_id):
+    """Ottiene dettaglio singolo documento + link al file se esiste"""
+    try:
+        conn = get_db_connection('compilazioni')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT * FROM document_history WHERE id = ?
+        """, (history_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return jsonify({'error': 'Documento non trovato'}), 404
+        
+        doc = dict(row)
+        
+        # Parse JSON
+        import json
+        if doc.get('related_ids'):
+            try:
+                doc['related_ids'] = json.loads(doc['related_ids'])
+            except:
+                pass
+        if doc.get('parameters_json'):
+            try:
+                doc['parameters'] = json.loads(doc['parameters_json'])
+                del doc['parameters_json']
+            except:
+                pass
+        
+        # Verifica esistenza file
+        documents_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'documents')
+        filepath = os.path.join(documents_dir, doc['filename'])
+        doc['file_exists'] = os.path.exists(filepath)
+        doc['download_url'] = f"/api/docs/download/{history_id}" if doc['file_exists'] else None
+        
+        return jsonify(doc)
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore recupero documento: {str(e)}'}), 500
+
+
+@bp.route('/download/<int:history_id>', methods=['GET'])
+def download_document(history_id):
+    """Scarica il PDF di un documento dallo storico"""
+    try:
+        conn = get_db_connection('compilazioni')
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT filename FROM document_history WHERE id = ?", (history_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return jsonify({'error': 'Documento non trovato'}), 404
+        
+        filename = row['filename']
+        documents_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'documents')
+        filepath = os.path.join(documents_dir, filename)
+        
+        if not os.path.exists(filepath):
+            return jsonify({'error': 'File non trovato sul server'}), 404
+        
+        from flask import send_file
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore download: {str(e)}'}), 500
+
+
+@bp.route('/history/<int:history_id>', methods=['DELETE'])
+def delete_document(history_id):
+    """Elimina record storico e file associato"""
+    try:
+        conn = get_db_connection('compilazioni')
+        cursor = conn.cursor()
+        
+        # Recupera filename prima di eliminare
+        cursor.execute("SELECT filename FROM document_history WHERE id = ?", (history_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            return jsonify({'error': 'Documento non trovato'}), 404
+        
+        filename = row['filename']
+        
+        # Elimina record
+        cursor.execute("DELETE FROM document_history WHERE id = ?", (history_id,))
+        conn.commit()
+        conn.close()
+        
+        # Elimina file fisico se esiste
+        documents_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'documents')
+        filepath = os.path.join(documents_dir, filename)
+        
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        
+        return jsonify({'success': True, 'message': 'Documento eliminato'})
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore eliminazione: {str(e)}'}), 500
+
+
+@bp.route('/templates', methods=['GET'])
+def get_document_templates():
+    """Ottiene i template predefiniti per documenti ricorrenti"""
+    try:
+        templates_file = os.path.join(os.path.dirname(__file__), 'document_templates.json')
+        
+        if not os.path.exists(templates_file):
+            return jsonify({'templates': []})
+        
+        import json
+        with open(templates_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        return jsonify(data)
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore caricamento template: {str(e)}'}), 500
+
+
+@bp.route('/templates/<int:template_id>', methods=['GET'])
+def get_template_detail(template_id):
+    """Ottiene dettaglio di un singolo template"""
+    try:
+        templates_file = os.path.join(os.path.dirname(__file__), 'document_templates.json')
+        
+        if not os.path.exists(templates_file):
+            return jsonify({'error': 'File template non trovato'}), 404
+        
+        import json
+        with open(templates_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        template = next((t for t in data.get('templates', []) if t['id'] == template_id), None)
+        
+        if not template:
+            return jsonify({'error': 'Template non trovato'}), 404
+        
+        return jsonify(template)
+        
+    except Exception as e:
+        return jsonify({'error': f'Errore caricamento template: {str(e)}'}), 500

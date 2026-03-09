@@ -1,0 +1,419 @@
+{
+  "templates": [
+    {
+      "id": 1,
+      "name": "Rapporto Mensile Civico",
+      "description": "Report completo delle attività svolte in un civico in un periodo specifico",
+      "category": "civico",
+      "parameters": [
+        {
+          "name": "civico_numero",
+          "label": "Numero Civico",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "periodo_inizio",
+          "label": "Data Inizio",
+          "type": "date",
+          "required": true
+        },
+        {
+          "name": "periodo_fine",
+          "label": "Data Fine",
+          "type": "date",
+          "required": true
+        }
+      ],
+      "blocks": [
+        {
+          "type": "title",
+          "config": {
+            "text": "Rapporto Mensile - Civico {{civico_numero}}",
+            "level": "h1",
+            "align": "center"
+          }
+        },
+        {
+          "type": "text",
+          "config": {
+            "content": "Periodo: {{periodo_inizio}} - {{periodo_fine}}",
+            "align": "center"
+          }
+        },
+        {
+          "type": "separator",
+          "config": {
+            "style": "solid",
+            "thickness": 2
+          }
+        },
+        {
+          "type": "title",
+          "config": {
+            "text": "Compilazioni Completate",
+            "level": "h2",
+            "align": "left"
+          }
+        },
+        {
+          "type": "table",
+          "config": {
+            "database": "compilazioni",
+            "table": "compilazioni",
+            "columns": ["id", "data_compilazione", "tipo", "operatore", "note"],
+            "filters": [
+              {
+                "field": "civico",
+                "operator": "=",
+                "value": "{{civico_numero}}"
+              },
+              {
+                "field": "data_compilazione",
+                "operator": ">=",
+                "value": "{{periodo_inizio}}"
+              },
+              {
+                "field": "data_compilazione",
+                "operator": "<=",
+                "value": "{{periodo_fine}}"
+              }
+            ],
+            "orderBy": {
+              "field": "data_compilazione",
+              "direction": "DESC"
+            },
+            "style": {
+              "borders": true,
+              "alternateRows": true,
+              "fontSize": 9
+            }
+          }
+        },
+        {
+          "type": "pageBreak"
+        },
+        {
+          "type": "title",
+          "config": {
+            "text": "Alert e Non Conformità",
+            "level": "h2",
+            "align": "left"
+          }
+        },
+        {
+          "type": "table",
+          "config": {
+            "database": "compilazioni",
+            "table": "alert",
+            "columns": ["tipo", "titolo", "descrizione", "data_creazione", "stato", "operatore"],
+            "filters": [
+              {
+                "field": "civico",
+                "operator": "=",
+                "value": "{{civico_numero}}"
+              },
+              {
+                "field": "data_creazione",
+                "operator": ">=",
+                "value": "{{periodo_inizio}}"
+              },
+              {
+                "field": "data_creazione",
+                "operator": "<=",
+                "value": "{{periodo_fine}}"
+              }
+            ],
+            "orderBy": {
+              "field": "data_creazione",
+              "direction": "DESC"
+            },
+            "style": {
+              "borders": true,
+              "alternateRows": true,
+              "fontSize": 8
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Verbale Intervento Singolo Asset",
+      "description": "Documento di intervento su uno specifico asset con storico manutenzioni",
+      "category": "asset",
+      "parameters": [
+        {
+          "name": "asset_id",
+          "label": "ID Asset (es. FRE-001)",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "intervento_data",
+          "label": "Data Intervento",
+          "type": "date",
+          "required": true
+        },
+        {
+          "name": "operatore",
+          "label": "Operatore",
+          "type": "text",
+          "required": true
+        }
+      ],
+      "blocks": [
+        {
+          "type": "title",
+          "config": {
+            "text": "Verbale Intervento Manutenzione",
+            "level": "h1",
+            "align": "center"
+          }
+        },
+        {
+          "type": "text",
+          "config": {
+            "content": "Asset: {{asset_id}}",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "config": {
+            "content": "Data intervento: {{intervento_data}}",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "config": {
+            "content": "Operatore: {{operatore}}",
+            "align": "left"
+          }
+        },
+        {
+          "type": "separator",
+          "config": {
+            "style": "solid",
+            "thickness": 1
+          }
+        },
+        {
+          "type": "title",
+          "config": {
+            "text": "Dettagli Asset",
+            "level": "h2",
+            "align": "left"
+          }
+        },
+        {
+          "type": "table",
+          "config": {
+            "database": "gestman",
+            "table": "assets",
+            "columns": ["asset_id", "descrizione", "tipo", "marca", "modello", "civico", "ubicazione"],
+            "filters": [
+              {
+                "field": "asset_id",
+                "operator": "=",
+                "value": "{{asset_id}}"
+              }
+            ],
+            "style": {
+              "borders": true,
+              "alternateRows": false,
+              "fontSize": 9
+            }
+          }
+        },
+        {
+          "type": "title",
+          "config": {
+            "text": "Storico Manutenzioni (ultimi 12 mesi)",
+            "level": "h2",
+            "align": "left"
+          }
+        },
+        {
+          "type": "table",
+          "config": {
+            "database": "gestman",
+            "table": "manutenzioni",
+            "columns": ["data_intervento", "tipo_intervento", "operatore", "ore_lavoro", "costo", "note"],
+            "filters": [
+              {
+                "field": "asset_id",
+                "operator": "=",
+                "value": "{{asset_id}}"
+              }
+            ],
+            "orderBy": {
+              "field": "data_intervento",
+              "direction": "DESC"
+            },
+            "style": {
+              "borders": true,
+              "alternateRows": true,
+              "fontSize": 8
+            }
+          }
+        },
+        {
+          "type": "pageBreak"
+        },
+        {
+          "type": "title",
+          "config": {
+            "text": "Alert e Non Conformità Correlati",
+            "level": "h2",
+            "align": "left"
+          }
+        },
+        {
+          "type": "table",
+          "config": {
+            "database": "compilazioni",
+            "table": "alert",
+            "columns": ["tipo", "titolo", "data_creazione", "stato", "descrizione"],
+            "filters": [
+              {
+                "field": "asset",
+                "operator": "=",
+                "value": "{{asset_id}}"
+              }
+            ],
+            "orderBy": {
+              "field": "data_creazione",
+              "direction": "DESC"
+            },
+            "style": {
+              "borders": true,
+              "alternateRows": true,
+              "fontSize": 8
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Elenco Alert Aperti",
+      "description": "Lista completa di tutti gli alert aperti o in carico",
+      "category": "alert",
+      "parameters": [
+        {
+          "name": "data_report",
+          "label": "Data Report",
+          "type": "date",
+          "required": true
+        },
+        {
+          "name": "tipo_alert",
+          "label": "Tipo Alert (lasciare vuoto per tutti)",
+          "type": "select",
+          "options": ["", "non_conformita", "scadenza", "Tickets"],
+          "required": false
+        }
+      ],
+      "blocks": [
+        {
+          "type": "title",
+          "config": {
+            "text": "Report Alert Aperti",
+            "level": "h1",
+            "align": "center"
+          }
+        },
+        {
+          "type": "text",
+          "config": {
+            "content": "Data report: {{data_report}}",
+            "align": "center"
+          }
+        },
+        {
+          "type": "separator",
+          "config": {
+            "style": "solid",
+            "thickness": 2
+          }
+        },
+        {
+          "type": "title",
+          "config": {
+            "text": "Alert in Stato Aperto",
+            "level": "h2",
+            "align": "left"
+          }
+        },
+        {
+          "type": "table",
+          "config": {
+            "database": "compilazioni",
+            "table": "alert",
+            "columns": ["id", "tipo", "titolo", "descrizione", "data_creazione", "civico", "asset", "operatore"],
+            "filters": [
+              {
+                "field": "stato",
+                "operator": "=",
+                "value": "aperto"
+              }
+            ],
+            "orderBy": {
+              "field": "data_creazione",
+              "direction": "ASC"
+            },
+            "style": {
+              "borders": true,
+              "alternateRows": true,
+              "fontSize": 8
+            }
+          }
+        },
+        {
+          "type": "pageBreak"
+        },
+        {
+          "type": "title",
+          "config": {
+            "text": "Alert in Carico",
+            "level": "h2",
+            "align": "left"
+          }
+        },
+        {
+          "type": "table",
+          "config": {
+            "database": "compilazioni",
+            "table": "alert",
+            "columns": ["id", "tipo", "titolo", "descrizione", "data_creazione", "civico", "asset", "operatore"],
+            "filters": [
+              {
+                "field": "stato",
+                "operator": "=",
+                "value": "in_carico"
+              }
+            ],
+            "orderBy": {
+              "field": "data_creazione",
+              "direction": "ASC"
+            },
+            "style": {
+              "borders": true,
+              "alternateRows": true,
+              "fontSize": 8
+            }
+          }
+        },
+        {
+          "type": "text",
+          "config": {
+            "content": "Fine report",
+            "align": "center"
+          }
+        }
+      ]
+    }
+  ]
+}
