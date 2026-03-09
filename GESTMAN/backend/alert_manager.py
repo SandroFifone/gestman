@@ -1,7 +1,7 @@
 # coding: utf-8
 """
 Blueprint per la gestione degli alert
-Separato dal vecchio sistema di compilazioni hardcoded
+
 """
 from flask import Blueprint, request, jsonify
 import sqlite3
