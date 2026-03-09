@@ -160,7 +160,7 @@ const AlertScreen = () => {
   // Funzione per estrarre e formattare la data di scadenza per gli alert di tipo scadenza
   const getDataPerScadenze = (alert) => {
     if (activeTab !== 'scadenza') {
-      return alert.data_creazione;
+      return new Date(alert.data_creazione).toLocaleDateString('it-IT');
     }
     
     // Per gli alert di scadenza, usa data_scadenza se disponibile
