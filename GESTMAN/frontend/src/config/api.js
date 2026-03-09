@@ -60,7 +60,7 @@ export const API_URLS = {
   assetTypes: `${API_BASE_URL}/api/asset-types`,
   
   // API per alert e tickets
-  alerts: `${API_BASE_URL}/api/alert`,
+  alerts: `${API_BASE_URL}/api/compilazioni/alert`,
   
   // API per la rubrica
   RUBRICA_CATEGORIE: `${API_BASE_URL}/api/rubrica/categorie`,
