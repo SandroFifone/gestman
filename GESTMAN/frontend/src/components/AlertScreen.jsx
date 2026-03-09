@@ -348,11 +348,12 @@ const AlertScreen = () => {
                                   />
                                 </td>
                                 <td>{getDataPerScadenze(alert)}</td>
-                                <td style={{ fontWeight: 'var(--font-weight-medium)' }}>
+                                <td style={{ fontWeight: 'var(--font-weight-medium)', minWidth: '120px' }}>
                                   {activeTab === 'Tickets' ? (
                                     <button 
                                       onClick={() => showNote(alert.descrizione)} 
                                       className="btn btn-sm btn-info"
+                                      style={{ whiteSpace: 'nowrap' }}
                                     >
                                       👁️ Vedi
                                     </button>
@@ -384,6 +385,7 @@ const AlertScreen = () => {
                                     <button 
                                       onClick={() => showNote(alert.note)} 
                                       className="btn btn-sm btn-info"
+                                      style={{ whiteSpace: 'nowrap' }}
                                     >
                                       👁️ Vedi
                                     </button>
@@ -518,11 +520,12 @@ const AlertScreen = () => {
                             {chiusi.map(alert => (
                               <tr key={alert.id}>
                                 <td>{getDataPerScadenze(alert)}</td>
-                                <td style={{ fontWeight: 'var(--font-weight-medium)' }}>
+                                <td style={{ fontWeight: 'var(--font-weight-medium)', minWidth: '120px' }}>
                                   {activeTab === 'Tickets' ? (
                                     <button 
                                       onClick={() => showNote(alert.descrizione)} 
                                       className="btn btn-sm btn-info"
+                                      style={{ whiteSpace: 'nowrap' }}
                                   >
                                     👁️ Vedi
                                   </button>
@@ -554,6 +557,7 @@ const AlertScreen = () => {
                                   <button 
                                     onClick={() => showNote(alert.note)} 
                                     className="btn btn-sm btn-info"
+                                    style={{ whiteSpace: 'nowrap' }}
                                   >
                                     👁️ Vedi
                                   </button>
