@@ -17,6 +17,7 @@ const AlertScreen = () => {
   const [loading, setLoading] = useState(false);
   const [selectedAlertMobile, setSelectedAlertMobile] = useState(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
+  const [selectedAlerts, setSelectedAlerts] = useState([]); // Stato per selezione multipla
   
   // Hook per i modali personalizzati
   const { modalState, showAlert, showConfirm, showError, closeModal } = useCustomModal();
@@ -52,6 +53,11 @@ const AlertScreen = () => {
     loadAlerts();
   }, []);
 
+  // Resetta selezione quando cambia tab
+  useEffect(() => {
+    setSelectedAlerts([]);
+  }, [activeTab]);
+
   const filtered = alerts.filter(a => a.tipo === activeTab);
 
   // Conteggi alert attivi per badge
@@ -84,6 +90,58 @@ const AlertScreen = () => {
           loadAlerts();
         } catch (err) {
           showError('Errore durante la presa in carico del ticket');
+        }
+      }
+    );
+  };
+
+  // Funzione per gestire selezione singola
+  const toggleSelectAlert = (id) => {
+    setSelectedAlerts(prev => 
+      prev.includes(id) 
+        ? prev.filter(alertId => alertId !== id)
+        : [...prev, id]
+    );
+  };
+
+  // Funzione per selezionare/deselezionare tutti gli alert attivi
+  const toggleSelectAll = () => {
+    if (selectedAlerts.length === attivi.length) {
+      setSelectedAlerts([]);
+    } else {
+      setSelectedAlerts(attivi.map(a => a.id));
+    }
+  };
+
+  // Funzione per chiusura multipla
+  const bulkCloseAlerts = async () => {
+    if (selectedAlerts.length === 0) {
+      showError('Nessun alert selezionato');
+      return;
+    }
+
+    showConfirm(
+      `Vuoi davvero chiudere ${selectedAlerts.length} alert selezionati?`,
+      async () => {
+        try {
+          const response = await fetch(`${API_URLS.alerts}/bulk-close`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ alert_ids: selectedAlerts })
+          });
+
+          if (!response.ok) {
+            throw new Error('Errore durante la chiusura multipla');
+          }
+
+          const result = await response.json();
+          showAlert(`${result.closed_count} alert chiusi con successo`, 'Successo');
+          
+          // Resetta selezione e ricarica
+          setSelectedAlerts([]);
+          loadAlerts();
+        } catch (err) {
+          showError('Errore durante la chiusura multipla degli alert');
         }
       }
     );
@@ -219,11 +277,54 @@ const AlertScreen = () => {
                         {activeTab === 'Tickets' ? 'Tickets attivi' : 'Alert attivi'}
                       </h3>
                       
+                      {/* Barra selezione multipla */}
+                      {selectedAlerts.length > 0 && (
+                        <div style={{
+                          background: 'var(--primary-color)',
+                          color: '#fff',
+                          padding: 'var(--spacing-md)',
+                          borderRadius: 'var(--border-radius)',
+                          marginBottom: 'var(--spacing-md)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          boxShadow: 'var(--shadow-md)'
+                        }}>
+                          <span style={{ fontWeight: 'var(--font-weight-semibold)' }}>
+                            {selectedAlerts.length} alert selezionati
+                          </span>
+                          <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
+                            <button 
+                              onClick={() => setSelectedAlerts([])}
+                              className="btn btn-outline"
+                              style={{ background: 'white', color: 'var(--primary-color)', borderColor: 'white' }}
+                            >
+                              Deseleziona tutto
+                            </button>
+                            <button 
+                              onClick={bulkCloseAlerts}
+                              className="btn btn-primary"
+                              style={{ background: 'var(--error-color)', borderColor: 'var(--error-color)' }}
+                            >
+                              ✓ Chiudi selezionati
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
                       {/* Tabella desktop */}
                       <div className="alert-table-desktop">
                         <table className="table">
                           <thead>
                             <tr>
+                              <th style={{ width: '40px' }}>
+                                <input 
+                                  type="checkbox"
+                                  checked={attivi.length > 0 && selectedAlerts.length === attivi.length}
+                                  onChange={toggleSelectAll}
+                                  style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+                                />
+                              </th>
                               <th>Data</th>
                               <th>Descrizione</th>
                               {activeTab !== 'scadenza' && <th>{activeTab === 'Tickets' ? 'Utente' : 'Operatore'}</th>}
@@ -237,6 +338,15 @@ const AlertScreen = () => {
                           <tbody>
                             {attivi.map(alert => (
                               <tr key={alert.id}>
+                                <td>
+                                  <input 
+                                    type="checkbox"
+                                    checked={selectedAlerts.includes(alert.id)}
+                                    onChange={() => toggleSelectAlert(alert.id)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+                                  />
+                                </td>
                                 <td>{getDataPerScadenze(alert)}</td>
                                 <td style={{ fontWeight: 'var(--font-weight-medium)' }}>
                                   {activeTab === 'Tickets' ? (
@@ -321,8 +431,29 @@ const AlertScreen = () => {
                           <div 
                             key={alert.id}
                             className={`alert-card-mobile ${activeTab}`}
-                            onClick={() => setSelectedAlertMobile(alert)}
+                            style={{ 
+                              display: 'flex',
+                              gap: 'var(--spacing-sm)',
+                              alignItems: 'flex-start'
+                            }}
                           >
+                            <input 
+                              type="checkbox"
+                              checked={selectedAlerts.includes(alert.id)}
+                              onChange={() => toggleSelectAlert(alert.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ 
+                                cursor: 'pointer', 
+                                width: '20px', 
+                                height: '20px',
+                                marginTop: '8px',
+                                flexShrink: 0
+                              }}
+                            />
+                            <div 
+                              style={{ flex: 1 }}
+                              onClick={() => setSelectedAlertMobile(alert)}
+                            >
                             <div className="alert-card-header">
                               <span className="alert-card-date">{getDataPerScadenze(alert)}</span>
                               <span className={`alert-card-stato ${alert.stato}`}>
@@ -349,6 +480,7 @@ const AlertScreen = () => {
                                   <span className="alert-card-info-value">{alert.asset}</span>
                                 </div>
                               </div>
+                            </div>
                             </div>
                           </div>
                         ))}

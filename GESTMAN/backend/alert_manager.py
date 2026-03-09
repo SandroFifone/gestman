@@ -253,5 +253,41 @@ def take_alert(alert_id):
         print(f"[ERROR] take_alert: {e}")
         return jsonify({'error': str(e)}), 500
 
+@bp.route('/alert/bulk-close', methods=['POST'])
+def bulk_close_alerts():
+    """Chiude multipli alert in una sola operazione"""
+    try:
+        data = request.json
+        alert_ids = data.get('alert_ids', [])
+        
+        if not alert_ids or not isinstance(alert_ids, list):
+            return jsonify({'error': 'Lista di alert_ids richiesta'}), 400
+        
+        if len(alert_ids) == 0:
+            return jsonify({'error': 'Almeno un alert deve essere selezionato'}), 400
+            
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        
+        # Costruisci la query con placeholders per ogni ID
+        placeholders = ','.join('?' * len(alert_ids))
+        query = f"UPDATE alert SET stato = 'chiuso', data_chiusura = datetime('now', 'localtime') WHERE id IN ({placeholders})"
+        
+        c.execute(query, alert_ids)
+        closed_count = c.rowcount
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'{closed_count} alert chiusi con successo',
+            'closed_count': closed_count
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] bulk_close_alerts: {e}")
+        return jsonify({'error': str(e)}), 500
+
 # Inizializza il database al caricamento del modulo
 init_alert_db()
