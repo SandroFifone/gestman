@@ -6,6 +6,7 @@ import datetime
 import json
 import traceback
 from telegram_manager import send_alert_to_telegram
+import db_validators
 
 # Prova a importare dateutil, con fallback se non disponibile
 try:
@@ -441,6 +442,7 @@ def get_form_scadenza(scadenza_id):
 @bp.route('/completa-scadenza', methods=['POST'])
 def completa_scadenza_con_checklist():
     """Completa una scadenza con i risultati della checklist"""
+    conn = None
     try:
         data = request.get_json()
         if not data:
@@ -456,6 +458,39 @@ def completa_scadenza_con_checklist():
         
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
+        
+        # Ottieni dettagli scadenza PRIMA di validare
+        c.execute("""
+            SELECT s.civico, s.asset, s.asset_tipo, s.data_scadenza, s.checklist_voce_id, 
+                   s.frequenza_tipo, s.giorni_preavviso, 
+                   COALESCE(mpc.nome_voce, 'Manutenzione') as nome_manutenzione,
+                   COALESCE(mpc.descrizione, '') as descrizione
+            FROM scadenze_calendario s
+            LEFT JOIN manutenzione_programmata_checklist mpc ON s.checklist_voce_id = mpc.id
+            WHERE s.id = ?
+        """, (scadenza_id,))
+        
+        scadenza_completata = c.fetchone()
+        if not scadenza_completata:
+            return jsonify({'error': f'Scadenza {scadenza_id} non trovata'}), 404
+        
+        civico = scadenza_completata[0]
+        asset = scadenza_completata[1]
+        
+        # VALIDAZIONE RIFERIMENTI (Priorità 2)
+        is_valid, errors = db_validators.validate_scadenza_references(
+            civico=civico,
+            asset_id=asset,
+            operatore_assegnato=operatore
+        )
+        if not is_valid:
+            return jsonify({
+                'error': 'Riferimenti non validi',
+                'details': errors
+            }), 400
+        
+        # INIZIO TRANSAZIONE (Priorità 1)
+        c.execute('BEGIN TRANSACTION')
         
         # Aggiorna scadenza come completata
         c.execute("""
@@ -488,136 +523,137 @@ def completa_scadenza_con_checklist():
                 datetime.datetime.now().isoformat()
             ))
         
-        # Ottieni dettagli scadenza completata per creare la prossima
-        c.execute("""
-            SELECT s.civico, s.asset, s.asset_tipo, s.data_scadenza, s.checklist_voce_id, 
-                   s.frequenza_tipo, s.giorni_preavviso, 
-                   COALESCE(mpc.nome_voce, 'Manutenzione') as nome_manutenzione,
-                   COALESCE(mpc.descrizione, '') as descrizione
-            FROM scadenze_calendario s
-            LEFT JOIN manutenzione_programmata_checklist mpc ON s.checklist_voce_id = mpc.id
-            WHERE s.id = ?
-        """, (scadenza_id,))
-        
-        scadenza_completata = c.fetchone()
-        
         # Genera alert se ci sono note generali
-        if note_generali.strip() and scadenza_completata:
+        if note_generali.strip():
             c.execute("""
                 INSERT INTO alert (tipo, titolo, descrizione, data_creazione, civico, asset, stato, note, operatore)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 'non_conformita',
-                f"Note manutenzione programmata: {scadenza_completata[1]}",
+                f"Note manutenzione programmata: {asset}",
                 f"Manutenzione programmata {scadenza_completata[2]}",
                 datetime.datetime.now().isoformat(),
-                scadenza_completata[0],
-                scadenza_completata[1],
+                civico,
+                asset,
                 'aperto',
                 note_generali,
                 operatore
             ))
-            
-            # Invia alert su Telegram
-            alert_data = {
-                'tipo': 'non_conformita',
-                'titolo': f"Note manutenzione programmata: {scadenza_completata[1]}",
-                'descrizione': f"Manutenzione programmata {scadenza_completata[2]}",
-                'civico': scadenza_completata[0],
-                'asset': scadenza_completata[1],
-                'note': note_generali,
-                'operatore': operatore
-            }
-            send_alert_to_telegram(alert_data)
+            alert_id = c.lastrowid
         
         # Crea la prossima scadenza ricorrente
-        if scadenza_completata:
-            civico, asset, asset_tipo, data_scadenza_str, checklist_voce_id, frequenza_tipo, giorni_preavviso, nome_manutenzione, descrizione = scadenza_completata
-            
-            # Calcola la prossima data di scadenza partendo dalla data di esecuzione (oggi)
-            # NON dalla data di scadenza originale, altrimenti se esegui in ritardo la prossima scadenza è nel passato
-            data_esecuzione = datetime.date.today()
-            
-            if frequenza_tipo == "settimanale":
-                prossima_data = data_esecuzione + datetime.timedelta(weeks=1)
-            elif frequenza_tipo == "bisettimanale":
-                prossima_data = data_esecuzione + datetime.timedelta(weeks=2)
-            elif frequenza_tipo == "mensile":
-                # Aggiungi un mese
-                if data_esecuzione.month == 12:
-                    prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1, month=1)
-                else:
-                    prossima_data = data_esecuzione.replace(month=data_esecuzione.month + 1)
-            elif frequenza_tipo == "bimestrale":
-                # Aggiungi 2 mesi
-                new_month = data_esecuzione.month + 2
-                new_year = data_esecuzione.year
-                if new_month > 12:
-                    new_month -= 12
-                    new_year += 1
-                prossima_data = data_esecuzione.replace(year=new_year, month=new_month)
-            elif frequenza_tipo == "trimestrale":
-                # Aggiungi 3 mesi
-                new_month = data_esecuzione.month + 3
-                new_year = data_esecuzione.year
-                if new_month > 12:
-                    new_month -= 12
-                    new_year += 1
-                prossima_data = data_esecuzione.replace(year=new_year, month=new_month)
-            elif frequenza_tipo == "semestrale":
-                # Aggiungi 6 mesi
-                new_month = data_esecuzione.month + 6
-                new_year = data_esecuzione.year
-                if new_month > 12:
-                    new_month -= 12
-                    new_year += 1
-                prossima_data = data_esecuzione.replace(year=new_year, month=new_month)
-            elif frequenza_tipo == "annuale":
-                prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1)
-            elif frequenza_tipo == "biennale":
-                prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 2)
-            else:
-                # Default mensile
-                if data_esecuzione.month == 12:
-                    prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1, month=1)
-                else:
-                    prossima_data = data_esecuzione.replace(month=data_esecuzione.month + 1)
-            
-            # Crea la nuova scadenza ricorrente
-            c.execute("""
-                INSERT INTO scadenze_calendario 
-                (manutenzione_id, civico, asset, asset_tipo, data_scadenza, checklist_voce_id, 
-                 frequenza_tipo, giorni_preavviso, 
-                 stato, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                -1,  # Placeholder per compatibilità con constraint NOT NULL
-                civico,
-                asset,
-                asset_tipo,
-                prossima_data.isoformat(),
-                checklist_voce_id,
-                frequenza_tipo,
-                giorni_preavviso,
-                'programmata',
-                datetime.datetime.now().isoformat(),
-                datetime.datetime.now().isoformat()
-            ))
-            
-            print(f"[DEBUG] Creata nuova scadenza ricorrente per {asset} - prossima data: {prossima_data}")
+        asset_tipo, data_scadenza_str, checklist_voce_id, frequenza_tipo, giorni_preavviso, nome_manutenzione, descrizione = scadenza_completata[2:]
         
+        # Calcola la prossima data di scadenza partendo dalla data di esecuzione (oggi)
+        data_esecuzione = datetime.date.today()
+        
+        if frequenza_tipo == "settimanale":
+            prossima_data = data_esecuzione + datetime.timedelta(weeks=1)
+        elif frequenza_tipo == "bisettimanale":
+            prossima_data = data_esecuzione + datetime.timedelta(weeks=2)
+        elif frequenza_tipo == "mensile":
+            # Aggiungi un mese
+            if data_esecuzione.month == 12:
+                prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1, month=1)
+            else:
+                prossima_data = data_esecuzione.replace(month=data_esecuzione.month + 1)
+        elif frequenza_tipo == "bimestrale":
+            # Aggiungi 2 mesi
+            new_month = data_esecuzione.month + 2
+            new_year = data_esecuzione.year
+            if new_month > 12:
+                new_month -= 12
+                new_year += 1
+            prossima_data = data_esecuzione.replace(year=new_year, month=new_month)
+        elif frequenza_tipo == "trimestrale":
+            # Aggiungi 3 mesi
+            new_month = data_esecuzione.month + 3
+            new_year = data_esecuzione.year
+            if new_month > 12:
+                new_month -= 12
+                new_year += 1
+            prossima_data = data_esecuzione.replace(year=new_year, month=new_month)
+        elif frequenza_tipo == "semestrale":
+            # Aggiungi 6 mesi
+            new_month = data_esecuzione.month + 6
+            new_year = data_esecuzione.year
+            if new_month > 12:
+                new_month -= 12
+                new_year += 1
+            prossima_data = data_esecuzione.replace(year=new_year, month=new_month)
+        elif frequenza_tipo == "annuale":
+            prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1)
+        elif frequenza_tipo == "biennale":
+            prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 2)
+        else:
+            # Default mensile
+            if data_esecuzione.month == 12:
+                prossima_data = data_esecuzione.replace(year=data_esecuzione.year + 1, month=1)
+            else:
+                prossima_data = data_esecuzione.replace(month=data_esecuzione.month + 1)
+        
+        # Crea la nuova scadenza ricorrente
+        c.execute("""
+            INSERT INTO scadenze_calendario 
+            (manutenzione_id, civico, asset, asset_tipo, data_scadenza, checklist_voce_id, 
+             frequenza_tipo, giorni_preavviso, 
+             stato, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            -1,  # Placeholder per compatibilità con constraint NOT NULL
+            civico,
+            asset,
+            asset_tipo,
+            prossima_data.isoformat(),
+            checklist_voce_id,
+            frequenza_tipo,
+            giorni_preavviso,
+            'programmata',
+            datetime.datetime.now().isoformat(),
+            datetime.datetime.now().isoformat()
+        ))
+        
+        print(f"[DEBUG] Creata nuova scadenza ricorrente per {asset} - prossima data: {prossima_data}")
+        
+        # COMMIT TRANSAZIONE
         conn.commit()
-        conn.close()
+        
+        # Invia alert su Telegram DOPO il commit (fuori transazione)
+        if note_generali.strip():
+            try:
+                alert_data = {
+                    'tipo': 'non_conformita',
+                    'titolo': f"Note manutenzione programmata: {asset}",
+                    'descrizione': f"Manutenzione programmata {asset_tipo}",
+                    'civico': civico,
+                    'asset': asset,
+                    'note': note_generali,
+                    'operatore': operatore
+                }
+                send_alert_to_telegram(alert_data)
+            except Exception as telegram_error:
+                print(f"[WARNING] Telegram notification failed: {telegram_error}")
         
         return jsonify({'ok': True, 'message': 'Manutenzione completata con successo'})
         
     except Exception as e:
-        if 'conn' in locals():
-            conn.close()
+        # ROLLBACK in caso di errore
+        if conn:
+            try:
+                conn.rollback()
+                print("[DEBUG] Transaction rolled back")
+            except:
+                pass
         import traceback
         print("[DEBUG][ERRORE COMPLETA SCADENZA CHECKLIST]", e)
         traceback.print_exc()
-        return jsonify({'error': f'Errore completamento: {e}'}), 500
+        return jsonify({
+            'error': 'Errore completamento scadenza',
+            'details': str(e)
+        }), 500
+    finally:
+        if conn:
+            conn.close()
 
 # --- API TIPOLOGIE MANUTENZIONE ---
 
@@ -997,8 +1033,28 @@ def update_checklist_item(item_id):
 
 @bp.route('/scadenze', methods=['GET'])
 def get_scadenze_calendario():
-    """Ottiene tutte le scadenze programmate"""
+    """Ottiene tutte le scadenze programmate con paginazione"""
     try:
+        # PAGINAZIONE
+        page = int(request.args.get('page', 1))
+        limit = min(int(request.args.get('limit', 50)), 200)  # Max 200
+        offset = (page - 1) * limit
+        
+        # SORT (colonne permesse per sicurezza)
+        sort_param = request.args.get('sort', 'data_scadenza:asc')
+        allowed_columns = ['id', 'data_scadenza', 'data_prossima_scadenza', 'civico', 'stato', 'asset_tipo']
+        
+        if ':' in sort_param:
+            sort_col, sort_dir = sort_param.split(':')
+            if sort_col not in allowed_columns:
+                sort_col = 'data_scadenza'
+            if sort_dir.upper() not in ['ASC', 'DESC']:
+                sort_dir = 'ASC'
+        else:
+            sort_col = 'data_scadenza'
+            sort_dir = 'ASC'
+        
+        # Parametri di filtro
         civico = request.args.get('civico')
         asset_tipo = request.args.get('asset_tipo')
         stato = request.args.get('stato', 'programmata')
@@ -1006,8 +1062,33 @@ def get_scadenze_calendario():
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         
-        # Query per formato nuovo con fallback per compatibilità
-        query = """
+        # Costruisci WHERE clause per filtri
+        where_clause = "WHERE 1=1"
+        params = []
+        
+        if civico:
+            where_clause += " AND s.civico = ?"
+            params.append(civico)
+        
+        if asset_tipo:
+            where_clause += " AND s.asset_tipo = ?"
+            params.append(asset_tipo)
+            
+        if stato:
+            where_clause += " AND s.stato = ?"
+            params.append(stato)
+        
+        # Conteggio totale (per paginazione)
+        count_query = f"""
+            SELECT COUNT(*) 
+            FROM scadenze_calendario s
+            {where_clause}
+        """
+        c.execute(count_query, params)
+        total_count = c.fetchone()[0]
+        
+        # Query principale con paginazione
+        query = f"""
             SELECT s.id, s.civico, s.asset, s.asset_tipo, s.data_scadenza, s.stato, 
                    s.data_completamento, s.operatore_completamento, s.note_completamento,
                    s.data_prossima_scadenza, s.frequenza_tipo, s.giorni_preavviso,
@@ -1017,23 +1098,10 @@ def get_scadenze_calendario():
             FROM scadenze_calendario s
             LEFT JOIN manutenzione_programmata_checklist c ON s.checklist_voce_id = c.id
             LEFT JOIN manutenzione_tipologie m ON s.manutenzione_id = m.id
-            WHERE 1=1
+            {where_clause}
+            ORDER BY s.{sort_col} {sort_dir} LIMIT ? OFFSET ?
         """
-        params = []
-        
-        if civico:
-            query += " AND s.civico = ?"
-            params.append(civico)
-        
-        if asset_tipo:
-            query += " AND s.asset_tipo = ?"
-            params.append(asset_tipo)
-            
-        if stato:
-            query += " AND s.stato = ?"
-            params.append(stato)
-        
-        query += " ORDER BY s.data_scadenza ASC"
+        params.extend([limit, offset])
         
         c.execute(query, params)
         rows = c.fetchall()
@@ -1069,8 +1137,18 @@ def get_scadenze_calendario():
                 'giorni_preavviso_final': row[14]
             })
         
-        print(f"[DEBUG] Trovate {len(scadenze)} scadenze")
-        return jsonify({'scadenze': scadenze})
+        print(f"[DEBUG] Trovate {len(scadenze)} scadenze (pagina {page}/{(total_count + limit - 1) // limit})")
+        
+        # Risposta con metadati paginazione
+        return jsonify({
+            'data': scadenze,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total': total_count,
+                'pages': (total_count + limit - 1) // limit  # Ceiling division
+            }
+        })
     except Exception as e:
         import traceback
         print("[DEBUG][ERRORE GET SCADENZE]", e)

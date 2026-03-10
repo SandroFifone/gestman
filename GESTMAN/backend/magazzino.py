@@ -4,6 +4,7 @@ import sqlite3
 import os
 import datetime
 import traceback
+import db_validators
 
 bp = Blueprint('magazzino', __name__)
 DB_PATH = os.path.join(os.path.dirname(__file__), 'compilazioni.db')
@@ -275,6 +276,7 @@ def update_ricambio(ricambio_id):
 @bp.route('/ricambi/<int:ricambio_id>/quantita', methods=['PATCH'])
 def update_quantita_ricambio(ricambio_id):
     """Aggiorna la quantità di un ricambio con registrazione movimento"""
+    conn = None
     try:
         data = request.get_json()
         
@@ -294,14 +296,21 @@ def update_quantita_ricambio(ricambio_id):
         if quantita <= 0:
             return jsonify({'error': 'La quantità deve essere positiva'}), 400
         
+        # VALIDAZIONE RIFERIMENTI (Priorità 2)
+        is_valid, error = db_validators.validate_user(operatore)
+        if not is_valid:
+            return jsonify({'error': error}), 400
+        
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
+        
+        # INIZIO TRANSAZIONE (Priorità 1)
+        c.execute('BEGIN TRANSACTION')
         
         # Ottieni la quantità attuale
         c.execute("SELECT quantita_disponibile FROM magazzino_ricambi WHERE id = ?", (ricambio_id,))
         result = c.fetchone()
         if not result:
-            conn.close()
             return jsonify({'error': 'Ricambio non trovato'}), 404
         
         quantita_precedente = result[0]
@@ -313,7 +322,6 @@ def update_quantita_ricambio(ricambio_id):
         elif operazione == 'scarico':
             quantita_attuale = quantita_precedente - quantita
             if quantita_attuale < 0:
-                conn.close()
                 return jsonify({'error': 'Quantità insufficiente in magazzino'}), 400
             tipo_movimento = 'scarico'
         else:  # correzione
@@ -348,8 +356,8 @@ def update_quantita_ricambio(ricambio_id):
             now
         ))
         
+        # COMMIT TRANSAZIONE
         conn.commit()
-        conn.close()
         
         print(f"[DEBUG] Aggiornata quantità ricambio {ricambio_id}: {quantita_precedente} -> {quantita_attuale}")
         return jsonify({
@@ -360,9 +368,22 @@ def update_quantita_ricambio(ricambio_id):
         })
         
     except Exception as e:
+        # ROLLBACK in caso di errore
+        if conn:
+            try:
+                conn.rollback()
+                print("[DEBUG] Transaction rolled back")
+            except:
+                pass
         print(f"[DEBUG][ERRORE UPDATE QUANTITA] {e}")
         traceback.print_exc()
-        return jsonify({'error': 'Errore nell\'aggiornamento quantità'}), 500
+        return jsonify({
+            'error': 'Errore aggiornamento quantità',
+            'details': str(e)
+        }), 500
+    finally:
+        if conn:
+            conn.close()
 
 @bp.route('/ricambi/<int:ricambio_id>', methods=['DELETE'])
 def delete_ricambio(ricambio_id):

@@ -8,6 +8,7 @@ from flask import Blueprint, request, jsonify
 import sqlite3
 import os
 from datetime import datetime
+import db_validators
 
 bp = Blueprint('docs', __name__)
 
@@ -1061,6 +1062,7 @@ def preview_document():
 @bp.route('/generate-document', methods=['POST'])
 def generate_document():
     """Genera il documento finale PDF dai blocchi configurati"""
+    conn = None
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
@@ -1302,17 +1304,56 @@ def generate_document():
         with open(filepath, 'wb') as f:
             f.write(pdf_content)
         
-        # Inserisci record in document_history
+        # VALIDAZIONE RIFERIMENTI (Priorità 2)
         metadata = data.get('metadata', {})
+        is_valid, errors = db_validators.validate_document_references(
+            civico_numero=metadata.get('civico_numero'),
+            asset_id=metadata.get('asset_id'),
+            generated_by=username
+        )
+        if not is_valid:
+            return jsonify({
+                'error': 'Riferimenti non validi',
+                'details': errors
+            }), 400
+        
+        # PRIORITÀ 4: Estrai related submission/scadenza IDs (opzionali)
+        related_submission_ids = metadata.get('related_submission_ids', [])
+        related_scadenza_ids = metadata.get('related_scadenza_ids', [])
+        
+        # Validazione leggera (warning ma non bloccare - come richiesto)
+        if related_submission_ids:
+            conn_temp = get_db_connection('compilazioni')
+            cursor_temp = conn_temp.cursor()
+            for sub_id in related_submission_ids:
+                cursor_temp.execute("SELECT id FROM form_submissions WHERE id = ?", (sub_id,))
+                if not cursor_temp.fetchone():
+                    print(f"[WARNING] related_submission_id {sub_id} non trovato (documento generato comunque)")
+            conn_temp.close()
+        
+        if related_scadenza_ids:
+            conn_temp = get_db_connection('compilazioni')
+            cursor_temp = conn_temp.cursor()
+            for scad_id in related_scadenza_ids:
+                cursor_temp.execute("SELECT id FROM scadenze_calendario WHERE id = ?", (scad_id,))
+                if not cursor_temp.fetchone():
+                    print(f"[WARNING] related_scadenza_id {scad_id} non trovato (documento generato comunque)")
+            conn_temp.close()
+        
+        # Inserisci record in document_history
         conn = get_db_connection('compilazioni')
         cursor = conn.cursor()
+        
+        # INIZIO TRANSAZIONE (Priorità 1)
+        cursor.execute('BEGIN TRANSACTION')
         
         cursor.execute("""
             INSERT INTO document_history (
                 filename, title, generated_by, civico_numero, asset_id,
                 periodo_inizio, periodo_fine, related_type, related_ids,
-                template_id, parameters_json, file_size_bytes, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                template_id, parameters_json, file_size_bytes, notes,
+                related_submission_ids, related_scadenza_ids
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             filename,
             metadata.get('title'),
@@ -1330,12 +1371,15 @@ def generate_document():
                 **metadata.get('extra_params', {})
             }),
             file_size,
-            metadata.get('notes')
+            metadata.get('notes'),
+            json.dumps(related_submission_ids) if related_submission_ids else None,
+            json.dumps(related_scadenza_ids) if related_scadenza_ids else None
         ))
         
         history_id = cursor.lastrowid
+        
+        # COMMIT TRANSAZIONE
         conn.commit()
-        conn.close()
         
         # Restituisci PDF + metadati
         buffer.seek(0)
@@ -1352,9 +1396,22 @@ def generate_document():
         }), 500
         
     except Exception as e:
+        # ROLLBACK in caso di errore
+        if conn:
+            try:
+                conn.rollback()
+                print("[DEBUG] Transaction rolled back")
+            except:
+                pass
+        import traceback
+        traceback.print_exc()
         return jsonify({
-            'error': f'Errore generazione documento: {str(e)}'
+            'error': 'Errore generazione documento',
+            'details': str(e)
         }), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # =========================================
@@ -1364,23 +1421,63 @@ def generate_document():
 @bp.route('/history', methods=['GET'])
 def get_document_history():
     """
-    Ottiene la lista dei documenti generati con filtri opzionali
-    Query params: civico, from, to, generated_by, related_type, limit, offset
+    Ottiene la lista dei documenti generati con filtri opzionali e paginazione
+    Query params: civico, from, to, generated_by, related_type, page, limit, sort
     """
     try:
+        # PAGINAZIONE (Priorità 3)
+        page = int(request.args.get('page', 1))
+        limit = min(int(request.args.get('limit', 50)), 200)  # Max 200
+        offset = (page - 1) * limit
+        
+        # SORT (colonne permesse per sicurezza)
+        sort_param = request.args.get('sort', 'generated_at:desc')
+        allowed_columns = ['id', 'filename', 'title', 'generated_at', 'generated_by', 'civico_numero', 'asset_id']
+        
+        if ':' in sort_param:
+            sort_col, sort_dir = sort_param.split(':')
+            if sort_col not in allowed_columns:
+                sort_col = 'generated_at'
+            if sort_dir.upper() not in ['ASC', 'DESC']:
+                sort_dir = 'DESC'
+        else:
+            sort_col = 'generated_at'
+            sort_dir = 'DESC'
+        
         # Parametri filtro
         civico = request.args.get('civico')
         date_from = request.args.get('from')
         date_to = request.args.get('to')
         generated_by = request.args.get('generated_by')
         related_type = request.args.get('related_type')
-        limit = int(request.args.get('limit', 100))
-        offset = int(request.args.get('offset', 0))
         
         conn = get_db_connection('compilazioni')
         cursor = conn.cursor()
         
-        # Costruisci query dinamica
+        # Conteggio totale (per paginazione)
+        count_query = "SELECT COUNT(*) FROM document_history WHERE 1=1"
+        count_params = []
+        
+        if civico:
+            count_query += " AND civico_numero = ?"
+            count_params.append(civico)
+        if date_from:
+            count_query += " AND generated_at >= ?"
+            count_params.append(date_from)
+        if date_to:
+            count_query += " AND generated_at <= ?"
+            count_params.append(date_to)
+        if generated_by:
+            count_query += " AND generated_by = ?"
+            count_params.append(generated_by)
+        if related_type:
+            count_query += " AND related_type = ?"
+            count_params.append(related_type)
+        
+        cursor.execute(count_query, count_params)
+        total_count = cursor.fetchone()[0]
+        
+        # Costruisci query dinamica con paginazione
         query = """
             SELECT 
                 id, filename, title, generated_at, generated_by,
@@ -1411,34 +1508,11 @@ def get_document_history():
             query += " AND related_type = ?"
             params.append(related_type)
         
-        query += " ORDER BY generated_at DESC LIMIT ? OFFSET ?"
+        query += f" ORDER BY {sort_col} {sort_dir} LIMIT ? OFFSET ?"
         params.extend([limit, offset])
         
         cursor.execute(query, params)
         rows = cursor.fetchall()
-        
-        # Count totale
-        count_query = "SELECT COUNT(*) as total FROM document_history WHERE 1=1"
-        count_params = []
-        
-        if civico:
-            count_query += " AND civico_numero = ?"
-            count_params.append(civico)
-        if date_from:
-            count_query += " AND generated_at >= ?"
-            count_params.append(date_from)
-        if date_to:
-            count_query += " AND generated_at <= ?"
-            count_params.append(date_to)
-        if generated_by:
-            count_query += " AND generated_by = ?"
-            count_params.append(generated_by)
-        if related_type:
-            count_query += " AND related_type = ?"
-            count_params.append(related_type)
-        
-        cursor.execute(count_query, count_params)
-        total = cursor.fetchone()['total']
         
         conn.close()
         
@@ -1460,13 +1534,18 @@ def get_document_history():
                     pass
         
         return jsonify({
-            'documents': documents,
-            'total': total,
-            'limit': limit,
-            'offset': offset
+            'data': documents,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total': total_count,
+                'pages': (total_count + limit - 1) // limit
+            }
         })
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Errore recupero storico: {str(e)}'}), 500
 
 
@@ -1513,6 +1592,60 @@ def get_document_detail(history_id):
         
     except Exception as e:
         return jsonify({'error': f'Errore recupero documento: {str(e)}'}), 500
+
+
+@bp.route('/history/by-submission/<int:submission_id>', methods=['GET'])
+def get_documents_by_submission(submission_id):
+    """Ottiene tutti i documenti collegati a una specifica form submission (PRIORITÀ 4)"""
+    try:
+        conn = get_db_connection('compilazioni')
+        cursor = conn.cursor()
+        
+        # Cerca documenti dove related_submission_ids contiene submission_id
+        # Uso LIKE per cercare nel JSON array (es: "[45,67,89]" contiene "45")
+        cursor.execute("""
+            SELECT * FROM document_history
+            WHERE related_submission_ids LIKE ?
+            ORDER BY generated_at DESC
+        """, (f'%{submission_id}%',))
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        documents = []
+        for row in rows:
+            doc = dict(row)
+            
+            # Parse JSON fields
+            import json
+            if doc.get('related_submission_ids'):
+                try:
+                    doc['related_submission_ids'] = json.loads(doc['related_submission_ids'])
+                except:
+                    pass
+            if doc.get('related_scadenza_ids'):
+                try:
+                    doc['related_scadenza_ids'] = json.loads(doc['related_scadenza_ids'])
+                except:
+                    pass
+            if doc.get('related_ids'):
+                try:
+                    doc['related_ids'] = json.loads(doc['related_ids'])
+                except:
+                    pass
+            
+            documents.append(doc)
+        
+        return jsonify({
+            'submission_id': submission_id,
+            'documents': documents,
+            'count': len(documents)
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Errore recupero documenti: {str(e)}'}), 500
 
 
 @bp.route('/download/<int:history_id>', methods=['GET'])

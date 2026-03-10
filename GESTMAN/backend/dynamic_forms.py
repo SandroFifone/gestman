@@ -13,6 +13,7 @@ import mimetypes
 import shutil
 from datetime import datetime
 from werkzeug.utils import secure_filename
+import db_validators
 
 bp = Blueprint('dynamic_forms', __name__)
 DB_PATH = os.path.join(os.path.dirname(__file__), 'compilazioni.db')
@@ -458,6 +459,7 @@ def delete_field(field_id):
 @bp.route('/submissions', methods=['POST'])
 def submit_form():
     """Salva una compilazione form e controlla alert per non conformità"""
+    conn = None
     try:
         data = request.get_json()
         if not data:
@@ -468,8 +470,30 @@ def submit_form():
             if field not in data:
                 return jsonify({'error': f'Campo {field} richiesto'}), 400
         
+        # VALIDAZIONE RIFERIMENTI (Priorità 2)
+        is_valid, errors = db_validators.validate_form_submission_references(
+            civico_numero=data.get('civico_numero'),
+            asset_id=data.get('asset_id'),
+            operatore=data.get('operatore')
+        )
+        if not is_valid:
+            return jsonify({
+                'error': 'Riferimenti non validi',
+                'details': errors
+            }), 400
+        
+        # Valida template
+        template_valid, template_error = db_validators.validate_template_exists(
+            data['template_id'], 'compilazioni', 'form_templates'
+        )
+        if not template_valid:
+            return jsonify({'error': template_error}), 400
+        
         conn = get_db_connection()
         c = conn.cursor()
+        
+        # INIZIO TRANSAZIONE (Priorità 1)
+        c.execute('BEGIN TRANSACTION')
         
         now = datetime.now().isoformat()
         
@@ -501,26 +525,49 @@ def submit_form():
         
         print(f"[DEBUG] Alert issues found: {alert_issues}")
         
-        conn.commit()
-        conn.close()
-        
-        # Se ci sono problemi di conformità, invia alert
+        # Crea alert nella stessa transazione se necessario
+        alert_id = None
         if alert_issues:
             print(f"[DEBUG] Creating alert for {len(alert_issues)} issues")
-            alert_created = send_non_conformity_alerts(alert_issues, data)
-            print(f"[DEBUG] Alert created: {alert_created}")
-        else:
-            print("[DEBUG] No alert issues found")
+            alert_id = create_non_conformity_alert_in_transaction(c, alert_issues, data)
+            print(f"[DEBUG] Alert created with ID: {alert_id}")
+        
+        # COMMIT TRANSAZIONE
+        conn.commit()
+        
+        # Invia notifica Telegram DOPO il commit (fuori transazione)
+        if alert_id:
+            try:
+                send_telegram_notification(alert_issues, data, alert_id)
+            except Exception as telegram_error:
+                print(f"[WARNING] Telegram notification failed: {telegram_error}")
+                # Non bloccare il flusso se Telegram fallisce
         
         return jsonify({
             'message': 'Form compilato con successo',
             'submission_id': submission_id,
-            'alerts_generated': len(alert_issues) if alert_issues else 0
+            'alerts_generated': len(alert_issues) if alert_issues else 0,
+            'alert_id': alert_id
         }), 201
         
     except Exception as e:
+        # ROLLBACK in caso di errore
+        if conn:
+            try:
+                conn.rollback()
+                print(f"[DEBUG] Transaction rolled back due to error")
+            except:
+                pass
         print(f"[ERROR] submit_form: {e}")
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'error': 'Errore salvataggio form',
+            'details': str(e)
+        }), 500
+    finally:
+        if conn:
+            conn.close()
 
 def check_select_fields_for_alerts(cursor, template_id, form_data, submission_data):
     """Controlla i campi select, checkbox e textarea per condizioni che generano alert"""
@@ -619,6 +666,162 @@ def check_select_fields_for_alerts(cursor, template_id, form_data, submission_da
     except Exception as e:
         print(f"[ERROR] check_select_fields_for_alerts: {e}")
         return []
+
+
+def create_non_conformity_alert_in_transaction(cursor, alert_issues, submission_data):
+    """
+    Crea alert nella stessa transazione del form submission
+    Restituisce l'ID dell'alert creato
+    """
+    try:
+        # Valida riferimenti dell'alert
+        is_valid, errors = db_validators.validate_alert_references(
+            civico=submission_data.get('civico_numero'),
+            asset=submission_data.get('asset_id'),
+            operatore=submission_data.get('operatore')
+        )
+        if not is_valid:
+            print(f"[WARNING] Alert references not valid: {errors}")
+            # Continua comunque ma logga il warning
+        
+        # Prepara descrizione (solo i campi con problemi, escluse le textarea che vanno nelle note)
+        issues_text = []
+        note_contents = []
+        
+        for issue in alert_issues:
+            if issue.get('is_note') and issue['field_name'].lower() != 'note':
+                # Se è un campo textarea (note), raccogli il contenuto per le note
+                note_contents.append(f"{issue['field_name']}: {issue['field_value']}")
+            else:
+                # Se è select o checkbox, va nella descrizione
+                issues_text.append(f"• {issue['option_label']}")
+        
+        alert_description = f"Rilevate {len(alert_issues)} non conformità nel form dinamico:\\n" + "\\n".join(issues_text)
+        
+        # Nelle note mettiamo il campo note del form + i contenuti delle textarea che generano alert
+        alert_note = ""
+        
+        # Prima aggiungi il campo "note" del form se presente
+        for field_name, field_value in submission_data.get('form_data', {}).items():
+            if field_name.lower() == 'note' and field_value:
+                alert_note = field_value
+                break
+                
+        # Poi aggiungi i contenuti delle textarea che hanno generato alert
+        if note_contents:
+            if alert_note:
+                alert_note += "\\n\\n" + "\\n".join(note_contents)
+            else:
+                alert_note = "\\n".join(note_contents)
+        
+        # Inserisce l'alert nella tabella (dentro la transazione)
+        cursor.execute('''
+            INSERT INTO alert (tipo, titolo, descrizione, data_creazione, civico, asset, stato, note, operatore)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            'non_conformita',
+            'Non conformità rilevata (Form Dinamico)',
+            alert_description,
+            datetime.now().isoformat(),
+            submission_data.get('civico_numero', ''),
+            submission_data.get('asset_id', ''),
+            'aperto',
+            alert_note,
+            submission_data.get('operatore', '')
+        ))
+        
+        alert_id = cursor.lastrowid
+        print(f"[DEBUG] Alert creato con ID: {alert_id} in transazione")
+        
+        return alert_id
+        
+    except Exception as e:
+        print(f"[ERROR] create_non_conformity_alert_in_transaction: {e}")
+        raise  # Propaga l'errore per rollback transazione
+
+
+def send_telegram_notification(alert_issues, submission_data, alert_id):
+    """
+    Invia notifica Telegram per alert di non conformità
+    Eseguito DOPO il commit della transazione
+    """
+    try:
+        import telegram_manager
+        
+        # Determina il tipo di asset dall'ID (logica temporanea)
+        asset_type = "Frese" if submission_data.get('asset_id', '').startswith('G') else "Unknown"
+        
+        # Costruisce titolo e descrizione
+        alert_title = f"Non conformità form dinamico {asset_type.lower()}: {submission_data.get('asset_id', '')}"
+        
+        # Solo i campi select/checkbox nella descrizione, non le textarea
+        description_issues = [issue['option_label'] for issue in alert_issues if not issue.get('is_note')]
+        alert_description = ", ".join(description_issues)
+        
+        # Nelle note: campo note del form + contenuti textarea
+        telegram_note = ""
+        telegram_note_contents = []
+        
+        # Prima il campo "note" del form se presente
+        for field_name, field_value in submission_data.get('form_data', {}).items():
+            if field_name.lower() == 'note' and field_value:
+                telegram_note = field_value
+                break
+                
+        # Poi i contenuti delle textarea che hanno generato alert
+        for issue in alert_issues:
+            if issue.get('is_note') and issue['field_name'].lower() != 'note':
+                telegram_note_contents.append(f"{issue['field_name']}: {issue['field_value']}")
+                
+        if telegram_note_contents:
+            if telegram_note:
+                telegram_note += "\\n\\n" + "\\n".join(telegram_note_contents)
+            else:
+                telegram_note = "\\n".join(telegram_note_contents)
+        
+        # Recupera il tipo dell'asset dal database per i filtri Telegram
+        asset_tipo = None
+        try:
+            gestman_db_path = os.path.join(os.path.dirname(__file__), 'gestman.db')
+            gestman_conn = sqlite3.connect(gestman_db_path)
+            gestman_cursor = gestman_conn.cursor()
+            gestman_cursor.execute(
+                "SELECT tipo FROM assets WHERE id_aziendale = ?",
+                (submission_data.get('asset_id', ''),)
+            )
+            result = gestman_cursor.fetchone()
+            if result:
+                asset_tipo = result[0]
+            gestman_conn.close()
+        except Exception as db_error:
+            print(f"[DEBUG] Impossibile recuperare tipo asset: {db_error}")
+        
+        # Crea l'oggetto alert per Telegram
+        alert_data = {
+            'id': alert_id,
+            'tipo': 'non_conformita',
+            'titolo': alert_title,
+            'descrizione': alert_description,
+            'civico': submission_data.get('civico_numero', ''),
+            'asset': submission_data.get('asset_id', ''),
+            'asset_tipo': asset_tipo,
+            'note': telegram_note,
+            'operatore': submission_data.get('operatore', '')
+        }
+        
+        # Invia notifica Telegram
+        telegram_manager.send_alert_to_telegram(alert_data)
+        print(f"[DEBUG] Notifica Telegram inviata per alert {alert_id}")
+        
+        return True
+        
+    except ImportError:
+        print("[DEBUG] telegram_manager non disponibile")
+        return False
+    except Exception as e:
+        print(f"[ERROR] send_telegram_notification: {e}")
+        return False
+
 
 def send_non_conformity_alerts(alert_issues, submission_data):
     """Genera alert nella tabella alert per non conformità rilevate e invia messaggio Telegram"""
@@ -758,41 +961,72 @@ def send_non_conformity_alerts(alert_issues, submission_data):
 
 @bp.route('/submissions', methods=['GET'])
 def get_submissions():
-    """Ottieni le compilazioni form con filtri opzionali"""
+    """Ottieni le compilazioni form con filtri opzionali e paginazione"""
     try:
+        # PAGINAZIONE
+        page = int(request.args.get('page', 1))
+        limit = min(int(request.args.get('limit', 50)), 200)  # Max 200
+        offset = (page - 1) * limit
+        
+        # SORT (colonne permesse per sicurezza)
+        sort_param = request.args.get('sort', 'created_at:desc')
+        allowed_columns = ['id', 'created_at', 'data_intervento', 'civico_numero', 'operatore', 'template_id']
+        
+        if ':' in sort_param:
+            sort_col, sort_dir = sort_param.split(':')
+            if sort_col not in allowed_columns:
+                sort_col = 'created_at'
+            if sort_dir.upper() not in ['ASC', 'DESC']:
+                sort_dir = 'DESC'
+        else:
+            sort_col = 'created_at'
+            sort_dir = 'DESC'
+        
         # Parametri di filtro opzionali
         template_id = request.args.get('template_id', type=int)
         civico_numero = request.args.get('civico_numero')
         asset_id = request.args.get('asset_id')
-        limit = request.args.get('limit', 50, type=int)
         
         conn = get_db_connection()
         c = conn.cursor()
         
-        query = '''
+        # Costruisci WHERE clause per filtri
+        where_clause = 'WHERE 1=1'
+        params = []
+        
+        if template_id:
+            where_clause += ' AND s.template_id = ?'
+            params.append(template_id)
+        
+        if civico_numero:
+            where_clause += ' AND s.civico_numero = ?'
+            params.append(civico_numero)
+            
+        if asset_id:
+            where_clause += ' AND s.asset_id = ?'
+            params.append(asset_id)
+        
+        # Conteggio totale (per paginazione)
+        count_query = f'''
+            SELECT COUNT(*) 
+            FROM form_submissions s
+            JOIN form_templates t ON s.template_id = t.id
+            {where_clause}
+        '''
+        c.execute(count_query, params)
+        total_count = c.fetchone()[0]
+        
+        # Query principale con paginazione
+        query = f'''
             SELECT s.id, s.template_id, s.civico_numero, s.asset_id, s.operatore, 
                    s.data_intervento, s.form_data, s.created_at,
                    t.nome as template_nome, t.descrizione as template_descrizione
             FROM form_submissions s
             JOIN form_templates t ON s.template_id = t.id
-            WHERE 1=1
+            {where_clause}
+            ORDER BY s.{sort_col} {sort_dir} LIMIT ? OFFSET ?
         '''
-        params = []
-        
-        if template_id:
-            query += ' AND s.template_id = ?'
-            params.append(template_id)
-        
-        if civico_numero:
-            query += ' AND s.civico_numero = ?'
-            params.append(civico_numero)
-            
-        if asset_id:
-            query += ' AND s.asset_id = ?'
-            params.append(asset_id)
-        
-        query += ' ORDER BY s.created_at DESC LIMIT ?'
-        params.append(limit)
+        params.extend([limit, offset])
         
         c.execute(query, params)
         
@@ -803,7 +1037,17 @@ def get_submissions():
             submissions.append(submission)
         
         conn.close()
-        return jsonify({'submissions': submissions}), 200
+        
+        # Risposta con metadati paginazione
+        return jsonify({
+            'data': submissions,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total': total_count,
+                'pages': (total_count + limit - 1) // limit  # Ceiling division
+            }
+        }), 200
         
     except Exception as e:
         print(f"[ERROR] get_submissions: {e}")

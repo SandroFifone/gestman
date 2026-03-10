@@ -139,51 +139,76 @@ def create_alert():
 
 @bp.route('/alert', methods=['GET'])
 def get_alerts():
-    """Recupera tutti gli alert attivi (aperti e in carico)"""
+    """Recupera tutti gli alert con paginazione e filtri"""
     try:
+        # PAGINAZIONE (Priorità 3)
+        page = int(request.args.get('page', 1))
+        limit = min(int(request.args.get('limit', 50)), 200)  # Max 200
+        offset = (page - 1) * limit
+        
+        # SORT (colonne permesse per sicurezza)
+        sort_param = request.args.get('sort', 'data_creazione:desc')
+        allowed_columns = ['id', 'tipo', 'titolo', 'data_creazione', 'civico', 'asset', 'stato', 'data_chiusura']
+        
+        if ':' in sort_param:
+            sort_col, sort_dir = sort_param.split(':')
+            if sort_col not in allowed_columns:
+                sort_col = 'data_creazione'
+            if sort_dir.upper() not in ['ASC', 'DESC']:
+                sort_dir = 'DESC'
+        else:
+            sort_col = 'data_creazione'
+            sort_dir = 'DESC'
+        
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         
         # Filtro per tipo se specificato
         tipo_filter = request.args.get('tipo')
         
+        # Conteggio totale (per paginazione)
+        count_query = """
+            SELECT COUNT(*) 
+            FROM alert a
+            WHERE (a.stato IN ('aperto', 'in_carico') OR 
+                   (a.stato = 'chiuso' AND a.data_chiusura >= datetime('now', '-30 days', 'localtime')))
+        """
+        count_params = []
+        
         if tipo_filter:
-            c.execute('''
-                SELECT a.id, a.tipo, a.titolo, a.descrizione, a.data_creazione, 
-                       a.civico, a.asset, a.stato, a.note, a.operatore, a.data_chiusura,
-                       CASE 
-                         WHEN a.tipo = 'scadenza' THEN (
-                           SELECT s.data_scadenza 
-                           FROM scadenze_calendario s 
-                           WHERE s.civico = a.civico AND s.asset = a.asset 
-                           ORDER BY s.data_scadenza DESC LIMIT 1
-                         )
-                         ELSE NULL 
-                       END as data_scadenza
-                FROM alert a
-                WHERE (a.stato IN ('aperto', 'in_carico') OR 
-                       (a.stato = 'chiuso' AND a.data_chiusura >= datetime('now', '-30 days', 'localtime'))) 
-                AND a.tipo = ?
-                ORDER BY a.data_creazione DESC
-            ''', (tipo_filter,))
-        else:
-            c.execute('''
-                SELECT a.id, a.tipo, a.titolo, a.descrizione, a.data_creazione, 
-                       a.civico, a.asset, a.stato, a.note, a.operatore, a.data_chiusura,
-                       CASE 
-                         WHEN a.tipo = 'scadenza' THEN (
-                           SELECT s.data_scadenza 
-                           FROM scadenze_calendario s 
-                           WHERE s.civico = a.civico AND s.asset = a.asset 
-                           ORDER BY s.data_scadenza DESC LIMIT 1
-                         )
-                         ELSE NULL 
-                       END as data_scadenza
-                FROM alert a
-                WHERE (a.stato IN ('aperto', 'in_carico') OR 
-                       (a.stato = 'chiuso' AND a.data_chiusura >= datetime('now', '-30 days', 'localtime')))
-                ORDER BY a.data_creazione DESC
-            ''')
+            count_query += " AND a.tipo = ?"
+            count_params.append(tipo_filter)
+        
+        c.execute(count_query, count_params)
+        total_count = c.fetchone()[0]
+        
+        # Query principale con paginazione
+        base_query = '''
+            SELECT a.id, a.tipo, a.titolo, a.descrizione, a.data_creazione, 
+                   a.civico, a.asset, a.stato, a.note, a.operatore, a.data_chiusura,
+                   CASE 
+                     WHEN a.tipo = 'scadenza' THEN (
+                       SELECT s.data_scadenza 
+                       FROM scadenze_calendario s 
+                       WHERE s.civico = a.civico AND s.asset = a.asset 
+                       ORDER BY s.data_scadenza DESC LIMIT 1
+                     )
+                     ELSE NULL 
+                   END as data_scadenza
+            FROM alert a
+            WHERE (a.stato IN ('aperto', 'in_carico') OR 
+                   (a.stato = 'chiuso' AND a.data_chiusura >= datetime('now', '-30 days', 'localtime')))
+        '''
+        query_params = []
+        
+        if tipo_filter:
+            base_query += " AND a.tipo = ?"
+            query_params.append(tipo_filter)
+        
+        base_query += f" ORDER BY a.{sort_col} {sort_dir} LIMIT ? OFFSET ?"
+        query_params.extend([limit, offset])
+        
+        c.execute(base_query, query_params)
         
         alerts = []
         for row in c.fetchall():
@@ -203,10 +228,22 @@ def get_alerts():
             })
         
         conn.close()
-        return jsonify(alerts)
+        
+        # Risposta con metadati paginazione
+        return jsonify({
+            'data': alerts,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total': total_count,
+                'pages': (total_count + limit - 1) // limit  # Ceiling division
+            }
+        })
         
     except Exception as e:
         print(f"[ERROR] get_alerts: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/alert/<int:alert_id>/close', methods=['PATCH'])
