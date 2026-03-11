@@ -27,8 +27,8 @@ const DocumentHistory = ({ currentUser }) => {
     
     try {
       const params = new URLSearchParams({
-        limit: limit.toString(),
-        offset: (page * limit).toString()
+        page: (page + 1).toString(),  // API usa page 1-based, frontend usa 0-based
+        limit: limit.toString()
       });
       
       if (filters.civico) params.append('civico', filters.civico);
@@ -44,8 +44,9 @@ const DocumentHistory = ({ currentUser }) => {
       }
       
       const data = await response.json();
-      setDocuments(data.documents || []);
-      setTotal(data.total || 0);
+      // Fix paginazione API: ora formato {data: [...], pagination: {...}}
+      setDocuments(data.data || data.documents || []);
+      setTotal(data.pagination?.total || data.total || 0);
     } catch (err) {
       setError(err.message);
       console.error('Errore fetch documenti:', err);

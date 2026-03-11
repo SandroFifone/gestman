@@ -43,9 +43,11 @@ const Tickets = ({ username }) => {
         assetsRes.json()
       ]);
 
+      // Fix paginazione API: ticketsData ora ha formato {data: [...], pagination: {...}}
+      const allAlerts = ticketsData.data || ticketsData || [];
+      
       // Filtra solo i tickets dell'utente corrente
-      // L'API restituisce direttamente l'array di alert
-      const userTickets = ticketsData?.filter(alert => {
+      const userTickets = allAlerts?.filter(alert => {
         if (!alert || !alert.tipo || !alert.operatore) return false;
         return alert.tipo === 'Tickets' && alert.operatore === username;
       }) || [];

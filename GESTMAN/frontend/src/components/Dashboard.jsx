@@ -45,6 +45,9 @@ const Dashboard = () => {
         attivi: civiciData.civici?.filter(c => c.attivo).length || 0
       };
 
+      // Fix paginazione API: alertData ora ha formato {data: [...], pagination: {...}}
+      const alerts = alertData.data || alertData.alerts || alertData || [];
+
       // Elabora statistiche assets
       const assetsStats = {
         totale: assetsData.assets?.length || 0,
@@ -60,9 +63,9 @@ const Dashboard = () => {
 
       // Elabora statistiche alert
       const alertStats = {
-        scadenze: alertData.alert?.filter(a => a.tipo === 'scadenza' && a.stato === 'aperto').length || 0,
-        nonConformita: alertData.alert?.filter(a => a.tipo === 'non_conformita' && a.stato === 'aperto').length || 0,
-        totaliAperti: alertData.alert?.filter(a => a.stato === 'aperto').length || 0
+        scadenze: alerts?.filter(a => a.tipo === 'scadenza' && a.stato === 'aperto').length || 0,
+        nonConformita: alerts?.filter(a => a.tipo === 'non_conformita' && a.stato === 'aperto').length || 0,
+        totaliAperti: alerts?.filter(a => a.stato === 'aperto').length || 0
       };
 
       // Elabora statistiche scadenze

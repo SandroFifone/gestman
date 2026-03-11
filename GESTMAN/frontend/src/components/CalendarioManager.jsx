@@ -56,7 +56,8 @@ const CalendarioManager = ({ user }) => {
       
       if (scadenzeRes.ok) {
         const scadenzeData = await scadenzeRes.json();
-        setScadenze(scadenzeData.scadenze || []);
+        // Fix paginazione API: ora formato {data: [...], pagination: {...}}
+        setScadenze(scadenzeData.data || scadenzeData.scadenze || []);
       } else {
         setError("Errore nel caricamento delle scadenze");
       }
