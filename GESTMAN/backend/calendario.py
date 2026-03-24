@@ -4,9 +4,13 @@ import sqlite3
 import os
 import datetime
 import json
+import logging
 import traceback
 from telegram_manager import send_alert_to_telegram
 import db_validators
+
+# Configura logging
+logger = logging.getLogger(__name__)
 
 # Prova a importare dateutil, con fallback se non disponibile
 try:
@@ -477,17 +481,17 @@ def completa_scadenza_con_checklist():
         civico = scadenza_completata[0]
         asset = scadenza_completata[1]
         
-        # VALIDAZIONE RIFERIMENTI (Priorità 2)
+        # VALIDAZIONE RIFERIMENTI (Priorità 2) - SOFT MODE per permettere alert
         is_valid, errors = db_validators.validate_scadenza_references(
             civico=civico,
             asset_id=asset,
-            operatore_assegnato=operatore
+            operatore_assegnato=operatore,
+            strict=False  # Permette completamento e alert anche con riferimenti invalidi
         )
         if not is_valid:
-            return jsonify({
-                'error': 'Riferimenti non validi',
-                'details': errors
-            }), 400
+            logger.warning(f"[SCADENZA COMPLETE] Riferimenti non validi (soft mode) per scadenza_id={scadenza_id}: {errors}")
+        else:
+            logger.info(f"[SCADENZA COMPLETE] Validazione riferimenti OK per scadenza_id={scadenza_id}")
         
         # INIZIO TRANSAZIONE (Priorità 1)
         c.execute('BEGIN TRANSACTION')
@@ -540,6 +544,7 @@ def completa_scadenza_con_checklist():
                 operatore
             ))
             alert_id = c.lastrowid
+            logger.info(f"[ALERT CREATED] ID={alert_id} tipo=non_conformita civico={civico} asset={asset} operatore={operatore} (da scadenza_id={scadenza_id})")
         
         # Crea la prossima scadenza ricorrente
         asset_tipo, data_scadenza_str, checklist_voce_id, frequenza_tipo, giorni_preavviso, nome_manutenzione, descrizione = scadenza_completata[2:]

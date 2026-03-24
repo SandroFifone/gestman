@@ -326,5 +326,54 @@ def bulk_close_alerts():
         print(f"[ERROR] bulk_close_alerts: {e}")
         return jsonify({'error': str(e)}), 500
 
+
+@bp.route('/debug/alerts-last-5', methods=['GET'])
+def debug_last_alerts():
+    """
+    Endpoint di debug per verificare gli ultimi 5 alert creati
+    Utile per troubleshooting regressioni
+    """
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        # Recupera gli ultimi 5 alert in ordine decrescente
+        c.execute("""
+            SELECT 
+                id, tipo, titolo, descrizione, 
+                data_creazione, civico, asset, 
+                stato, operatore, note,
+                data_chiusura
+            FROM alert 
+            ORDER BY id DESC 
+            LIMIT 5
+        """)
+        
+        alerts = [dict(row) for row in c.fetchall()]
+        conn.close()
+        
+        # Query count totale
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) as total FROM alert")
+        total_count = c.fetchone()[0]
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'total_alerts': total_count,
+            'last_5_alerts': alerts,
+            'debug_info': {
+                'endpoint': '/api/compilazioni/alert/debug/alerts-last-5',
+                'purpose': 'Verify alert creation after regression fix'
+            }
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] debug_last_alerts: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 # Inizializza il database al caricamento del modulo
 init_alert_db()

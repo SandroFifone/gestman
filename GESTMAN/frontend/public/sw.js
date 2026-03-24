@@ -12,8 +12,17 @@ self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).catch(() => {
-        return caches.match('/') || fetch('/');
+        return caches.match('/').then(cachedResponse => {
+          return cachedResponse || fetch('/');
+        });
       })
     );
+  }
+});
+
+// Gestisce messaggi (previene errori con message channel)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
   }
 });

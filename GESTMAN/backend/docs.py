@@ -7,8 +7,12 @@ Analizza le strutture DB e genera documenti adattivi
 from flask import Blueprint, request, jsonify
 import sqlite3
 import os
+import logging
 from datetime import datetime
 import db_validators
+
+# Configura logging
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('docs', __name__)
 
@@ -1304,18 +1308,18 @@ def generate_document():
         with open(filepath, 'wb') as f:
             f.write(pdf_content)
         
-        # VALIDAZIONE RIFERIMENTI (Priorità 2)
+        # VALIDAZIONE RIFERIMENTI (Priorità 2) - SOFT MODE per permettere generazione
         metadata = data.get('metadata', {})
         is_valid, errors = db_validators.validate_document_references(
             civico_numero=metadata.get('civico_numero'),
             asset_id=metadata.get('asset_id'),
-            generated_by=username
+            generated_by=username,
+            strict=False  # Permette generazione documento anche con riferimenti invalidi
         )
         if not is_valid:
-            return jsonify({
-                'error': 'Riferimenti non validi',
-                'details': errors
-            }), 400
+            logger.warning(f"[DOCUMENT GENERATE] Riferimenti non validi (soft mode): {errors}")
+        else:
+            logger.info(f"[DOCUMENT GENERATE] Validazione riferimenti OK")
         
         # PRIORITÀ 4: Estrai related submission/scadenza IDs (opzionali)
         related_submission_ids = metadata.get('related_submission_ids', [])
@@ -1328,7 +1332,7 @@ def generate_document():
             for sub_id in related_submission_ids:
                 cursor_temp.execute("SELECT id FROM form_submissions WHERE id = ?", (sub_id,))
                 if not cursor_temp.fetchone():
-                    print(f"[WARNING] related_submission_id {sub_id} non trovato (documento generato comunque)")
+                    logger.warning(f"[DOCUMENT GENERATE] related_submission_id {sub_id} non trovato (documento generato comunque)")
             conn_temp.close()
         
         if related_scadenza_ids:
@@ -1337,7 +1341,7 @@ def generate_document():
             for scad_id in related_scadenza_ids:
                 cursor_temp.execute("SELECT id FROM scadenze_calendario WHERE id = ?", (scad_id,))
                 if not cursor_temp.fetchone():
-                    print(f"[WARNING] related_scadenza_id {scad_id} non trovato (documento generato comunque)")
+                    logger.warning(f"[DOCUMENT GENERATE] related_scadenza_id {scad_id} non trovato (documento generato comunque)")
             conn_temp.close()
         
         # Inserisci record in document_history
@@ -1377,6 +1381,7 @@ def generate_document():
         ))
         
         history_id = cursor.lastrowid
+        logger.info(f"[DOCUMENT CREATED] ID={history_id} filename={filename} title={metadata.get('title')} civico={metadata.get('civico_numero')} asset={metadata.get('asset_id')} generated_by={username}")
         
         # COMMIT TRANSAZIONE
         conn.commit()

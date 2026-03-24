@@ -11,9 +11,13 @@ import json
 import uuid
 import mimetypes
 import shutil
+import logging
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import db_validators
+
+# Configura logging
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('dynamic_forms', __name__)
 DB_PATH = os.path.join(os.path.dirname(__file__), 'compilazioni.db')
@@ -470,17 +474,17 @@ def submit_form():
             if field not in data:
                 return jsonify({'error': f'Campo {field} richiesto'}), 400
         
-        # VALIDAZIONE RIFERIMENTI (Priorità 2)
+        # VALIDAZIONE RIFERIMENTI (Priorità 2) - SOFT MODE per permettere alert
         is_valid, errors = db_validators.validate_form_submission_references(
             civico_numero=data.get('civico_numero'),
             asset_id=data.get('asset_id'),
-            operatore=data.get('operatore')
+            operatore=data.get('operatore'),
+            strict=False  # Permette creazione alert anche con riferimenti invalidi
         )
         if not is_valid:
-            return jsonify({
-                'error': 'Riferimenti non validi',
-                'details': errors
-            }), 400
+            logger.warning(f"[FORM SUBMISSION] Riferimenti non validi (soft mode): {errors}")
+        else:
+            logger.info(f"[FORM SUBMISSION] Validazione riferimenti OK")
         
         # Valida template
         template_valid, template_error = db_validators.validate_template_exists(
@@ -674,15 +678,17 @@ def create_non_conformity_alert_in_transaction(cursor, alert_issues, submission_
     Restituisce l'ID dell'alert creato
     """
     try:
-        # Valida riferimenti dell'alert
+        # Valida riferimenti dell'alert (soft mode)
         is_valid, errors = db_validators.validate_alert_references(
             civico=submission_data.get('civico_numero'),
             asset=submission_data.get('asset_id'),
-            operatore=submission_data.get('operatore')
+            operatore=submission_data.get('operatore'),
+            strict=False  # Permette alert anche con riferimenti invalidi
         )
         if not is_valid:
-            print(f"[WARNING] Alert references not valid: {errors}")
-            # Continua comunque ma logga il warning
+            logger.warning(f"[ALERT CREATE] Riferimenti non validi (soft mode): {errors}")
+        else:
+            logger.info(f"[ALERT CREATE] Validazione riferimenti OK")
         
         # Prepara descrizione (solo i campi con problemi, escluse le textarea che vanno nelle note)
         issues_text = []
@@ -731,12 +737,12 @@ def create_non_conformity_alert_in_transaction(cursor, alert_issues, submission_
         ))
         
         alert_id = cursor.lastrowid
-        print(f"[DEBUG] Alert creato con ID: {alert_id} in transazione")
+        logger.info(f"[ALERT CREATED] ID={alert_id} tipo=non_conformita civico={submission_data.get('civico_numero')} asset={submission_data.get('asset_id')} operatore={submission_data.get('operatore')}")
         
         return alert_id
         
     except Exception as e:
-        print(f"[ERROR] create_non_conformity_alert_in_transaction: {e}")
+        logger.error(f"[ALERT CREATE ERROR] {e}")
         raise  # Propaga l'errore per rollback transazione
 
 
