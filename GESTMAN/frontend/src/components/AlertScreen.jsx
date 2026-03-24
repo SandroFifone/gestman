@@ -28,7 +28,9 @@ const AlertScreen = () => {
       .then(res => res.json())
       .then(data => {
         console.log('Alert data ricevuti:', data); // Debug
-        const alertsArray = Array.isArray(data) ? data : [];
+        
+        // Fix paginazione API: data ha formato {data: [...], pagination: {...}}
+        const alertsArray = data.data || data.alerts || (Array.isArray(data) ? data : []);
         setAlerts(alertsArray);
         
         // Debug: mostra tutti i tipi presenti
