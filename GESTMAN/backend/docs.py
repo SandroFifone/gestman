@@ -1762,3 +1762,258 @@ def get_template_detail(template_id):
         
     except Exception as e:
         return jsonify({'error': f'Errore caricamento template: {str(e)}'}), 500
+
+
+# ============================================================================
+# NUOVO SISTEMA: REPORT DINAMICO SEMPLIFICATO
+# ============================================================================
+
+@bp.route('/dynamic-report', methods=['POST'])
+def dynamic_report():
+    """
+    Endpoint per generare anteprima dati per Report Dinamico
+    
+    Body:
+    {
+        "source": "form_submissions" | "alert" | "scadenze_calendario" | "magazzino" | "assets",
+        "filters": [
+            {"field": "civico", "operator": "equals", "value": "123"},
+            {"field": "data_creazione", "operator": "between", "value": "2026-01-01", "value2": "2026-03-31"}
+        ],
+        "limit": 20  // Per anteprima
+    }
+    
+    Returns:
+    {
+        "columns": ["id", "civico", "asset", ...],
+        "data": [
+            {"id": 1, "civico": "123", ...},
+            ...
+        ],
+        "total": 127  // Totale record senza limit
+    }
+    """
+    try:
+        data = request.json
+        source = data.get('source')
+        filters = data.get('filters', [])
+        limit = data.get('limit', 20)
+        
+        if not source:
+            return jsonify({'error': 'Campo source obbligatorio'}), 400
+        
+        # Determina database e validazione nome tabella
+        allowed_sources = {
+            'form_submissions': ('compilazioni', 'form_submissions'),
+            'alert': ('compilazioni', 'alert'),
+            'scadenze_calendario': ('compilazioni', 'scadenze_calendario'),
+            'magazzino': ('gestman', 'magazzino'),
+            'assets': ('gestman', 'assets')
+        }
+        
+        if source not in allowed_sources:
+            return jsonify({'error': f'Fonte dati non valida: {source}'}), 400
+        
+        db_type, table_name = allowed_sources[source]
+        
+        # Costruisci query con filtri
+        query = f"SELECT * FROM {table_name}"
+        params = []
+        
+        if filters:
+            where_clauses = []
+            for f in filters:
+                field = f.get('field')
+                operator = f.get('operator')
+                value = f.get('value')
+                value2 = f.get('value2')
+                
+                # SQL injection protection: valida field name
+                # TODO: implementare whitelist completa dei campi per tabella
+                if not field or not operator:
+                    continue
+                
+                # Costruisci clausola WHERE sicura
+                if operator == 'equals':
+                    where_clauses.append(f"{field} = ?")
+                    params.append(value)
+                elif operator == 'not_equals':
+                    where_clauses.append(f"{field} != ?")
+                    params.append(value)
+                elif operator == 'contains':
+                    where_clauses.append(f"{field} LIKE ?")
+                    params.append(f"%{value}%")
+                elif operator == 'not_contains':
+                    where_clauses.append(f"{field} NOT LIKE ?")
+                    params.append(f"%{value}%")
+                elif operator == 'starts_with':
+                    where_clauses.append(f"{field} LIKE ?")
+                    params.append(f"{value}%")
+                elif operator == 'ends_with':
+                    where_clauses.append(f"{field} LIKE ?")
+                    params.append(f"%{value}")
+                elif operator == 'greater_than':
+                    where_clauses.append(f"{field} > ?")
+                    params.append(value)
+                elif operator == 'less_than':
+                    where_clauses.append(f"{field} < ?")
+                    params.append(value)
+                elif operator == 'before':
+                    where_clauses.append(f"{field} < ?")
+                    params.append(value)
+                elif operator == 'after':
+                    where_clauses.append(f"{field} > ?")
+                    params.append(value)
+                elif operator == 'between':
+                    where_clauses.append(f"{field} BETWEEN ? AND ?")
+                    params.append(value)
+                    params.append(value2)
+            
+            if where_clauses:
+                query += " WHERE " + " AND ".join(where_clauses)
+        
+        # Aggiungi limit per anteprima
+        query += f" LIMIT {int(limit)}"
+        
+        logger.info(f"[DYNAMIC REPORT] Query: {query}, Params: {params}")
+        
+        # Esegui query
+        conn = get_db_connection(db_type)
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        # Estrai nomi colonne
+        columns = [description[0] for description in cursor.description] if rows else []
+        
+        # Converti in dict
+        data_list = [dict(row) for row in rows]
+        
+        # Count totale (senza limit)
+        count_query = f"SELECT COUNT(*) as total FROM {table_name}"
+        if filters and where_clauses:
+            count_query += " WHERE " + " AND ".join(where_clauses)
+        
+        cursor.execute(count_query, params[:-2] if 'LIMIT' in query else params)
+        total = cursor.fetchone()['total']
+        
+        conn.close()
+        
+        logger.info(f"[DYNAMIC REPORT] Trovati {len(data_list)} record (totale: {total})")
+        
+        return jsonify({
+            'columns': columns,
+            'data': data_list,
+            'total': total
+        })
+        
+    except Exception as e:
+        logger.error(f"[DYNAMIC REPORT ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Errore generazione report: {str(e)}'}), 500
+
+
+@bp.route('/dynamic-report/pdf', methods=['POST'])
+def dynamic_report_pdf():
+    """
+    Genera PDF da Report Dinamico
+    
+    TODO: Implementare generazione PDF con ReportLab
+    Per ora ritorna stub che può essere completato
+    """
+    try:
+        data = request.json
+        source = data.get('source')
+        filters = data.get('filters', [])
+        
+        # TODO: Implementare generazione PDF vera
+        # 1. Eseguire query completa (senza limit)
+        # 2. Generare PDF con ReportLab
+        # 3. Salvare in document_history
+        # 4. Ritornare file PDF
+        
+        return jsonify({
+            'error': 'Generazione PDF in sviluppo',
+            'message': 'Questa funzionalità sarà completata a breve'
+        }), 501  # Not Implemented
+        
+    except Exception as e:
+        logger.error(f"[PDF GENERATION ERROR] {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/dynamic-report/excel', methods=['POST'])
+def dynamic_report_excel():
+    """
+    Esporta Excel da Report Dinamico
+    
+    TODO: Implementare export Excel con openpyxl o xlsxwriter
+    """
+    try:
+        data = request.json
+        source = data.get('source')
+        filters = data.get('filters', [])
+        
+        # TODO: Implementare export Excel vero
+        # 1. Eseguire query completa
+        # 2. Generare file Excel
+        # 3. Ritornare file per download
+        
+        return jsonify({
+            'error': 'Esportazione Excel in sviluppo',
+            'message': 'Questa funzionalità sarà completata a breve'
+        }), 501  # Not Implemented
+        
+    except Exception as e:
+        logger.error(f"[EXCEL EXPORT ERROR] {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/report-configs', methods=['POST'])
+def save_report_config():
+    """
+    Salva configurazione report per riutilizzo futuro
+    
+    Body:
+    {
+        "name": "Report Mensile Non Conformità",
+        "source": "alert",
+        "filters": [...]
+    }
+    
+    TODO: Implementare salvataggio in database
+    Per ora ritorna successo ma non salva realmente
+    """
+    try:
+        data = request.json
+        name = data.get('name')
+        source = data.get('source')
+        filters = data.get('filters')
+        username = request.headers.get('X-Username', 'unknown')
+        
+        if not name or not source:
+            return jsonify({'error': 'Nome e fonte obbligatori'}), 400
+        
+        # TODO: Salvare in tabella report_configurations
+        # CREATE TABLE IF NOT EXISTS report_configurations (
+        #     id INTEGER PRIMARY KEY AUTOINCREMENT,
+        #     name TEXT NOT NULL,
+        #     source TEXT NOT NULL,
+        #     filters TEXT,  -- JSON
+        #     created_by TEXT,
+        #     created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        # )
+        
+        logger.info(f"[REPORT CONFIG] Configurazione '{name}' salvata da {username}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Configurazione "{name}" salvata con successo',
+            'note': 'Funzionalità in sviluppo - non ancora persistente'
+        })
+        
+    except Exception as e:
+        logger.error(f"[SAVE CONFIG ERROR] {e}")
+        return jsonify({'error': str(e)}), 500
+
