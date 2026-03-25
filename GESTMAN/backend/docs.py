@@ -1818,10 +1818,10 @@ def dynamic_report():
         
         # Costruisci query con filtri
         query = f"SELECT * FROM {table_name}"
+        where_clauses = []
         params = []
         
         if filters:
-            where_clauses = []
             for f in filters:
                 field = f.get('field')
                 operator = f.get('operator')
@@ -1868,9 +1868,10 @@ def dynamic_report():
                     where_clauses.append(f"{field} BETWEEN ? AND ?")
                     params.append(value)
                     params.append(value2)
-            
-            if where_clauses:
-                query += " WHERE " + " AND ".join(where_clauses)
+        
+        # Aggiungi WHERE se ci sono clausole
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
         
         # Aggiungi limit per anteprima
         query += f" LIMIT {int(limit)}"
@@ -1889,12 +1890,12 @@ def dynamic_report():
         # Converti in dict
         data_list = [dict(row) for row in rows]
         
-        # Count totale (senza limit)
+        # Count totale (senza limit) - usa stessi WHERE e params
         count_query = f"SELECT COUNT(*) as total FROM {table_name}"
-        if filters and where_clauses:
+        if where_clauses:
             count_query += " WHERE " + " AND ".join(where_clauses)
         
-        cursor.execute(count_query, params[:-2] if 'LIMIT' in query else params)
+        cursor.execute(count_query, params)  # Stessi parametri della query principale
         total = cursor.fetchone()['total']
         
         conn.close()
