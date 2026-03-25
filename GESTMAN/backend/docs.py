@@ -1814,7 +1814,7 @@ def dynamic_report():
             'form_submissions': ('compilazioni', 'form_submissions'),
             'alert': ('compilazioni', 'alert'),
             'scadenze_calendario': ('compilazioni', 'scadenze_calendario'),
-            'magazzino': ('gestman', 'magazzino'),
+            'magazzino': ('gestman', 'magazzino_ricambi'),
             'assets': ('gestman', 'assets')
         }
         

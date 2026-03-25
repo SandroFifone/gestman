@@ -53,12 +53,16 @@ const DATA_SOURCES = [
     label: '🔧 Magazzino Ricambi',
     fields: [
       { key: 'id', label: 'ID', type: 'number' },
-      { key: 'codice', label: 'Codice', type: 'text' },
-      { key: 'nome', label: 'Nome', type: 'text' },
-      { key: 'categoria', label: 'Categoria', type: 'text' },
-      { key: 'quantita', label: 'Quantità', type: 'number' },
+      { key: 'asset_tipo', label: 'Tipo Asset', type: 'text' },
+      { key: 'id_ricambio', label: 'ID Ricambio', type: 'text' },
+      { key: 'costruttore', label: 'Costruttore', type: 'text' },
+      { key: 'modello', label: 'Modello', type: 'text' },
+      { key: 'codice_produttore', label: 'Codice Produttore', type: 'text' },
       { key: 'fornitore', label: 'Fornitore', type: 'text' },
-      { key: 'giacenza_minima', label: 'Giacenza Minima', type: 'number' }
+      { key: 'quantita_disponibile', label: 'Quantità Disponibile', type: 'number' },
+      { key: 'quantita_minima', label: 'Quantità Minima', type: 'number' },
+      { key: 'prezzo_unitario', label: 'Prezzo Unitario', type: 'number' },
+      { key: 'attivo', label: 'Attivo', type: 'select', options: [0, 1] }
     ]
   },
   { 
