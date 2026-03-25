@@ -184,8 +184,19 @@ const ReportDinamico = ({ username }) => {
         })
       });
 
+      // Stop loading IMMEDIATAMENTE anche se c'è errore
+      setLoading(false);
+
       if (!response.ok) {
-        throw new Error('Errore durante il caricamento dei dati');
+        // Prova a estrarre messaggio di errore dal backend
+        let errorMsg = 'Errore durante il caricamento dei dati';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || errorMsg;
+        } catch (e) {
+          // Se non riesce a parsare JSON, usa messaggio generico
+        }
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
@@ -200,9 +211,8 @@ const ReportDinamico = ({ username }) => {
 
     } catch (err) {
       console.error('Errore anteprima:', err);
+      setLoading(false); // Assicurati che loading sia false
       showError(err.message || 'Errore durante il caricamento dell\'anteprima');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -363,6 +373,7 @@ const ReportDinamico = ({ username }) => {
         message={modalState.message}
         onConfirm={modalState.onConfirm}
         onCancel={closeModal}
+        onClose={closeModal}
       />
 
       {/* Header */}
