@@ -1795,9 +1795,16 @@ def dynamic_report():
     """
     try:
         data = request.json
+        
+        if not data:
+            logger.error("[DYNAMIC REPORT] Request body vuoto")
+            return jsonify({'error': 'Request body mancante'}), 400
+        
         source = data.get('source')
         filters = data.get('filters', [])
         limit = data.get('limit', 20)
+        
+        logger.info(f"[DYNAMIC REPORT] Richiesta: source={source}, filters={len(filters)}, limit={limit}")
         
         if not source:
             return jsonify({'error': 'Campo source obbligatorio'}), 400
@@ -1812,9 +1819,11 @@ def dynamic_report():
         }
         
         if source not in allowed_sources:
+            logger.warning(f"[DYNAMIC REPORT] Fonte non valida: {source}")
             return jsonify({'error': f'Fonte dati non valida: {source}'}), 400
         
         db_type, table_name = allowed_sources[source]
+        logger.info(f"[DYNAMIC REPORT] Usando {db_type}.{table_name}")
         
         # Costruisci query con filtri
         query = f"SELECT * FROM {table_name}"
@@ -1876,40 +1885,56 @@ def dynamic_report():
         # Aggiungi limit per anteprima
         query += f" LIMIT {int(limit)}"
         
-        logger.info(f"[DYNAMIC REPORT] Query: {query}, Params: {params}")
+        logger.info(f"[DYNAMIC REPORT] Query: {query}")
+        logger.info(f"[DYNAMIC REPORT] Params: {params}")
         
         # Esegui query
         conn = get_db_connection(db_type)
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
         
-        # Estrai nomi colonne
-        columns = [description[0] for description in cursor.description] if rows else []
+        try:
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            
+            # Estrai nomi colonne
+            if rows and cursor.description:
+                columns = [description[0] for description in cursor.description]
+            else:
+                # Se non ci sono risultati, ottieni colonne dalla tabella
+                cursor.execute(f"PRAGMA table_info({table_name})")
+                table_info = cursor.fetchall()
+                columns = [col[1] for col in table_info]
+            
+            # Converti in dict
+            data_list = [dict(row) for row in rows]
+            
+            # Count totale (senza limit) - usa stessi WHERE e params
+            count_query = f"SELECT COUNT(*) as total FROM {table_name}"
+            if where_clauses:
+                count_query += " WHERE " + " AND ".join(where_clauses)
+            
+            cursor.execute(count_query, params)  # Stessi parametri della query principale
+            total = cursor.fetchone()['total']
+            
+            logger.info(f"[DYNAMIC REPORT] Trovati {len(data_list)} record (totale: {total})")
+            
+            return jsonify({
+                'columns': columns,
+                'data': data_list,
+                'total': total
+            })
+            
+        finally:
+            conn.close()
         
-        # Converti in dict
-        data_list = [dict(row) for row in rows]
-        
-        # Count totale (senza limit) - usa stessi WHERE e params
-        count_query = f"SELECT COUNT(*) as total FROM {table_name}"
-        if where_clauses:
-            count_query += " WHERE " + " AND ".join(where_clauses)
-        
-        cursor.execute(count_query, params)  # Stessi parametri della query principale
-        total = cursor.fetchone()['total']
-        
-        conn.close()
-        
-        logger.info(f"[DYNAMIC REPORT] Trovati {len(data_list)} record (totale: {total})")
-        
-        return jsonify({
-            'columns': columns,
-            'data': data_list,
-            'total': total
-        })
+    except sqlite3.Error as e:
+        logger.error(f"[DYNAMIC REPORT] Errore SQLite: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Errore database: {str(e)}'}), 500
         
     except Exception as e:
-        logger.error(f"[DYNAMIC REPORT ERROR] {e}")
+        logger.error(f"[DYNAMIC REPORT] Errore generico: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Errore generazione report: {str(e)}'}), 500
