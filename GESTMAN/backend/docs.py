@@ -1768,6 +1768,164 @@ def get_template_detail(template_id):
 # NUOVO SISTEMA: REPORT DINAMICO SEMPLIFICATO
 # ============================================================================
 
+# ==============================================================================
+# REPORT DINAMICO - Sistema semplificato per generazione report
+# ==============================================================================
+
+# Mapping colonne DB → Label umane
+COLUMN_LABELS = {
+    'form_submissions': {
+        'id': 'ID',
+        'civico_numero': 'Civico',
+        'asset_id': 'Asset',
+        'operatore': 'Operatore',
+        'created_at': 'Data Creazione',
+        'stato': 'Stato',
+        'template_id': 'ID Template'
+    },
+    'alert': {
+        'id': 'ID',
+        'tipo': 'Tipo Alert',
+        'titolo': 'Titolo',
+        'civico': 'Civico',
+        'asset': 'Asset',
+        'operatore': 'Operatore',
+        'stato': 'Stato',
+        'data_creazione': 'Data Creazione',
+        'data_chiusura': 'Data Chiusura'
+    },
+    'scadenze_calendario': {
+        'id': 'ID',
+        'civico': 'Civico',
+        'asset': 'Asset',
+        'asset_tipo': 'Tipo Asset',
+        'data_scadenza': 'Data Scadenza',
+        'stato': 'Stato',
+        'frequenza_tipo': 'Frequenza',
+        'operatore_completamento': 'Operatore'
+    },
+    'magazzino': {
+        'id': 'ID',
+        'asset_tipo': 'Tipo Asset',
+        'id_ricambio': 'Codice Ricambio',
+        'costruttore': 'Costruttore',
+        'modello': 'Modello',
+        'codice_produttore': 'Codice Produttore',
+        'fornitore': 'Fornitore',
+        'quantita_disponibile': 'Quantità',
+        'quantita_minima': 'Quantità Minima',
+        'prezzo_unitario': 'Prezzo Unitario',
+        'attivo': 'Attivo'
+    },
+    'assets': {
+        'id': 'ID',
+        'id_aziendale': 'ID Aziendale',
+        'tipo': 'Tipo',
+        'marca': 'Marca',
+        'modello': 'Modello',
+        'matricola': 'Matricola',
+        'anno_installazione': 'Anno Installazione',
+        'posizione': 'Posizione'
+    }
+}
+
+def format_date_italian(date_str):
+    """Formatta una data nel formato italiano DD/MM/YYYY HH:mm"""
+    if not date_str:
+        return '-'
+    
+    try:
+        # Prova vari formati comuni
+        for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%Y-%m-%dT%H:%M:%S']:
+            try:
+                dt = datetime.strptime(date_str, fmt)
+                return dt.strftime('%d/%m/%Y %H:%M')
+            except ValueError:
+                continue
+        # Se nessun formato funziona, ritorna il valore originale
+        return date_str
+    except:
+        return date_str
+
+def build_dynamic_query(source, selected_columns, filters, db_type, table_name, limit=None):
+    """
+    Costruisce query SQL dinamica con colonne selezionate e filtri.
+    Ritorna (query, params, column_labels)
+    """
+    # Costruisci SELECT con colonne specifiche
+    if selected_columns and len(selected_columns) > 0:
+        select_clause = ", ".join(selected_columns)
+    else:
+        select_clause = "*"
+    
+    query = f"SELECT {select_clause} FROM {table_name}"
+    where_clauses = []
+    params = []
+    
+    # Applica filtri
+    if filters:
+        for f in filters:
+            field = f.get('field')
+            operator = f.get('operator')
+            value = f.get('value')
+            value2 = f.get('value2')
+            
+            if not field or not operator:
+                continue
+            
+            # Costruisci clausola WHERE sicura
+            if operator == 'equals':
+                where_clauses.append(f"{field} = ?")
+                params.append(value)
+            elif operator == 'not_equals':
+                where_clauses.append(f"{field} != ?")
+                params.append(value)
+            elif operator == 'contains':
+                where_clauses.append(f"{field} LIKE ?")
+                params.append(f"%{value}%")
+            elif operator == 'not_contains':
+                where_clauses.append(f"{field} NOT LIKE ?")
+                params.append(f"%{value}%")
+            elif operator == 'starts_with':
+                where_clauses.append(f"{field} LIKE ?")
+                params.append(f"{value}%")
+            elif operator == 'ends_with':
+                where_clauses.append(f"{field} LIKE ?")
+                params.append(f"%{value}")
+            elif operator == 'greater_than':
+                where_clauses.append(f"{field} > ?")
+                params.append(value)
+            elif operator == 'less_than':
+                where_clauses.append(f"{field} < ?")
+                params.append(value)
+            elif operator == 'before':
+                where_clauses.append(f"{field} < ?")
+                params.append(value)
+            elif operator == 'after':
+                where_clauses.append(f"{field} > ?")
+                params.append(value)
+            elif operator == 'between':
+                where_clauses.append(f"{field} BETWEEN ? AND ?")
+                params.append(value)
+                params.append(value2)
+    
+    # Aggiungi WHERE
+    if where_clauses:
+        query += " WHERE " + " AND ".join(where_clauses)
+    
+    # Aggiungi LIMIT se specificato
+    if limit:
+        query += f" LIMIT {int(limit)}"
+    
+    # Ottieni label per le colonne selezionate
+    source_labels = COLUMN_LABELS.get(source, {})
+    if selected_columns:
+        column_labels = [source_labels.get(col, col) for col in selected_columns]
+    else:
+        column_labels = []
+    
+    return query, params, column_labels
+
 @bp.route('/dynamic-report', methods=['POST'])
 def dynamic_report():
     """
@@ -1776,6 +1934,7 @@ def dynamic_report():
     Body:
     {
         "source": "form_submissions" | "alert" | "scadenze_calendario" | "magazzino" | "assets",
+        "selected_columns": ["civico", "asset", "operatore", ...],  // NUOVO
         "filters": [
             {"field": "civico", "operator": "equals", "value": "123"},
             {"field": "data_creazione", "operator": "between", "value": "2026-01-01", "value2": "2026-03-31"}
@@ -1785,12 +1944,11 @@ def dynamic_report():
     
     Returns:
     {
-        "columns": ["id", "civico", "asset", ...],
         "data": [
-            {"id": 1, "civico": "123", ...},
+            {"Civico": "123", "Asset": "ASC-001", "Data Creazione": "25/03/2026 14:30", ...},
             ...
         ],
-        "total": 127  // Totale record senza limit
+        "total": 127
     }
     """
     try:
@@ -1801,10 +1959,11 @@ def dynamic_report():
             return jsonify({'error': 'Request body mancante'}), 400
         
         source = data.get('source')
+        selected_columns = data.get('selected_columns', [])
         filters = data.get('filters', [])
         limit = data.get('limit', 20)
         
-        logger.info(f"[DYNAMIC REPORT] Richiesta: source={source}, filters={len(filters)}, limit={limit}")
+        logger.info(f"[DYNAMIC REPORT] Richiesta: source={source}, columns={len(selected_columns)}, filters={len(filters)}, limit={limit}")
         
         if not source:
             return jsonify({'error': 'Campo source obbligatorio'}), 400
@@ -1825,65 +1984,10 @@ def dynamic_report():
         db_type, table_name = allowed_sources[source]
         logger.info(f"[DYNAMIC REPORT] Usando {db_type}.{table_name}")
         
-        # Costruisci query con filtri
-        query = f"SELECT * FROM {table_name}"
-        where_clauses = []
-        params = []
-        
-        if filters:
-            for f in filters:
-                field = f.get('field')
-                operator = f.get('operator')
-                value = f.get('value')
-                value2 = f.get('value2')
-                
-                # SQL injection protection: valida field name
-                # TODO: implementare whitelist completa dei campi per tabella
-                if not field or not operator:
-                    continue
-                
-                # Costruisci clausola WHERE sicura
-                if operator == 'equals':
-                    where_clauses.append(f"{field} = ?")
-                    params.append(value)
-                elif operator == 'not_equals':
-                    where_clauses.append(f"{field} != ?")
-                    params.append(value)
-                elif operator == 'contains':
-                    where_clauses.append(f"{field} LIKE ?")
-                    params.append(f"%{value}%")
-                elif operator == 'not_contains':
-                    where_clauses.append(f"{field} NOT LIKE ?")
-                    params.append(f"%{value}%")
-                elif operator == 'starts_with':
-                    where_clauses.append(f"{field} LIKE ?")
-                    params.append(f"{value}%")
-                elif operator == 'ends_with':
-                    where_clauses.append(f"{field} LIKE ?")
-                    params.append(f"%{value}")
-                elif operator == 'greater_than':
-                    where_clauses.append(f"{field} > ?")
-                    params.append(value)
-                elif operator == 'less_than':
-                    where_clauses.append(f"{field} < ?")
-                    params.append(value)
-                elif operator == 'before':
-                    where_clauses.append(f"{field} < ?")
-                    params.append(value)
-                elif operator == 'after':
-                    where_clauses.append(f"{field} > ?")
-                    params.append(value)
-                elif operator == 'between':
-                    where_clauses.append(f"{field} BETWEEN ? AND ?")
-                    params.append(value)
-                    params.append(value2)
-        
-        # Aggiungi WHERE se ci sono clausole
-        if where_clauses:
-            query += " WHERE " + " AND ".join(where_clauses)
-        
-        # Aggiungi limit per anteprima
-        query += f" LIMIT {int(limit)}"
+        # Costruisci query
+        query, params, column_labels = build_dynamic_query(
+            source, selected_columns, filters, db_type, table_name, limit
+        )
         
         logger.info(f"[DYNAMIC REPORT] Query: {query}")
         logger.info(f"[DYNAMIC REPORT] Params: {params}")
@@ -1896,30 +2000,33 @@ def dynamic_report():
             cursor.execute(query, params)
             rows = cursor.fetchall()
             
-            # Estrai nomi colonne
-            if rows and cursor.description:
-                columns = [description[0] for description in cursor.description]
-            else:
-                # Se non ci sono risultati, ottieni colonne dalla tabella
-                cursor.execute(f"PRAGMA table_info({table_name})")
-                table_info = cursor.fetchall()
-                columns = [col[1] for col in table_info]
+            # Converti in dict con label umane e formatta date
+            data_list = []
+            for row in rows:
+                row_dict = {}
+                for i, col_key in enumerate(selected_columns if selected_columns else [desc[0] for desc in cursor.description]):
+                    label = column_labels[i] if i < len(column_labels) else col_key
+                    value = row[col_key] if col_key in row.keys() else None
+                    
+                    # Formatta date
+                    if value and ('data' in col_key.lower() or 'created' in col_key.lower() or 'updated' in col_key.lower()):
+                        value = format_date_italian(str(value))
+                    
+                    row_dict[label] = value if value is not None else '-'
+                
+                data_list.append(row_dict)
             
-            # Converti in dict
-            data_list = [dict(row) for row in rows]
-            
-            # Count totale (senza limit) - usa stessi WHERE e params
-            count_query = f"SELECT COUNT(*) as total FROM {table_name}"
-            if where_clauses:
-                count_query += " WHERE " + " AND ".join(where_clauses)
-            
-            cursor.execute(count_query, params)  # Stessi parametri della query principale
-            total = cursor.fetchone()['total']
+            # Count totale (senza limit)
+            count_query, count_params, _ = build_dynamic_query(
+                source, ['COUNT(*) as total'], filters, db_type, table_name
+            )
+            cursor.execute(count_query, count_params)
+            total_row = cursor.fetchone()
+            total = total_row['total'] if total_row else 0
             
             logger.info(f"[DYNAMIC REPORT] Trovati {len(data_list)} record (totale: {total})")
             
             return jsonify({
-                'columns': columns,
                 'data': data_list,
                 'total': total
             })
@@ -1945,28 +2052,204 @@ def dynamic_report_pdf():
     """
     Genera PDF da Report Dinamico
     
-    TODO: Implementare generazione PDF con ReportLab
-    Per ora ritorna stub che può essere completato
+    Body: stesso di dynamic-report (senza limit)
+    
+    Returns: JSON con download_url
     """
     try:
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.lib import colors
+        from reportlab.lib.units import cm
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet
+        from io import BytesIO
+        
         data = request.json
+        
+        if not data:
+            return jsonify({'error': 'Request body mancante'}), 400
+        
         source = data.get('source')
+        selected_columns = data.get('selected_columns', [])
         filters = data.get('filters', [])
+        username = request.headers.get('X-Username', 'unknown')
         
-        # TODO: Implementare generazione PDF vera
-        # 1. Eseguire query completa (senza limit)
-        # 2. Generare PDF con ReportLab
-        # 3. Salvare in document_history
-        # 4. Ritornare file PDF
+        logger.info(f"[PDF GENERATION] Richiesta da {username}: source={source}, columns={len(selected_columns)}")
         
-        return jsonify({
-            'error': 'Generazione PDF in sviluppo',
-            'message': 'Questa funzionalità sarà completata a breve'
-        }), 501  # Not Implemented
+        if not source:
+            return jsonify({'error': 'Campo source obbligatorio'}), 400
+        
+        if not selected_columns or len(selected_columns) == 0:
+            return jsonify({'error': 'Seleziona almeno una colonna'}), 400
+        
+        # Determina database
+        allowed_sources = {
+            'form_submissions': ('compilazioni', 'form_submissions'),
+            'alert': ('compilazioni', 'alert'),
+            'scadenze_calendario': ('compilazioni', 'scadenze_calendario'),
+            'magazzino': ('gestman', 'magazzino_ricambi'),
+            'assets': ('gestman', 'assets')
+        }
+        
+        if source not in allowed_sources:
+            return jsonify({'error': f'Fonte dati non valida: {source}'}), 400
+        
+        db_type, table_name = allowed_sources[source]
+        
+        # Costruisci query SENZA limit (tutti i dati)
+        query, params, column_labels = build_dynamic_query(
+            source, selected_columns, filters, db_type, table_name, limit=None
+        )
+        
+        # Esegui query
+        conn = get_db_connection(db_type)
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            
+            if not rows or len(rows) == 0:
+                return jsonify({'error': 'Nessun dato trovato con i filtri specificati'}), 404
+            
+            # Prepara dati per PDF con formattazione date
+            table_data = [column_labels]  # Header
+            
+            for row in rows:
+                row_data = []
+                for col_key in selected_columns:
+                    value = row[col_key] if col_key in row.keys() else None
+                    
+                    # Formatta date
+                    if value and ('data' in col_key.lower() or 'created' in col_key.lower() or 'updated' in col_key.lower()):
+                        value = format_date_italian(str(value))
+                    
+                    row_data.append(str(value) if value is not None else '-')
+                
+                table_data.append(row_data)
+            
+            # Crea PDF
+            buffer = BytesIO()
+            
+            # Usa landscape per avere più spazio
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=landscape(A4) if len(selected_columns) > 4 else A4,
+                rightMargin=1*cm,
+                leftMargin=1*cm,
+                topMargin=1.5*cm,
+                bottomMargin=1*cm
+            )
+            
+            elements = []
+            styles = getSampleStyleSheet()
+            
+            # Titolo
+            source_label = dict(allowed_sources).get(source, source)
+            title = Paragraph(f"<b>Report Dinamico - {source.replace('_', ' ').title()}</b>", styles['Title'])
+            elements.append(title)
+            elements.append(Spacer(1, 0.5*cm))
+            
+            # Data generazione
+            date_text = Paragraph(f"Generato il: {datetime.now().strftime('%d/%m/%Y alle %H:%M')}", styles['Normal'])
+            elements.append(date_text)
+            elements.append(Spacer(1, 0.3*cm))
+            
+            # Info filtri
+            if filters and len(filters) > 0:
+                filter_text = Paragraph(f"Filtri applicati: {len(filters)}", styles['Normal'])
+                elements.append(filter_text)
+                elements.append(Spacer(1, 0.5*cm))
+            
+            # Tabella
+            table = Table(table_data)
+            
+            # Stile tabella
+            table.setStyle(TableStyle([
+                # Header
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2196F3')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                # Dati
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')]),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            
+            elements.append(table)
+            
+            # Footer
+            elements.append(Spacer(1, 1*cm))
+            footer_text = Paragraph(
+                f"<i>Totale record: {len(rows)} | Generato da: {username}</i>",
+                styles['Normal']
+            )
+            elements.append(footer_text)
+            
+            # Build PDF
+            doc.build(elements)
+            buffer.seek(0)
+            
+            # Salva in document_history
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"report_{source}_{timestamp}.pdf"
+            upload_folder = os.path.join(os.path.dirname(__file__), 'uploads')
+            os.makedirs(upload_folder, exist_ok=True)
+            
+            filepath = os.path.join(upload_folder, filename)
+            with open(filepath, 'wb') as f:
+                f.write(buffer.getvalue())
+            
+            # Inserisci in document_history
+            conn_comp = get_db_connection('compilazioni')
+            cursor_comp = conn_comp.cursor()
+            
+            cursor_comp.execute("""
+                INSERT INTO document_history 
+                (filename, created_by, created_at, document_content)
+                VALUES (?, ?, ?, ?)
+            """, (
+                filename,
+                username,
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                f"Report dinamico - Fonte: {source}, Record: {len(rows)}, Filtri: {len(filters)}"
+            ))
+            
+            conn_comp.commit()
+            conn_comp.close()
+            
+            download_url = f"/uploads/{filename}"
+            
+            logger.info(f"[PDF GENERATION] PDF generato: {filename} ({len(rows)} record)")
+            
+            return jsonify({
+                'success': True,
+                'download_url': download_url,
+                'filename': filename,
+                'records': len(rows)
+            })
+            
+        finally:
+            conn.close()
+        
+    except ImportError as e:
+        logger.error(f"[PDF GENERATION] Libreria mancante: {e}")
+        return jsonify({'error': 'ReportLab non installato. Contatta l\'amministratore.'}), 500
         
     except Exception as e:
-        logger.error(f"[PDF GENERATION ERROR] {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[PDF GENERATION] Errore: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Errore generazione PDF: {str(e)}'}), 500
 
 
 @bp.route('/dynamic-report/excel', methods=['POST'])
@@ -1974,26 +2257,135 @@ def dynamic_report_excel():
     """
     Esporta Excel da Report Dinamico
     
-    TODO: Implementare export Excel con openpyxl o xlsxwriter
+    Body: stesso di dynamic-report (senza limit)
+    
+    Returns: File .xlsx per download
     """
     try:
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, PatternFill, Alignment
+        except ImportError:
+            return jsonify({'error': 'openpyxl non installato. Installa con: pip install openpyxl'}), 500
+        
+        from io import BytesIO
+        from flask import send_file
+        
         data = request.json
+        
+        if not data:
+            return jsonify({'error': 'Request body mancante'}), 400
+        
         source = data.get('source')
+        selected_columns = data.get('selected_columns', [])
         filters = data.get('filters', [])
+        username = request.headers.get('X-Username', 'unknown')
         
-        # TODO: Implementare export Excel vero
-        # 1. Eseguire query completa
-        # 2. Generare file Excel
-        # 3. Ritornare file per download
+        logger.info(f"[EXCEL EXPORT] Richiesta da {username}: source={source}, columns={len(selected_columns)}")
         
-        return jsonify({
-            'error': 'Esportazione Excel in sviluppo',
-            'message': 'Questa funzionalità sarà completata a breve'
-        }), 501  # Not Implemented
+        if not source:
+            return jsonify({'error': 'Campo source obbligatorio'}), 400
+        
+        if not selected_columns or len(selected_columns) == 0:
+            return jsonify({'error': 'Seleziona almeno una colonna'}), 400
+        
+        # Determina database
+        allowed_sources = {
+            'form_submissions': ('compilazioni', 'form_submissions'),
+            'alert': ('compilazioni', 'alert'),
+            'scadenze_calendario': ('compilazioni', 'scadenze_calendario'),
+            'magazzino': ('gestman', 'magazzino_ricambi'),
+            'assets': ('gestman', 'assets')
+        }
+        
+        if source not in allowed_sources:
+            return jsonify({'error': f'Fonte dati non valida: {source}'}), 400
+        
+        db_type, table_name = allowed_sources[source]
+        
+        # Costruisci query SENZA limit
+        query, params, column_labels = build_dynamic_query(
+            source, selected_columns, filters, db_type, table_name, limit=None
+        )
+        
+        # Esegui query
+        conn = get_db_connection(db_type)
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            
+            if not rows or len(rows) == 0:
+                return jsonify({'error': 'Nessun dato trovato con i filtri specificati'}), 404
+            
+            # Crea workbook Excel
+            wb = Workbook()
+            ws = wb.active
+            ws.title = source[:31]  # Max 31 caratteri per nome foglio
+            
+            # Stile header
+            header_fill = PatternFill(start_color="2196F3", end_color="2196F3", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF")
+            header_alignment = Alignment(horizontal="center", vertical="center")
+            
+            # Scrivi header
+            for col_idx, label in enumerate(column_labels, start=1):
+                cell = ws.cell(row=1, column=col_idx, value=label)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = header_alignment
+            
+            # Scrivi dati con formattazione date
+            for row_idx, row in enumerate(rows, start=2):
+                for col_idx, col_key in enumerate(selected_columns, start=1):
+                    value = row[col_key] if col_key in row.keys() else None
+                    
+                    # Formatta date
+                    if value and ('data' in col_key.lower() or 'created' in col_key.lower() or 'updated' in col_key.lower()):
+                        value = format_date_italian(str(value))
+                    
+                    ws.cell(row=row_idx, column=col_idx, value=value if value is not None else '-')
+            
+            # Auto-resize colonne
+            for column_cells in ws.columns:
+                max_length = 0
+                column = column_cells[0].column_letter
+                for cell in column_cells:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(cell.value)
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                ws.column_dimensions[column].width = adjusted_width
+            
+            # Salva in buffer
+            buffer = BytesIO()
+            wb.save(buffer)
+            buffer.seek(0)
+            
+            # Nome file
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"report_{source}_{timestamp}.xlsx"
+            
+            logger.info(f"[EXCEL EXPORT] Excel generato: {filename} ({len(rows)} record)")
+            
+            return send_file(
+                buffer,
+                as_attachment=True,
+                download_name=filename,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            
+        finally:
+            conn.close()
         
     except Exception as e:
-        logger.error(f"[EXCEL EXPORT ERROR] {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"[EXCEL EXPORT] Errore: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Errore esportazione Excel: {str(e)}'}), 500
 
 
 @bp.route('/report-configs', methods=['POST'])
@@ -2005,6 +2397,7 @@ def save_report_config():
     {
         "name": "Report Mensile Non Conformità",
         "source": "alert",
+        "selected_columns": [...],
         "filters": [...]
     }
     
@@ -2015,6 +2408,7 @@ def save_report_config():
         data = request.json
         name = data.get('name')
         source = data.get('source')
+        selected_columns = data.get('selected_columns')
         filters = data.get('filters')
         username = request.headers.get('X-Username', 'unknown')
         
@@ -2026,6 +2420,7 @@ def save_report_config():
         #     id INTEGER PRIMARY KEY AUTOINCREMENT,
         #     name TEXT NOT NULL,
         #     source TEXT NOT NULL,
+        #     selected_columns TEXT,  -- JSON
         #     filters TEXT,  -- JSON
         #     created_by TEXT,
         #     created_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -2042,4 +2437,5 @@ def save_report_config():
     except Exception as e:
         logger.error(f"[SAVE CONFIG ERROR] {e}")
         return jsonify({'error': str(e)}), 500
+
 

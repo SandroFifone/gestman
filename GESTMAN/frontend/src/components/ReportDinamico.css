@@ -75,6 +75,48 @@
   margin-bottom: var(--spacing-md);
 }
 
+/* Griglia selezione colonne */
+.columns-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.column-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.column-checkbox:hover {
+  background: var(--gray-100);
+  border-color: var(--primary-color);
+}
+
+.column-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.column-checkbox span {
+  font-size: 0.95em;
+  color: var(--gray-700);
+}
+
+.column-checkbox input[type="checkbox"]:checked + span {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
 /* Lista filtri */
 .filters-list {
   display: flex;

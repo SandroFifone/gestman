@@ -17,6 +17,13 @@ const DATA_SOURCES = [
       { key: 'operatore', label: 'Operatore', type: 'text' },
       { key: 'created_at', label: 'Data Creazione', type: 'date' },
       { key: 'stato', label: 'Stato', type: 'select', options: ['bozza', 'inviato', 'approvato'] }
+    ],
+    recommendedColumns: [
+      { key: 'civico_numero', label: 'Civico' },
+      { key: 'asset_id', label: 'Asset' },
+      { key: 'operatore', label: 'Operatore' },
+      { key: 'created_at', label: 'Data Creazione' },
+      { key: 'stato', label: 'Stato' }
     ]
   },
   { 
@@ -32,6 +39,15 @@ const DATA_SOURCES = [
       { key: 'stato', label: 'Stato', type: 'select', options: ['aperto', 'in_carico', 'chiuso'] },
       { key: 'data_creazione', label: 'Data Creazione', type: 'date' },
       { key: 'data_chiusura', label: 'Data Chiusura', type: 'date' }
+    ],
+    recommendedColumns: [
+      { key: 'tipo', label: 'Tipo Alert' },
+      { key: 'titolo', label: 'Titolo' },
+      { key: 'civico', label: 'Civico' },
+      { key: 'asset', label: 'Asset' },
+      { key: 'stato', label: 'Stato' },
+      { key: 'operatore', label: 'Operatore' },
+      { key: 'data_creazione', label: 'Data Creazione' }
     ]
   },
   { 
@@ -46,6 +62,14 @@ const DATA_SOURCES = [
       { key: 'stato', label: 'Stato', type: 'select', options: ['programmata', 'completata', 'posticipata'] },
       { key: 'frequenza_tipo', label: 'Frequenza', type: 'text' },
       { key: 'operatore_completamento', label: 'Operatore', type: 'text' }
+    ],
+    recommendedColumns: [
+      { key: 'civico', label: 'Civico' },
+      { key: 'asset', label: 'Asset' },
+      { key: 'asset_tipo', label: 'Tipo Asset' },
+      { key: 'data_scadenza', label: 'Data Scadenza' },
+      { key: 'stato', label: 'Stato' },
+      { key: 'frequenza_tipo', label: 'Frequenza' }
     ]
   },
   { 
@@ -63,6 +87,14 @@ const DATA_SOURCES = [
       { key: 'quantita_minima', label: 'Quantità Minima', type: 'number' },
       { key: 'prezzo_unitario', label: 'Prezzo Unitario', type: 'number' },
       { key: 'attivo', label: 'Attivo', type: 'select', options: [0, 1] }
+    ],
+    recommendedColumns: [
+      { key: 'asset_tipo', label: 'Tipo Asset' },
+      { key: 'id_ricambio', label: 'Codice Ricambio' },
+      { key: 'costruttore', label: 'Costruttore' },
+      { key: 'modello', label: 'Modello' },
+      { key: 'quantita_disponibile', label: 'Quantità' },
+      { key: 'fornitore', label: 'Fornitore' }
     ]
   },
   { 
@@ -77,6 +109,14 @@ const DATA_SOURCES = [
       { key: 'matricola', label: 'Matricola', type: 'text' },
       { key: 'anno_installazione', label: 'Anno Installazione', type: 'number' },
       { key: 'posizione', label: 'Posizione', type: 'text' }
+    ],
+    recommendedColumns: [
+      { key: 'id_aziendale', label: 'ID Aziendale' },
+      { key: 'tipo', label: 'Tipo' },
+      { key: 'marca', label: 'Marca' },
+      { key: 'modello', label: 'Modello' },
+      { key: 'matricola', label: 'Matricola' },
+      { key: 'posizione', label: 'Posizione' }
     ]
   }
 ];
@@ -113,8 +153,8 @@ const OPERATORS = {
 const ReportDinamico = ({ username }) => {
   const [selectedSource, setSelectedSource] = useState('');
   const [filters, setFilters] = useState([]);
+  const [selectedColumns, setSelectedColumns] = useState([]);
   const [previewData, setPreviewData] = useState([]);
-  const [previewColumns, setPreviewColumns] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   
@@ -122,6 +162,22 @@ const ReportDinamico = ({ username }) => {
 
   // Ottieni configurazione fonte dati selezionata
   const getSourceConfig = () => DATA_SOURCES.find(s => s.key === selectedSource);
+
+  // Quando cambia fonte dati, inizializza colonne raccomandate
+  useEffect(() => {
+    setFilters([]);
+    setShowPreview(false);
+    setPreviewData([]);
+    
+    if (selectedSource) {
+      const sourceConfig = getSourceConfig();
+      if (sourceConfig?.recommendedColumns) {
+        setSelectedColumns(sourceConfig.recommendedColumns.map(c => c.key));
+      }
+    } else {
+      setSelectedColumns([]);
+    }
+  }, [selectedSource]);
 
   // Aggiungi nuovo filtro
   const addFilter = () => {
@@ -159,10 +215,44 @@ const ReportDinamico = ({ username }) => {
     return sourceConfig?.fields.find(f => f.key === fieldKey);
   };
 
+  // Toggle selezione colonna
+  const toggleColumn = (columnKey) => {
+    if (selectedColumns.includes(columnKey)) {
+      setSelectedColumns(selectedColumns.filter(c => c !== columnKey));
+    } else {
+      setSelectedColumns([...selectedColumns, columnKey]);
+    }
+  };
+
+  // Seleziona tutte le colonne
+  const selectAllColumns = () => {
+    const sourceConfig = getSourceConfig();
+    if (sourceConfig?.recommendedColumns) {
+      setSelectedColumns(sourceConfig.recommendedColumns.map(c => c.key));
+    }
+  };
+
+  // Deseleziona tutte le colonne
+  const deselectAllColumns = () => {
+    setSelectedColumns([]);
+  };
+
+  // Ottieni label colonna
+  const getColumnLabel = (columnKey) => {
+    const sourceConfig = getSourceConfig();
+    const column = sourceConfig?.recommendedColumns?.find(c => c.key === columnKey);
+    return column?.label || columnKey;
+  };
+
   // Anteprima risultati
   const loadPreview = async () => {
     if (!selectedSource) {
       showError('Seleziona una fonte dati');
+      return;
+    }
+
+    if (selectedColumns.length === 0) {
+      showError('Seleziona almeno una colonna da visualizzare');
       return;
     }
 
@@ -178,6 +268,7 @@ const ReportDinamico = ({ username }) => {
         },
         body: JSON.stringify({
           source: selectedSource,
+          selected_columns: selectedColumns,
           filters: filters.map(f => ({
             field: f.field,
             operator: f.operator,
@@ -205,17 +296,13 @@ const ReportDinamico = ({ username }) => {
 
       const data = await response.json();
       
-      // Estrai colonne e dati
-      const columns = data.columns || [];
-      const records = data.data || [];
-
-      setPreviewColumns(columns);
-      setPreviewData(records);
+      // Imposta anteprima - il backend restituisce già le label umane e date formattate
+      setPreviewData(data.data || []);
       setShowPreview(true);
 
     } catch (err) {
       console.error('Errore anteprima:', err);
-      setLoading(false); // Assicurati che loading sia false
+      setLoading(false);
       showError(err.message || 'Errore durante il caricamento dell\'anteprima');
     }
   };
@@ -224,6 +311,11 @@ const ReportDinamico = ({ username }) => {
   const generatePDF = async () => {
     if (!selectedSource) {
       showError('Seleziona una fonte dati');
+      return;
+    }
+
+    if (selectedColumns.length === 0) {
+      showError('Seleziona almeno una colonna da includere nel PDF');
       return;
     }
 
@@ -238,6 +330,7 @@ const ReportDinamico = ({ username }) => {
         },
         body: JSON.stringify({
           source: selectedSource,
+          selected_columns: selectedColumns,
           filters: filters.map(f => ({
             field: f.field,
             operator: f.operator,
@@ -247,28 +340,31 @@ const ReportDinamico = ({ username }) => {
         })
       });
 
+      setLoading(false);
+
       if (!response.ok) {
-        throw new Error('Errore durante la generazione del PDF');
+        let errorMsg = 'Errore durante la generazione del PDF';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || errorMsg;
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
 
-      // Download PDF
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `report_${selectedSource}_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      showAlert('PDF generato con successo!');
+      const data = await response.json();
+      
+      if (data.download_url) {
+        // Apri PDF in nuova finestra
+        window.open(data.download_url, '_blank');
+        showAlert('PDF generato con successo!');
+      } else {
+        throw new Error('URL di download non ricevuto');
+      }
 
     } catch (err) {
       console.error('Errore generazione PDF:', err);
-      showError(err.message || 'Errore durante la generazione del PDF');
-    } finally {
       setLoading(false);
+      showError(err.message || 'Errore durante la generazione del PDF');
     }
   };
 
@@ -276,6 +372,11 @@ const ReportDinamico = ({ username }) => {
   const exportExcel = async () => {
     if (!selectedSource) {
       showError('Seleziona una fonte dati');
+      return;
+    }
+
+    if (selectedColumns.length === 0) {
+      showError('Seleziona almeno una colonna da esportare');
       return;
     }
 
@@ -290,6 +391,7 @@ const ReportDinamico = ({ username }) => {
         },
         body: JSON.stringify({
           source: selectedSource,
+          selected_columns: selectedColumns,
           filters: filters.map(f => ({
             field: f.field,
             operator: f.operator,
@@ -299,8 +401,15 @@ const ReportDinamico = ({ username }) => {
         })
       });
 
+      setLoading(false);
+
       if (!response.ok) {
-        throw new Error('Errore durante l\'esportazione Excel');
+        let errorMsg = 'Errore durante l\'esportazione Excel';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || errorMsg;
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
 
       // Download Excel
@@ -318,9 +427,8 @@ const ReportDinamico = ({ username }) => {
 
     } catch (err) {
       console.error('Errore esportazione Excel:', err);
-      showError(err.message || 'Errore durante l\'esportazione Excel');
-    } finally {
       setLoading(false);
+      showError(err.message || 'Errore durante l\'esportazione Excel');
     }
   };
 
@@ -344,6 +452,7 @@ const ReportDinamico = ({ username }) => {
         body: JSON.stringify({
           name: configName,
           source: selectedSource,
+          selected_columns: selectedColumns,
           filters: filters
         })
       });
@@ -359,13 +468,6 @@ const ReportDinamico = ({ username }) => {
       showError(err.message || 'Errore durante il salvataggio della configurazione');
     }
   };
-
-  // Reset quando cambia la fonte
-  useEffect(() => {
-    setFilters([]);
-    setShowPreview(false);
-    setPreviewData([]);
-  }, [selectedSource]);
 
   return (
     <div className="report-dinamico-container">
@@ -407,6 +509,51 @@ const ReportDinamico = ({ username }) => {
           ))}
         </select>
       </div>
+
+      {/* Selezione colonne */}
+      {selectedSource && getSourceConfig()?.recommendedColumns && (
+        <div className="report-section">
+          <div className="report-filters-header">
+            <label className="report-label">
+              <strong>Colonne da visualizzare</strong>
+              {selectedColumns.length > 0 && (
+                <span className="filter-count"> ({selectedColumns.length} selezionate)</span>
+              )}
+            </label>
+            <div>
+              <button
+                className="btn btn-sm btn-secondary"
+                onClick={selectAllColumns}
+                disabled={loading}
+                style={{ marginRight: '5px' }}
+              >
+                ✓ Tutte
+              </button>
+              <button
+                className="btn btn-sm btn-secondary"
+                onClick={deselectAllColumns}
+                disabled={loading}
+              >
+                ✗ Nessuna
+              </button>
+            </div>
+          </div>
+
+          <div className="columns-grid">
+            {getSourceConfig().recommendedColumns.map(column => (
+              <label key={column.key} className="column-checkbox">
+                <input
+                  type="checkbox"
+                  checked={selectedColumns.includes(column.key)}
+                  onChange={() => toggleColumn(column.key)}
+                  disabled={loading}
+                />
+                <span>{column.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filtri */}
       {selectedSource && (
@@ -531,7 +678,7 @@ const ReportDinamico = ({ username }) => {
           <button
             className="btn btn-primary"
             onClick={loadPreview}
-            disabled={loading}
+            disabled={loading || selectedColumns.length === 0}
           >
             {loading ? '⏳ Caricamento...' : '👁️ Anteprima risultati'}
           </button>
@@ -540,14 +687,14 @@ const ReportDinamico = ({ username }) => {
             <button
               className="btn btn-success"
               onClick={generatePDF}
-              disabled={loading || !showPreview}
+              disabled={loading || selectedColumns.length === 0}
             >
               📄 Genera PDF
             </button>
             <button
               className="btn btn-success"
               onClick={exportExcel}
-              disabled={loading || !showPreview}
+              disabled={loading || selectedColumns.length === 0}
             >
               📊 Esporta Excel
             </button>
@@ -584,16 +731,18 @@ const ReportDinamico = ({ username }) => {
               <table className="preview-table">
                 <thead>
                   <tr>
-                    {previewColumns.map(col => (
-                      <th key={col}>{col}</th>
+                    {selectedColumns.map(colKey => (
+                      <th key={colKey}>{getColumnLabel(colKey)}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {previewData.map((row, idx) => (
                     <tr key={idx}>
-                      {previewColumns.map(col => (
-                        <td key={col}>{row[col] !== null && row[col] !== undefined ? String(row[col]) : '-'}</td>
+                      {selectedColumns.map(colKey => (
+                        <td key={colKey}>
+                          {row[colKey] !== null && row[colKey] !== undefined ? String(row[colKey]) : '-'}
+                        </td>
                       ))}
                     </tr>
                   ))}
